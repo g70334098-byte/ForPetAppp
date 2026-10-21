@@ -1,0 +1,19 @@
+별칭 이름: androiddebugkey
+생성 날짜: 2026. 10. 16.
+항목 유형: PrivateKeyEntry
+인증서 체인 길이: 1
+인증서[1]:
+keytool 오류: java.util.IllegalFormatConversionException: d != java.lang.String
+java.util.IllegalFormatConversionException: d != java.lang.String
+	at java.base/java.util.Formatter$FormatSpecifier.failConversion(Unknown Source)
+	at java.base/java.util.Formatter$FormatSpecifier.printInteger(Unknown Source)
+	at java.base/java.util.Formatter$FormatSpecifier.print(Unknown Source)
+	at java.base/java.util.Formatter.format(Unknown Source)
+	at java.base/java.util.Formatter.format(Unknown Source)
+	at java.base/java.lang.String.format(Unknown Source)
+	at java.base/sun.security.tools.keytool.Main.withWeakConstraint(Unknown Source)
+	at java.base/sun.security.tools.keytool.Main.printX509Cert(Unknown Source)
+	at java.base/sun.security.tools.keytool.Main.doPrintEntry(Unknown Source)
+	at java.base/sun.security.tools.keytool.Main.doCommands(Unknown Source)
+	at java.base/sun.security.tools.keytool.Main.run(Unknown Source)
+	at java.base/sun.security.tools.keytool.Main.main(Unknown Source)

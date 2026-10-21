@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="Theme.Forpetapp" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#F8FAFC</item>
+        <item name="android:windowSplashScreenBackground" tools:targetApi="s">#0284C7</item>
+        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="s">@drawable/ic_launcher_foreground</item>
+    </style>
+</resources>

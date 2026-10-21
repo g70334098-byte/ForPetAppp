@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "797590460763",
+    "project_id": "forpetapp-c603e",
+    "storage_bucket": "forpetapp-c603e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:797590460763:android:95849f156161f738f9e27e",
+        "android_client_info": {
+          "package_name": "com.example.forpetapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3T4gWVuK2S_V9FCF8dMjVUPNmNg_tuL4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
