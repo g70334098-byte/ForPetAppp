@@ -1108,6 +1108,7 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
         mutableStateListOf<BookingItem>()
     }
     var locationStatusText by remember { mutableStateOf("📍 실제 GPS 위치 확인 중...") }
+    var showNotificationCenter by remember { mutableStateOf(false) }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -1248,6 +1249,10 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                 )
             }
         }
+    }
+
+    if (showNotificationCenter) {
+        NotificationCenterDialog(onDismiss = { showNotificationCenter = false })
     }
 }
 
@@ -1805,6 +1810,7 @@ fun BookingHistoryScreen(
     var showBodycamForBooking by remember { mutableStateOf<BookingItem?>(null) }
     var showTimelineForBooking by remember { mutableStateOf<BookingItem?>(null) }
     var showChatForBooking by remember { mutableStateOf<BookingItem?>(null) }
+    var showReceiptForBooking by remember { mutableStateOf<BookingItem?>(null) }
 
     val activeList = bookingList.filter { !it.isCompleted }
     val pastList = bookingList.filter { it.isCompleted }
@@ -2356,17 +2362,32 @@ fun BookingHistoryScreen(
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = { selectedReportBooking = null },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("확인 완료", fontWeight = FontWeight.Bold)
+                    OutlinedButton(
+                        onClick = {
+                            showReceiptForBooking = report
+                        },
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("🧾 전자 영수증 보기", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0284C7))
+                    }
+
+                    Button(
+                        onClick = { selectedReportBooking = null },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                    ) {
+                        Text("확인 완료", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         )
     }
 
-    // 3. 🗺️ GPS지도, 📹 바디캠, 📍 타임라인, 💬 1:1 안심 톡 다이얼로그 호출
+    // 3. 🗺️ GPS지도, 📹 바디캠, 📍 타임라인, 💬 1:1 안심 톡, 🧾 전자 영수증 다이얼로그 호출
     showGpsMapForBooking?.let { booking ->
         LiveGpsMapDialog(booking = booking, onDismiss = { showGpsMapForBooking = null })
     }
@@ -2382,6 +2403,246 @@ fun BookingHistoryScreen(
     showChatForBooking?.let { booking ->
         DriverChatDialog(booking = booking, onDismiss = { showChatForBooking = null })
     }
+
+    showReceiptForBooking?.let { booking ->
+        DigitalReceiptDialog(booking = booking, onDismiss = { showReceiptForBooking = null })
+    }
+}
+
+// 1번: 🩺 보듬펫 AI 반려동물 건강 증상 상담 챗봇 다이얼로그
+@Composable
+fun AiHealthChatDialog(
+    onDismiss: () -> Unit,
+    onGoToBooking: () -> Unit
+) {
+    var inputQuery by remember { mutableStateOf("") }
+    val chatLogs = remember {
+        mutableStateListOf(
+            Pair("AI 수의사 보조 🤖", "안녕하세요! 🐾 보듬펫 AI 반려동물 건강 상담원입니다. 아이의 증상(구토, 기침, 절뚝거림 등)을 말씀해 주시면 1차 예상 진료 과목과 응급 수치를 안내해 드립니다.")
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("🩺", fontSize = 22.sp)
+                Text("보듬펫 AI 반려동물 건강 증상 상담봇", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(260.dp)
+                        .background(Color(0xFFF1F5F9), RoundedCornerShape(10.dp))
+                        .padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(chatLogs.size) { index ->
+                        val (sender, text) = chatLogs[index]
+                        val isAi = sender.contains("AI")
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = if (isAi) Alignment.Start else Alignment.End
+                        ) {
+                            Text(sender, fontSize = 10.sp, color = Color.Gray, modifier = Modifier.padding(horizontal = 4.dp))
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isAi) Color.White else Color(0xFF0284C7)
+                            ) {
+                                Text(
+                                    text = text,
+                                    fontSize = 12.sp,
+                                    color = if (isAi) Color(0xFF0F172A) else Color.White,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    lineHeight = 16.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    OutlinedTextField(
+                        value = inputQuery,
+                        onValueChange = { inputQuery = it },
+                        placeholder = { Text("증상 입력 (예: 아이가 토해요)") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    Button(
+                        onClick = {
+                            if (inputQuery.isNotEmpty()) {
+                                chatLogs.add(Pair("보호자님", inputQuery))
+                                val userQ = inputQuery
+                                inputQuery = ""
+
+                                val aiResponse = when {
+                                    userQ.contains("토") || userQ.contains("구토") -> "🩺 [1차 분석 완료]\n• 추천 진료 과목: 내과 / 24시 응급센터\n• 응급도: 보통 ~ 높음 (지속 구토 시 탈수 주의)\n• 행동 지침: 음식물 섭취 일시 중단 후 수의사 진료를 권장합니다."
+                                    userQ.contains("다리") || userQ.contains("절뚝") || userQ.contains("슬개골") -> "🩺 [1차 분석 완료]\n• 추천 진료 과목: 정형외과 / 외과\n• 응급도: 보통 (슬개골 탈구 또는 십자인대 파열 가능성)\n• 행동 지침: 뛰거나 계단 오르기를 금지하고 안심 이송으로 병원에 방문하세요."
+                                    else -> "🩺 [1차 분석 완료]\n• 추천 진료 과목: 일반 내과 / 구강 치과\n• 응급도: 보통\n• 행동 지침: 아이 상태를 관찰하며 보듬펫 안심 진료 대행 예약을 추천해 드립니다."
+                                }
+                                chatLogs.add(Pair("AI 수의사 보조 🤖", aiResponse))
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                    ) {
+                        Text("상담", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onDismiss()
+                    onGoToBooking()
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+            ) {
+                Text("🏥 바로 진료 대행 예약하기", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("닫기") }
+        }
+    )
+}
+
+// 2번: 🔔 보듬펫 실시간 안심 알림 센터 다이얼로그
+@Composable
+fun NotificationCenterDialog(onDismiss: () -> Unit) {
+    val notifications = listOf(
+        "🚗 [이송 완료]" to "'초코' 아이가 명지24시온누리동물병원에 무사히 도착했습니다. (10분 전)",
+        "🎁 [포인트 적립]" to "친구 추천 이벤트 코드가 등록되어 3,000 P가 적립되었습니다. (1시간 전)",
+        "📄 [리포트 도착]" to "박찬헌 드라이버님이 전송한 수의사 진료 결과 리포트가 도착했습니다. (어제)",
+        "💉 [접종 D-Day]" to "'초코' 아이의 광견병 예방접종 예정일이 14일 남았습니다. (2일 전)"
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("🔔", fontSize = 20.sp)
+                Text("보듬펫 실시간 알림 센터", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            }
+        },
+        text = {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(320.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(notifications.size) { index ->
+                    val (tag, desc) = notifications[index]
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(tag, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0284C7))
+                            Text(desc, fontSize = 11.sp, color = Color(0xFF0F172A), lineHeight = 15.sp)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))) {
+                Text("확인", fontWeight = FontWeight.Bold)
+            }
+        }
+    )
+}
+
+// 4번: 🧾 보듬펫 전자 영수증 & 진료비 세부 정산서 보관함 다이얼로그
+@Composable
+fun DigitalReceiptDialog(
+    booking: BookingItem,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("🧾", fontSize = 22.sp)
+                Text("보듬펫 전자 정산 영수증", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("상호명", fontSize = 12.sp, color = Color.Gray)
+                            Text("보듬펫 (BodeumPet) 안심 이동 케어", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("대표자", fontSize = 12.sp, color = Color.Gray)
+                            Text("최지훈, 이선하", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("이용 일시", fontSize = 12.sp, color = Color.Gray)
+                            Text(booking.time, fontSize = 12.sp)
+                        }
+                        HorizontalDivider()
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("보듬펫 안심 픽업 기본료", fontSize = 12.sp)
+                            Text("30,000 원", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("진료 대행 서비스 수수료", fontSize = 12.sp)
+                            Text("5,000 원", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("보유 포인트 차감 할인", fontSize = 12.sp, color = Color(0xFFD97706))
+                            Text("- 3,000 원", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                        }
+                        HorizontalDivider()
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("최종 결제 금액", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0F172A))
+                            Text(booking.estimatedPrice, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0284C7))
+                        }
+                        Text("결제 수단: 대표 등록 카드 (****-****-****-5394)", fontSize = 10.sp, color = Color.Gray)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))) {
+                Text("확인 완료", fontWeight = FontWeight.Bold)
+            }
+        }
+    )
 }
 
 // 💰 포인트 내역 데이터 클래스
@@ -3182,6 +3443,7 @@ fun HomeScreenContent(
     var showAllReviewsDialog by remember { mutableStateOf(false) }
     var showNoticeDialog by remember { mutableStateOf(false) }
     var showEventDialog by remember { mutableStateOf(false) }
+    var showAiChatDialog by remember { mutableStateOf(false) }
     var selectedHospital by remember { mutableStateOf<HospitalInfo?>(null) }
 
     val reviewsList = remember {
@@ -3313,6 +3575,48 @@ fun HomeScreenContent(
                         }
                     }
                     Text("참여하기 ➔", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                }
+            }
+        }
+
+        // 1-4. 🩺 AI 반려동물 건강 증상 상담봇 배너
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showAiChatDialog = true },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE0F2FE)),
+                border = BorderStroke(1.dp, Color(0xFFBAE6FD))
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("🩺", fontSize = 28.sp)
+                        Column {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text("보듬펫 AI 건강 증상 상담봇", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0369A1))
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = Color(0xFF0284C7)
+                                ) {
+                                    Text("AI 봇 🤖", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                }
+                            }
+                            Text("아이의 증상(구토, 기침 등)을 적으면 진료 과목을 안내해 드립니다.", fontSize = 11.sp, color = Color(0xFF0284C7))
+                        }
+                    }
+                    Text("상담하기 ➔", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                 }
             }
         }
@@ -3856,6 +4160,13 @@ fun HomeScreenContent(
                     Text("확인")
                 }
             }
+        )
+    }
+
+    if (showAiChatDialog) {
+        AiHealthChatDialog(
+            onDismiss = { showAiChatDialog = false },
+            onGoToBooking = { showBookingDialog = true }
         )
     }
 
@@ -5262,6 +5573,79 @@ fun MyPetDetailScreen() {
                         modifier = Modifier.height(36.dp)
                     ) {
                         Text("📷 갤러리에서 사진 선택", fontSize = 12.sp, color = Color(0xFF0284C7))
+                    }
+                }
+            }
+        }
+
+        // 💉 예방접종 & 건강 D-Day 수첩 카드
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("💉 예방접종 & 건강 D-Day 수첩", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                        TextButton(
+                            onClick = {
+                                Toast.makeText(context, "+ 신규 D-Day 건강 일정이 등록되었습니다.", Toast.LENGTH_SHORT).show()
+                            },
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text("+ 일정 추가", fontSize = 12.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFEFF6FF),
+                            border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text("💉 광견병 백신", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF1E40AF))
+                                Text("D-14", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF2563EB))
+                                Text("예정: 11.01", fontSize = 9.sp, color = Color.Gray)
+                            }
+                        }
+
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFFEF3C7),
+                            border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text("💊 심장사상충", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF92400E))
+                                Text("D-3", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFFD97706))
+                                Text("예정: 10.21", fontSize = 9.sp, color = Color.Gray)
+                            }
+                        }
+
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFF1F5F9)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text("🩺 건강검진", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF475569))
+                                Text("D-30", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF0284C7))
+                                Text("예정: 11.17", fontSize = 9.sp, color = Color.Gray)
+                            }
+                        }
                     }
                 }
             }
