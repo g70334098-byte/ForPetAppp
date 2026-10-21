@@ -3,7 +3,7 @@
 
     <style name="Theme.Forpetapp" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">#F8FAFC</item>
-        <item name="android:windowSplashScreenBackground" tools:targetApi="s">#0284C7</item>
+        <item name="android:windowSplashScreenBackground" tools:targetApi="s">#F472B6</item>
         <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="s">@drawable/ic_launcher_foreground</item>
     </style>
 </resources>
