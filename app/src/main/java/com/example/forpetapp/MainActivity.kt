@@ -129,7 +129,7 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("🐾 보듬펫 (BodeumPet)", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+        Text("🐾 발자국동행", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
         Text("반려동물 안심 이동 케어 서비스", fontSize = 14.sp, color = Color.Gray)
 
         Spacer(modifier = Modifier.height(40.dp))
@@ -162,7 +162,7 @@ fun LoginScreen(
                         } catch (_: Exception) {
                             Toast.makeText(context, "Google 계정 간편 연동으로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
                         }
-                        onLoginSuccess(false, "보듬펫 회원님")
+                        onLoginSuccess(false, "발자국동행 회원님")
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -188,22 +188,22 @@ fun LoginScreen(
                                     if (error != null) {
                                         UserApiClient.instance.loginWithKakaoAccount(context) { token2, error2 ->
                                             Toast.makeText(context, "💛 카카오 계정으로 간편 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                                            onLoginSuccess(false, "보듬펫 회원님")
+                                            onLoginSuccess(false, "발자국동행 회원님")
                                         }
                                     } else {
                                         Toast.makeText(context, "💛 카카오톡 원클릭 연동으로 간편 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                                        onLoginSuccess(false, "보듬펫 회원님")
+                                        onLoginSuccess(false, "발자국동행 회원님")
                                     }
                                 }
                             } else {
                                 UserApiClient.instance.loginWithKakaoAccount(context) { token, error ->
                                     Toast.makeText(context, "💛 카카오 계정으로 간편 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                                    onLoginSuccess(false, "보듬펫 회원님")
+                                    onLoginSuccess(false, "발자국동행 회원님")
                                 }
                             }
                         } catch (_: Exception) {
                             Toast.makeText(context, "💛 카카오톡 간편 연동으로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                            onLoginSuccess(false, "보듬펫 회원님")
+                            onLoginSuccess(false, "발자국동행 회원님")
                         }
                     },
                     modifier = Modifier
@@ -366,7 +366,7 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
                 hospitalName = "명지24시온누리메디컬센터",
                 time = "오늘 오전 10:00",
                 status = "2. 자택 도착 및 아이 안심 픽업 완료 🐶",
-                vehicleInfo = "보듬펫 기아 레이 펫전용차 (부산 38가 5394)",
+                vehicleInfo = "발자국동행 기아 레이 펫전용차 (부산 38가 5394)",
                 symptomNote = "슬개골 검진 및 귀 세정 처방 요청 / 출입: 도어락 비밀번호",
                 estimatedPrice = "35,000원 (가결제)"
             ),
@@ -379,7 +379,7 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
                 hospitalName = "하단24시웰니스동물병원",
                 time = "오늘 오후 02:00",
                 status = "1. 픽업 출동 출발 🚗",
-                vehicleInfo = "보듬펫 24시 응급 전용차",
+                vehicleInfo = "발자국동행 24시 응급 전용차",
                 symptomNote = "급성 식욕부진 / 출입: 보호자 직접 배웅",
                 estimatedPrice = "50,000원 (가결제)"
             )
@@ -711,7 +711,7 @@ fun AdminMainDashboardScreen(adminName: String = "최지훈 대표님", onLogout
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text("👑", fontSize = 20.sp)
-                            Text("보듬펫 (BodeumPet) 총괄 관리자 대시보드", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text("발자국동행 총괄 관리자 대시보드", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                         Text("대표 계정: $adminName (전체 시스템 통제 권한)", fontSize = 11.sp, color = Color(0xFFD97706), fontWeight = FontWeight.Bold)
                     }
@@ -742,7 +742,7 @@ fun AdminMainDashboardScreen(adminName: String = "최지훈 대표님", onLogout
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("📊 보듬펫 실시간 실적 & 운용 현황 요약", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF38BDF8))
+                    Text("📊 발자국동행 실시간 실적 & 운용 현황 요약", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF38BDF8))
                     HorizontalDivider(color = Color.White.copy(alpha = 0.2f))
 
                     Row(
@@ -980,7 +980,7 @@ fun SignUpScreen(onSignUpSuccess: () -> Unit, onBackToLogin: () -> Unit) {
     ) {
         Text("📝 회원가입", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
         Spacer(modifier = Modifier.height(8.dp))
-        Text("보듬펫 서비스는 구글 계정으로 간편 가입할 수 있습니다.", fontSize = 13.sp, color = Color.Gray, textAlign = TextAlign.Center)
+        Text("발자국동행 서비스는 구글 계정으로 간편 가입할 수 있습니다.", fontSize = 13.sp, color = Color.Gray, textAlign = TextAlign.Center)
 
         Spacer(modifier = Modifier.height(30.dp))
 
@@ -1022,7 +1022,7 @@ data class BookingItem(
     val hospitalName: String,
     val time: String,
     val status: String = "예약 확정 (배차 완료)",
-    val vehicleInfo: String = "보듬펫 기아 레이(RAY) 펫전용차",
+    val vehicleInfo: String = "발자국동행 기아 레이(RAY) 펫전용차",
     val symptomNote: String,
     val estimatedPrice: String = "30,000원 (가결제)",
     val isCompleted: Boolean = false,
@@ -1100,7 +1100,7 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
     val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
     var userPoints by remember { mutableIntStateOf(3000) }
-    var userNickname by remember { mutableStateOf("보듬펫보호자") }
+    var userNickname by remember { mutableStateOf("발자국동행보호자") }
     var userPhone by remember { mutableStateOf("010-1234-5678") }
     val userReferralCode = remember { "K7TB94" }
 
@@ -1145,7 +1145,7 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                     Column {
                         Text(
                             when(selectedTab) {
-                                0 -> "🐾 보듬펫 (BodeumPet)"
+                                0 -> "🐾 발자국동행"
                                 1 -> "📅 예약 내역"
                                 2 -> "🐾 내 반려동물"
                                 else -> "👤 마이페이지"
@@ -1324,7 +1324,7 @@ fun LiveGpsMapDialog(
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text("🏡 자택 ➔ 🏥 ${booking.hospitalName}", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
-                            Text("보듬펫 기아 레이 (부산 38가 5394)", fontSize = 11.sp, color = Color(0xFF38BDF8))
+                            Text("발자국동행 기아 레이 (부산 38가 5394)", fontSize = 11.sp, color = Color(0xFF38BDF8))
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text("약 6분 후 도착", fontWeight = FontWeight.Bold, color = Color(0xFF4ADE80), fontSize = 13.sp)
@@ -1687,7 +1687,7 @@ fun DriverChatDialog(
 
     val chatMessages = remember {
         mutableStateListOf(
-            ChatMessage(senderName = "박찬헌 기사님", isDriver = true, messageText = "안녕하세요 보호자님! 보듬펫 박찬헌 기사입니다. '${booking.petName}' 아이 무사히 픽업 완료하였습니다. 레이 안심 시트에 탑승해 이동 중입니다 🐶", timestamp = "오후 02:08"),
+            ChatMessage(senderName = "박찬헌 기사님", isDriver = true, messageText = "안녕하세요 보호자님! 발자국동행 박찬헌 기사입니다. '${booking.petName}' 아이 무사히 픽업 완료하였습니다. 레이 안심 시트에 탑승해 이동 중입니다 🐶", timestamp = "오후 02:08"),
             ChatMessage(senderName = "박찬헌 기사님", isDriver = true, messageText = "실시간 바디캠 모니터링 및 차내 온도는 22.5도로 쾌적하게 유지 중입니다!", timestamp = "오후 02:10")
         )
     }
@@ -1707,7 +1707,7 @@ fun DriverChatDialog(
                     Text("👨‍✈️", fontSize = 22.sp)
                     Column {
                         Text("박찬헌 코디네이터 (드라이버)", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                        Text("🟢 실시간 온라인 (보듬펫 안심 톡)", fontSize = 10.sp, color = Color(0xFF16A34A), fontWeight = FontWeight.Bold)
+                        Text("🟢 실시간 온라인 (발자국동행 안심 톡)", fontSize = 10.sp, color = Color(0xFF16A34A), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -2115,7 +2115,7 @@ fun BookingHistoryScreen(
     // 1. 드라이버 및 차량 정보 팝업 다이얼로그
     selectedBookingForDetail?.let { booking ->
         val driverName = "박찬헌 드라이버"
-        val driverTitle = "보듬펫 전문 픽업 코디네이터"
+        val driverTitle = "발자국동행 전문 픽업 코디네이터"
         val driverPhone = "010-2654-5394"
         val vehicleNumber = "부산 38가 5394"
         val driverGpsLocation = "부산 강서구 명지국제8로 230 인근"
@@ -2273,7 +2273,7 @@ fun BookingHistoryScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text("📄", fontSize = 22.sp)
-                        Text("보듬펫 수의사 진료 리포트", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text("발자국동행 수의사 진료 리포트", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     }
                     Text("${report.petName} 아이의 제휴 병원 진료 상세 결과 리포트입니다.", fontSize = 11.sp, color = Color(0xFF0284C7))
                 }
@@ -2418,7 +2418,7 @@ fun AiHealthChatDialog(
     var inputQuery by remember { mutableStateOf("") }
     val chatLogs = remember {
         mutableStateListOf(
-            Pair("AI 수의사 보조 🤖", "안녕하세요! 🐾 보듬펫 AI 반려동물 건강 상담원입니다. 아이의 증상(구토, 기침, 절뚝거림 등)을 말씀해 주시면 1차 예상 진료 과목과 응급 수치를 안내해 드립니다.")
+            Pair("AI 수의사 보조 🤖", "안녕하세요! 🐾 발자국동행 AI 반려동물 건강 상담원입니다. 아이의 증상(구토, 기침, 절뚝거림 등)을 말씀해 주시면 1차 예상 진료 과목과 응급 수치를 안내해 드립니다.")
         )
     }
 
@@ -2427,7 +2427,7 @@ fun AiHealthChatDialog(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("🩺", fontSize = 22.sp)
-                Text("보듬펫 AI 반려동물 건강 증상 상담봇", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("발자국동행 AI 반려동물 건강 증상 상담봇", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         },
         text = {
@@ -2489,7 +2489,7 @@ fun AiHealthChatDialog(
                                 val aiResponse = when {
                                     userQ.contains("토") || userQ.contains("구토") -> "🩺 [1차 분석 완료]\n• 추천 진료 과목: 내과 / 24시 응급센터\n• 응급도: 보통 ~ 높음 (지속 구토 시 탈수 주의)\n• 행동 지침: 음식물 섭취 일시 중단 후 수의사 진료를 권장합니다."
                                     userQ.contains("다리") || userQ.contains("절뚝") || userQ.contains("슬개골") -> "🩺 [1차 분석 완료]\n• 추천 진료 과목: 정형외과 / 외과\n• 응급도: 보통 (슬개골 탈구 또는 십자인대 파열 가능성)\n• 행동 지침: 뛰거나 계단 오르기를 금지하고 안심 이송으로 병원에 방문하세요."
-                                    else -> "🩺 [1차 분석 완료]\n• 추천 진료 과목: 일반 내과 / 구강 치과\n• 응급도: 보통\n• 행동 지침: 아이 상태를 관찰하며 보듬펫 안심 진료 대행 예약을 추천해 드립니다."
+                                    else -> "🩺 [1차 분석 완료]\n• 추천 진료 과목: 일반 내과 / 구강 치과\n• 응급도: 보통\n• 행동 지침: 아이 상태를 관찰하며 발자국동행 안심 진료 대행 예약을 추천해 드립니다."
                                 }
                                 chatLogs.add(Pair("AI 수의사 보조 🤖", aiResponse))
                             }
@@ -2533,7 +2533,7 @@ fun NotificationCenterDialog(onDismiss: () -> Unit) {
         title = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("🔔", fontSize = 20.sp)
-                Text("보듬펫 실시간 알림 센터", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Text("발자국동행 실시간 알림 센터", fontWeight = FontWeight.Bold, fontSize = 17.sp)
             }
         },
         text = {
@@ -2580,7 +2580,7 @@ fun DigitalReceiptDialog(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("🧾", fontSize = 22.sp)
-                Text("보듬펫 전자 정산 영수증", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("발자국동행 전자 정산 영수증", fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
         },
         text = {
@@ -2602,7 +2602,7 @@ fun DigitalReceiptDialog(
                     ) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("상호명", fontSize = 12.sp, color = Color.Gray)
-                            Text("보듬펫 (BodeumPet) 안심 이동 케어", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text("발자국동행 안심 이동 케어", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("대표자", fontSize = 12.sp, color = Color.Gray)
@@ -2615,7 +2615,7 @@ fun DigitalReceiptDialog(
                         HorizontalDivider()
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("보듬펫 안심 픽업 기본료", fontSize = 12.sp)
+                            Text("발자국동행 안심 픽업 기본료", fontSize = 12.sp)
                             Text("30,000 원", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -2660,7 +2660,7 @@ data class PointLog(
 fun MyPageScreen(
     userPoints: Int = 3000,
     userReferralCode: String = "K7TB94",
-    userNickname: String = "보듬펫보호자",
+    userNickname: String = "발자국동행보호자",
     userPhone: String = "010-1234-5678",
     onUpdateProfile: (String, String) -> Unit = { _, _ -> }
 ) {
@@ -2957,7 +2957,7 @@ fun MyPageScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("🎧 보듬펫 고객센터", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
+                    Text("🎧 발자국동행 고객센터", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
                     
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
@@ -3081,7 +3081,7 @@ fun MyPageScreen(
                     item {
                         Text("제 1 조 (목적 및 서비스 개요)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
                         Text(
-                            "본 약관은 '보듬펫(BodeumPet)'이 제공하는 반려동물 안심 이동 케어, 병원 진료 대행, 24시 야간 응급 출동 서비스 및 이에 수반되는 제반 서비스의 이용 조건 및 절차를 규정함을 목적으로 합니다.",
+                            "본 약관은 '발자국동행'이 제공하는 반려동물 안심 이동 케어, 병원 진료 대행, 24시 야간 응급 출동 서비스 및 이에 수반되는 제반 서비스의 이용 조건 및 절차를 규정함을 목적으로 합니다.",
                             fontSize = 11.sp,
                             color = Color(0xFF475569),
                             lineHeight = 15.sp
@@ -3429,7 +3429,7 @@ fun HomeScreenContent(
     userPoints: Int = 3000,
     onUpdatePoints: (Int) -> Unit = {},
     userReferralCode: String = "K7TB94",
-    userNickname: String = "보듬펫보호자",
+    userNickname: String = "발자국동행보호자",
     userPhone: String = "010-1234-5678",
     onAddBooking: (BookingItem) -> Unit = {},
     onNavigateToBookingTab: () -> Unit = {}
@@ -3453,7 +3453,7 @@ fun HomeScreenContent(
                 petInfo = "말티즈 (초코, 3살)",
                 rating = 5,
                 serviceType = "🏥 병원 진료 대행",
-                content = "회사 업무 때문에 병원에 직접 못 갔는데, 보듬펫 레이 차량으로 안전하게 진료받고 수의사 소견서 리포트까지 전달받아서 너무 안심되었어요!",
+                content = "회사 업무 때문에 병원에 직접 못 갔는데, 발자국동행 레이 차량으로 안전하게 진료받고 수의사 소견서 리포트까지 전달받아서 너무 안심되었어요!",
                 dateText = "2026.10.18"
             ),
             ReviewItem(
@@ -3500,7 +3500,7 @@ fun HomeScreenContent(
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(text = "오늘 우리 아이 어디로 갈까요?", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = "🚙 넓은 공간의 '보듬펫 기아 레이(RAY)' 펫 전용차량이 준비되어 있습니다.", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Medium)
+                    Text(text = "🚙 넓은 공간의 '발자국동행 기아 레이(RAY)' 펫 전용차량이 준비되어 있습니다.", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -3605,7 +3605,7 @@ fun HomeScreenContent(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Text("보듬펫 AI 건강 증상 상담봇", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0369A1))
+                                Text("발자국동행 AI 건강 증상 상담봇", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0369A1))
                                 Surface(
                                     shape = RoundedCornerShape(4.dp),
                                     color = Color(0xFF0284C7)
@@ -3730,7 +3730,7 @@ fun HomeScreenContent(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text("⭐", fontSize = 18.sp)
-                    Text("보듬펫 생생 이용 후기 (${reviewsList.size})", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
+                    Text("발자국동행 생생 이용 후기 (${reviewsList.size})", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -3886,7 +3886,7 @@ fun HomeScreenContent(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("보듬펫 (BodeumPet) 안심 이동 케어 서비스", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF334155))
+                        Text("발자국동행 안심 이동 케어 서비스", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF334155))
                         Text("대표: 최지훈, 이선하", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF0F172A))
                     }
                     HorizontalDivider(color = Color(0xFFCBD5E1))
@@ -3898,7 +3898,7 @@ fun HomeScreenContent(
                         Text("사업자등록번호: 등록 준비 중", fontSize = 10.sp, color = Color.Gray)
                         Text("고객센터: 010-3786-5394", fontSize = 10.sp, color = Color.Gray)
                     }
-                    Text("Copyright © BodeumPet Corp. All rights reserved.", fontSize = 9.sp, color = Color.LightGray)
+                    Text("Copyright © Baljaguk Corp. All rights reserved.", fontSize = 9.sp, color = Color.LightGray)
                 }
             }
         }
@@ -4076,7 +4076,7 @@ fun HomeScreenContent(
                                 modifier = Modifier.padding(14.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text("💰 보듬펫 투명 요금 안내 (서부산 기본 기준)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0369A1))
+                                Text("💰 발자국동행 투명 요금 안내 (서부산 기본 기준)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0369A1))
                                 HorizontalDivider()
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text("🏥 병원 진료 대행 서비스 요금", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
@@ -4104,7 +4104,7 @@ fun HomeScreenContent(
                     item {
                         FaqItem(
                             question = "Q2. 실시간 바디캠 라이브 스트리밍은 무료인가요?",
-                            answer = "네! 보듬펫의 모든 안심 이송 및 진료 대행 서비스에는 아이의 안전을 위한 실시간 바디캠 모니터링이 기본(무료)으로 제공됩니다."
+                            answer = "네! 발자국동행의 모든 안심 이송 및 진료 대행 서비스에는 아이의 안전을 위한 실시간 바디캠 모니터링이 기본(무료)으로 제공됩니다."
                         )
                     }
 
@@ -4551,7 +4551,7 @@ fun HomeScreenContent(
                                     value = homeEntryNote,
                                     onValueChange = { homeEntryNote = it },
                                     label = { Text("📦 경비실 / 열쇠 보관함 위치 및 비번") },
-                                    placeholder = { Text("예: 101동 경비실에 '보듬펫 픽업' 맡겨둠 / 보관함 #04 비번 1111") },
+                                    placeholder = { Text("예: 101동 경비실에 '발자국동행 픽업' 맡겨둠 / 보관함 #04 비번 1111") },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -4625,7 +4625,7 @@ fun HomeScreenContent(
                             ) {
                                 Text("🚙", fontSize = 20.sp)
                                 Column {
-                                    Text("보듬펫 기아 레이(RAY) 펫 전용차 배차", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0369A1))
+                                    Text("발자국동행 기아 레이(RAY) 펫 전용차 배차", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0369A1))
                                     Text("슬라이딩 도어 승하차 & 실시간 바디캠 라이브 연동", fontSize = 10.sp, color = Color(0xFF0284C7))
                                 }
                             }
@@ -4666,7 +4666,7 @@ fun HomeScreenContent(
                             hospitalName = finalHospital,
                             time = "오늘 $selectedBookingTime",
                             status = "예약 확정 (배차 완료)",
-                            vehicleInfo = "보듬펫 기아 레이(RAY) 펫전용차",
+                            vehicleInfo = "발자국동행 기아 레이(RAY) 펫전용차",
                             symptomNote = combinedNote,
                             estimatedPrice = "${formattedPriceStr}원 (가결제)"
                         )
@@ -4960,7 +4960,7 @@ fun HomeScreenContent(
                             ) {
                                 Text("🚑", fontSize = 22.sp)
                                 Column {
-                                    Text("보듬펫 24H 최우선 긴급 응급 출동차 배차", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFBE123C))
+                                    Text("발자국동행 24H 최우선 긴급 응급 출동차 배차", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFBE123C))
                                     Text("안심 긴급 출동 (상황 및 거리에 따라 더 빠른 긴급차 배차 가능)", fontSize = 10.sp, color = Color(0xFFE11D48))
                                 }
                             }
@@ -5011,7 +5011,7 @@ fun HomeScreenContent(
                             hospitalName = finalEmergencyHospital,
                             time = selectedDispatchTime,
                             status = "🚨 긴급 배차 중 (최단거리 속응차)",
-                            vehicleInfo = "보듬펫 24시 응급 전용차 (상황별 최우선 속응 차량 배차)",
+                            vehicleInfo = "발자국동행 24시 응급 전용차 (상황별 최우선 속응 차량 배차)",
                             symptomNote = combinedEmergencyNote,
                             estimatedPrice = "50,000원 (가결제)"
                         )
@@ -5052,7 +5052,7 @@ fun HomeScreenContent(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text("⭐", fontSize = 20.sp)
-                    Text("보듬펫 이용 후기 작성", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("발자국동행 이용 후기 작성", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
             },
             text = {
@@ -5083,7 +5083,7 @@ fun HomeScreenContent(
                         value = reviewText,
                         onValueChange = { reviewText = it },
                         label = { Text("이용 후기 내용") },
-                        placeholder = { Text("보듬펫 안심 이동 케어 이용 소감을 남겨주세요.") },
+                        placeholder = { Text("발자국동행 안심 이동 케어 이용 소감을 남겨주세요.") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3
                     )
@@ -5127,10 +5127,10 @@ fun HomeScreenContent(
                     onClick = {
                         if (reviewText.isNotEmpty()) {
                             val newReview = ReviewItem(
-                                authorName = "보듬펫 회원님",
+                                authorName = "발자국동행 회원님",
                                 petInfo = "내 반려동물",
                                 rating = reviewRating,
-                                serviceType = "🐾 보듬펫 안심 이동 서비스",
+                                serviceType = "🐾 발자국동행 안심 이동 서비스",
                                 content = reviewText,
                                 imageUri = reviewImageUri,
                                 dateText = "방금 전"
@@ -5170,7 +5170,7 @@ fun HomeScreenContent(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text("⭐", fontSize = 20.sp)
-                        Text("보듬펫 이용 후기 전체보기 (${reviewsList.size}개)", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                        Text("발자국동행 이용 후기 전체보기 (${reviewsList.size}개)", fontWeight = FontWeight.Bold, fontSize = 17.sp)
                     }
                 }
             },
@@ -5312,7 +5312,7 @@ fun HomeScreenContent(
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("📢", fontSize = 20.sp)
-                    Text("보듬펫 공식 공지사항", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    Text("발자국동행 공식 공지사항", fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 }
             },
             text = {
