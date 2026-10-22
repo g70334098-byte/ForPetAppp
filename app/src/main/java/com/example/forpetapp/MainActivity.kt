@@ -3979,10 +3979,10 @@ fun HomeScreenContent(
                     title = "병원 진료 대행\n(병원 예약자 전용)",
                     carModelText = "🚙 기아 레이(RAY) 펫케어",
                     features = listOf(
-                        "• 슬라이딩 도어 편한 승하차",
                         "• 펫 전용 안심 시트탑재",
                         "• 실시간 바디캠 라이브 연동",
-                        "• 상세 진료 리포트 전달"
+                        "• 수의사 정밀 진료 리포트",
+                        "• 병원 예약자 1:1 안심 케어"
                     ),
                     buttonText = "예약하기 ➔",
                     cardBgColor = Color(0xFF0D9488),
@@ -4757,16 +4757,13 @@ fun HomeScreenContent(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(12.dp),
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Text("🐾", fontSize = 16.sp)
-                                    Column {
-                                        Text("펫보험 가입 유무 체크", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E))
-                                        Text("결제 완료 후 진료 리포트에 정밀 진단서 및 치료 영수증이 모바일로 자동 수령됩니다.", fontSize = 10.sp, color = Color.Gray)
-                                    }
+                                    Text("펫보험 가입 유무 체크", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
                                 }
                                 Checkbox(
                                     checked = hasPetInsurance,
