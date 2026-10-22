@@ -110,6 +110,68 @@ fun ForPetApp() {
     }
 }
 
+// 🖼️ 어플 아이콘(AdaptiveIcon, Vector, Bitmap) 100% 안심 안전 로드 컴포저블
+@Composable
+fun AdaptiveAppIcon(
+    modifier: Modifier = Modifier,
+    iconResId: Int = R.mipmap.ic_launcher
+) {
+    val context = LocalContext.current
+    val drawable = remember(iconResId) {
+        try {
+            androidx.core.content.ContextCompat.getDrawable(context, iconResId)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    if (drawable != null) {
+        val bitmap = remember(drawable) {
+            try {
+                val w = drawable.intrinsicWidth.coerceAtLeast(120)
+                val h = drawable.intrinsicHeight.coerceAtLeast(120)
+                val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+                val canvas = android.graphics.Canvas(bmp)
+                drawable.setBounds(0, 0, canvas.width, canvas.height)
+                drawable.draw(canvas)
+                bmp
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "발자국동행 로고",
+                modifier = modifier
+            )
+        } else {
+            Surface(
+                shape = CircleShape,
+                color = Color(0xFFFFF7ED),
+                border = BorderStroke(1.5.dp, Color(0xFFF97316)),
+                modifier = modifier
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text("🐾", fontSize = 18.sp)
+                }
+            }
+        }
+    } else {
+        Surface(
+            shape = CircleShape,
+            color = Color(0xFFFFF7ED),
+            border = BorderStroke(1.5.dp, Color(0xFFF97316)),
+            modifier = modifier
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text("🐾", fontSize = 18.sp)
+            }
+        }
+    }
+}
+
 @Composable
 fun LoginScreen(
     onLoginSuccess: (Boolean, String) -> Unit,
@@ -131,9 +193,7 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // 어플 대표 아이콘 이미지
-        Image(
-            painter = painterResource(id = R.mipmap.ic_launcher),
-            contentDescription = "발자국동행 로고",
+        AdaptiveAppIcon(
             modifier = Modifier
                 .size(90.dp)
                 .clip(CircleShape)
@@ -1161,9 +1221,7 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             if (selectedTab == 0) {
-                                Image(
-                                    painter = painterResource(id = R.mipmap.ic_launcher),
-                                    contentDescription = "발자국동행 로고",
+                                AdaptiveAppIcon(
                                     modifier = Modifier
                                         .size(30.dp)
                                         .clip(CircleShape)
@@ -3529,9 +3587,7 @@ fun HomeScreenContent(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Image(
-                        painter = painterResource(id = R.mipmap.ic_launcher),
-                        contentDescription = "발자국동행 대표 로고",
+                    AdaptiveAppIcon(
                         modifier = Modifier
                             .size(56.dp)
                             .clip(CircleShape)
