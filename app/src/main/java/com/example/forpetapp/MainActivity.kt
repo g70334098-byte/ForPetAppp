@@ -3763,6 +3763,7 @@ fun HomeScreenContent(
 ) {
     val context = LocalContext.current
     var showBookingDialog by remember { mutableStateOf(false) }
+    var showBookingNoticeDialog by remember { mutableStateOf(false) }
     var showEmergencyDialog by remember { mutableStateOf(false) }
     var showHospitalListDialog by remember { mutableStateOf(false) }
     var showFaqDialog by remember { mutableStateOf(false) }
@@ -3975,7 +3976,7 @@ fun HomeScreenContent(
                 DetailedServiceCard(
                     modifier = Modifier.weight(1f),
                     badgeText = "🏥 케어 서비스",
-                    title = "병원 진료 대행",
+                    title = "병원 진료 대행\n(병원 예약자 전용)",
                     carModelText = "🚙 기아 레이(RAY) 펫케어",
                     features = listOf(
                         "• 슬라이딩 도어 편한 승하차",
@@ -3987,7 +3988,7 @@ fun HomeScreenContent(
                     cardBgColor = Color(0xFF0D9488),
                     badgeBgColor = Color(0xFF14B8A6).copy(alpha = 0.45f),
                     buttonTextColor = Color(0xFF0F766E),
-                    onButtonClick = { showBookingDialog = true }
+                    onButtonClick = { showBookingNoticeDialog = true }
                 )
 
                 DetailedServiceCard(
@@ -4514,6 +4515,60 @@ fun HomeScreenContent(
         )
     }
 
+    if (showBookingNoticeDialog) {
+        AlertDialog(
+            onDismissRequest = { showBookingNoticeDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("🏥", fontSize = 22.sp)
+                    Text("병원 진료 대행 (병원 예약자 전용) 안내", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFEFF6FF),
+                        border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("⚠️ 이용 자격 필수 안내", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF1E40AF))
+                            HorizontalDivider(color = Color(0xFFBFDBFE))
+                            Text("본 서비스는 보호자님께서 동물병원에 직접 예약을 완료하신 건에 한해 이용 가능합니다.\n\n• 병원에 예약을 하지 않으신 경우 메인 화면의 '🚨 긴급 응급 출동 (병원 미예약자)' 서비스를 이용해 주시기 바랍니다.", fontSize = 12.sp, color = Color(0xFF1E3A8A), lineHeight = 16.sp)
+                        }
+                    }
+
+                    Text("보호자님, 진료받으실 동물병원 예약을 이미 완료하셨습니까?", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showBookingNoticeDialog = false
+                        showBookingDialog = true
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                ) {
+                    Text("예, 병원 예약 완료했습니다", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = {
+                        showBookingNoticeDialog = false
+                        showEmergencyDialog = true
+                    }
+                ) {
+                    Text("🚨 긴급 출동 서비스로 이동", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFD32F2F))
+                }
+            }
+        )
+    }
+
     if (showBookingDialog) {
         var selectedSpecies by remember { mutableStateOf("강아지") }
         var bookingPetName by remember { mutableStateOf("초코") }
@@ -4840,90 +4895,22 @@ fun HomeScreenContent(
                         }
                     }
 
-                    // 7. 제휴 병원 및 시간 선택 (직접 작성 기능 포함)
+                    // 7. 예약 완료하신 동물병원 명칭 작성 & 30분 단위 희망 방문 시각 선택
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("7. 방문 병원 선택 및 시간 ⏰", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                                TextButton(
-                                    onClick = {
-                                        isCustomHospital = !isCustomHospital
-                                    },
-                                    contentPadding = PaddingValues(0.dp)
-                                ) {
-                                    Text(
-                                        if (isCustomHospital) "📋 목록에서 선택" else "✏️ 병원명 직접기입",
-                                        fontSize = 12.sp,
-                                        color = Color(0xFF0284C7),
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-
-                            if (!isCustomHospital) {
-                                Box(modifier = Modifier.fillMaxWidth()) {
-                                    OutlinedButton(
-                                        onClick = { isHospitalDropdownExpanded = true },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        shape = RoundedCornerShape(8.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(selectedHospitalName, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 13.sp)
-                                            Text("▼", fontSize = 12.sp, color = Color.Gray)
-                                        }
-                                    }
-
-                                    DropdownMenu(
-                                        expanded = isHospitalDropdownExpanded,
-                                        onDismissRequest = { isHospitalDropdownExpanded = false }
-                                    ) {
-                                        hospitals.forEach { hospital ->
-                                            DropdownMenuItem(
-                                                text = {
-                                                    Column {
-                                                        Text(hospital.name, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                                        Text("${hospital.region} | ${hospital.type}", fontSize = 10.sp, color = Color.Gray)
-                                                    }
-                                                },
-                                                onClick = {
-                                                    selectedHospitalName = hospital.name
-                                                    isHospitalDropdownExpanded = false
-                                                }
-                                            )
-                                        }
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text("✏️ 직접 입력 (목록에 없는 병원)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0284C7))
-                                            },
-                                            onClick = {
-                                                isCustomHospital = true
-                                                isHospitalDropdownExpanded = false
-                                            }
-                                        )
-                                    }
-                                }
-                            } else {
-                                OutlinedTextField(
-                                    value = customHospitalName,
-                                    onValueChange = { customHospitalName = it },
-                                    label = { Text("방문 동물병원 이름 직접 입력") },
-                                    placeholder = { Text("예: 부산 명지 큰마음 동물병원") },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
+                            Text("7. 예약 완료하신 동물병원 명칭 직접 입력 🏥", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            OutlinedTextField(
+                                value = customHospitalName,
+                                onValueChange = { customHospitalName = it },
+                                label = { Text("예약 완료하신 동물병원 명칭 (필수)") },
+                                placeholder = { Text("예: 부산 명지24시온누리메디컬센터, 큰마음동물병원") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
 
                             Spacer(modifier = Modifier.height(2.dp))
 
-                            // 30분 단위 희망 방문 시각 선택 버튼 (09:00 ~ 16:00 전용 팝업)
+                            // 30분 단위 희망 방문 시각 선택 버튼 (09:00 ~ 18:30 전용 팝업)
                             OutlinedButton(
                                 onClick = { showTimeSlotPicker = true },
                                 modifier = Modifier.fillMaxWidth(),
