@@ -298,17 +298,17 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 2. 관리자 & 드라이버 전용 로그인 토글 버튼
+        // 2. 관리자 & 가드 전용 로그인 토글 버튼
         TextButton(onClick = { showAdminLogin = !showAdminLogin }) {
             Text(
-                if (showAdminLogin) "🔒 계정 로그인 닫기" else "🔐 관리자 & 드라이버 로그인 (아이디/비번)",
+                if (showAdminLogin) "🔒 계정 로그인 닫기" else "🔐 관리자 & 가드 로그인 (아이디/비번)",
                 color = Color(0xFF475569),
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp
             )
         }
 
-        // 3. 관리자 및 드라이버 전용 ID/PW 로그인 영역
+        // 3. 관리자 및 가드 전용 ID/PW 로그인 영역
         if (showAdminLogin) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -319,7 +319,7 @@ fun LoginScreen(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("🔐 관리자 & 드라이버 계정 인증", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                    Text("🔐 관리자 & 가드 계정 인증", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
 
                     OutlinedTextField(
                         value = userId,
@@ -370,7 +370,7 @@ fun LoginScreen(
                                 }
                                 trimmedId == "driver" && trimmedPw == "942800" -> {
                                     errorMessage = ""
-                                    Toast.makeText(context, "👨‍✈️ 픽업 드라이버(driver) 계정으로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "👨‍✈️ 담당 가드(driver) 계정으로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
                                     onDriverLoginSuccess()
                                 }
                                 else -> {
@@ -393,10 +393,10 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // 4. 픽업 드라이버 모드 로그인 전용 간편 버튼
+        // 4. 담당 가드 모드 로그인 전용 간편 버튼
         OutlinedButton(
             onClick = {
-                Toast.makeText(context, "👨‍✈️ 픽업 드라이버(박찬헌 코디네이터) 모드로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "👨‍✈️ 담당 가드(박찬헌 가드) 모드로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
                 onDriverLoginSuccess()
             },
             modifier = Modifier
@@ -411,13 +411,13 @@ fun LoginScreen(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text("👨‍✈️", fontSize = 16.sp)
-                Text("픽업 드라이버 로그인 (기사님 모드)", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text("담당 가드 로그인 (가드 모드)", fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
 }
 
-// 👨‍✈️ 픽업 드라이버 전용 메인 대시보드 화면
+// 👨‍✈️ 담당 가드 전용 메인 대시보드 화면
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DriverMainDashboardScreen(onLogout: () -> Unit) {
@@ -464,8 +464,8 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
             TopAppBar(
                 title = {
                     Column {
-                        Text("👨‍✈️ 픽업 드라이버 워크스페이스", fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                        Text("박찬헌 코디네이터 (차량: 부산 38가 5394)", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Medium)
+                        Text("👨‍✈️ 담당 가드 워크스페이스", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                        Text("박찬헌 가드 (차량: 부산 38가 5394)", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Medium)
                     }
                 },
                 actions = {
@@ -921,13 +921,13 @@ fun AdminMainDashboardScreen(adminName: String = "최지훈 대표님", onLogout
                                 ) {
                                     Button(
                                         onClick = {
-                                            Toast.makeText(context, "👨‍✈️ 박찬헌 드라이버에게 배차 변경 명령이 전송되었습니다.", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, "👨‍✈️ 박찬헌 가드에게 배차 변경 명령이 전송되었습니다.", Toast.LENGTH_SHORT).show()
                                         },
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(8.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
                                     ) {
-                                        Text("👨‍✈️ 기사 강제배차", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text("👨‍✈️ 가드 강제배차", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
 
                                     Button(
@@ -1533,7 +1533,7 @@ fun LiveGpsMapDialog(
                             Text("안전운행 중 🟢", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A))
                         }
                         HorizontalDivider()
-                        Text("• 이송 담당: 박찬헌 코디네이터 (안전속도 준수 및 차내 실시간 소독 완료)", fontSize = 11.sp, color = Color.Gray)
+                        Text("• 이송 담당: 박찬헌 가드 (안전속도 준수 및 차내 실시간 소독 완료)", fontSize = 11.sp, color = Color.Gray)
                     }
                 }
             }
@@ -1714,7 +1714,7 @@ fun TimelineProgressDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 item {
-                    Text("담당 드라이버(박찬헌)가 단계별로 실시간 기록하는 안심 진행 현황입니다.", fontSize = 11.sp, color = Color.Gray)
+                    Text("담당 가드(박찬헌)가 단계별로 실시간 기록하는 안심 진행 현황입니다.", fontSize = 11.sp, color = Color.Gray)
                 }
 
                 items(steps.size) { index ->
@@ -1793,7 +1793,7 @@ fun DriverChatDialog(
                 ) {
                     Text("👨‍✈️", fontSize = 22.sp)
                     Column {
-                        Text("박찬헌 코디네이터 (드라이버)", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text("박찬헌 가드 (담당 가드)", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         Text("🟢 실시간 온라인 (발자국동행 안심 톡)", fontSize = 10.sp, color = Color(0xFF16A34A), fontWeight = FontWeight.Bold)
                     }
                 }
@@ -1843,7 +1843,7 @@ fun DriverChatDialog(
                     OutlinedTextField(
                         value = inputChatText,
                         onValueChange = { inputChatText = it },
-                        placeholder = { Text("드라이버님께 메시지 보내기...", fontSize = 12.sp) },
+                        placeholder = { Text("담당 가드에게 메시지 보내기...", fontSize = 12.sp) },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
@@ -2201,8 +2201,8 @@ fun BookingHistoryScreen(
 
     // 1. 드라이버 및 차량 정보 팝업 다이얼로그
     selectedBookingForDetail?.let { booking ->
-        val driverName = "박찬헌 드라이버"
-        val driverTitle = "발자국동행 전문 픽업 코디네이터"
+        val driverName = "박찬헌 가드"
+        val driverTitle = "발자국동행 담당 가드"
         val driverPhone = "010-2654-5394"
         val vehicleNumber = "부산 38가 5394"
         val driverGpsLocation = "부산 강서구 명지국제8로 230 인근"
@@ -2217,9 +2217,9 @@ fun BookingHistoryScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text("👨‍✈️", fontSize = 22.sp)
-                        Text("픽업 드라이버 및 차량 정보", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text("담당 가드 및 차량 정보", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     }
-                    Text("안심 이동 케어를 담당하는 배차 드라이버 정보입니다.", fontSize = 11.sp, color = Color(0xFF0284C7))
+                    Text("안심 이동 케어를 담당하는 배차 가드 정보입니다.", fontSize = 11.sp, color = Color(0xFF0284C7))
                 }
             },
             text = {
@@ -2314,7 +2314,7 @@ fun BookingHistoryScreen(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Text("📍", fontSize = 16.sp)
-                                Text("드라이버 실시간 GPS 위치", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0369A1))
+                                Text("담당 가드 실시간 GPS 위치", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0369A1))
                             }
                             Text(driverGpsLocation, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                             Text(driverStatusMessage, fontSize = 12.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Medium)
@@ -2337,7 +2337,7 @@ fun BookingHistoryScreen(
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
                     ) {
-                        Text("📞 드라이버에게 전화 걸기", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("📞 담당 가드에게 전화 걸기", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
                 }
             },
@@ -2385,6 +2385,16 @@ fun BookingHistoryScreen(
                                 Text("🏥 진료 병원: ${report.hospitalName}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
                                 Text("📅 진료 일시: ${report.time}", fontSize = 12.sp, color = Color.Gray)
                                 Text("🐾 환묘/환견: ${report.petName} (${report.species}, 보호자: ${report.ownerName})", fontSize = 12.sp, color = Color(0xFF334155))
+                                if (report.symptomNote.contains("펫보험")) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFFFEF3C7),
+                                        border = BorderStroke(1.dp, Color(0xFFFDE68A)),
+                                        modifier = Modifier.padding(top = 4.dp)
+                                    ) {
+                                        Text("🐾 펫보험 청구용 수의사 정밀 진단서 & 치료 영수증 수령 첨부 완료", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF92400E), modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
+                                    }
+                                }
                             }
                         }
                     }
@@ -4297,6 +4307,11 @@ fun HomeScreenContent(
         val selectedSymptoms = remember { mutableStateListOf<String>() }
         var customSymptomNote by remember { mutableStateOf("") }
 
+        // 6. 펫보험 가입 유무 및 진단서 수령 선택
+        var hasPetInsurance by remember { mutableStateOf(false) }
+        var selectedInsuranceCompany by remember { mutableStateOf("메리츠 펫퍼민트") }
+        val insuranceCompanies = listOf("메리츠 펫퍼민트", "DB손해보험 펫", "KB손해보험 펫", "삼성화재 펫", "현대해상 펫", "기타 펫보험")
+
         // 4. 병원 및 희망 시간
         var selectedHospitalName by remember { mutableStateOf("명지24시온누리메디컬센터") }
         var isCustomHospital by remember { mutableStateOf(false) }
@@ -4729,6 +4744,52 @@ fun HomeScreenContent(
                             }
                         }
                     }
+
+                    // 10. 펫보험 가입 유무 및 수의사 정밀 진단서/영수증 수령 신청
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (hasPetInsurance) Color(0xFFFEF3C7) else Color(0xFFF8FAFC),
+                            border = BorderStroke(1.dp, if (hasPetInsurance) Color(0xFFFDE68A) else Color(0xFFE2E8F0))
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("🐾", fontSize = 16.sp)
+                                        Text("펫보험 가입 유무 & 진단서/영수증 수령 신청", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF92400E))
+                                    }
+                                    Checkbox(
+                                        checked = hasPetInsurance,
+                                        onCheckedChange = { hasPetInsurance = it }
+                                    )
+                                }
+
+                                if (hasPetInsurance) {
+                                    HorizontalDivider(color = Color(0xFFFDE68A))
+                                    Text("• 가입 보험사 선택 (청구용 수의사 정밀 진단서 & 치료 영수증 수령)", fontSize = 11.sp, color = Color(0xFFB45309))
+                                    androidx.compose.foundation.lazy.LazyRow(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        items(insuranceCompanies.size) { idx ->
+                                            val comp = insuranceCompanies[idx]
+                                            FilterChip(
+                                                selected = (selectedInsuranceCompany == comp),
+                                                onClick = { selectedInsuranceCompany = comp },
+                                                label = { Text(comp, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                                            )
+                                        }
+                                    }
+                                    Text("※ 담당 가드가 진료 후 수의사 정밀 진단서 및 청구 서류를 리포트에 첨부해 드립니다.", fontSize = 10.sp, color = Color.Gray)
+                                }
+                            }
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -4748,8 +4809,9 @@ fun HomeScreenContent(
                         }
 
                         val symptomStr = if (selectedSymptoms.isNotEmpty()) selectedSymptoms.joinToString(", ") else "상세상담"
+                        val insuranceNote = if (hasPetInsurance) " | 🐾 펫보험: $selectedInsuranceCompany (진단서/영수증 첨부 필수)" else ""
                         val combinedNote = "목적: $purposeStr | 과목: $selectedDepartment ($symptomStr) | $entrySummary" +
-                                if (customSymptomNote.isNotEmpty()) " | 메모: $customSymptomNote" else ""
+                                (if (customSymptomNote.isNotEmpty()) " | 메모: $customSymptomNote" else "") + insuranceNote
 
                         val finalHospital = if (isCustomHospital && customHospitalName.isNotEmpty()) customHospitalName else selectedHospitalName
 
@@ -4795,6 +4857,9 @@ fun HomeScreenContent(
         var emergencyPetName by remember { mutableStateOf("초코") }
         var emergencyOwnerName by remember(userNickname) { mutableStateOf(userNickname) }
         var emergencyPhone by remember(userPhone) { mutableStateOf(userPhone) }
+        var hasEmergencyPetInsurance by remember { mutableStateOf(false) }
+        var selectedEmergencyInsuranceCompany by remember { mutableStateOf("메리츠 펫퍼민트") }
+        val insuranceCompanies = listOf("메리츠 펫퍼민트", "DB손해보험 펫", "KB손해보험 펫", "삼성화재 펫", "현대해상 펫", "기타 펫보험")
 
         val emergencySymptomsList = listOf(
             "🚨 호흡곤란 / 산소부족",
@@ -5065,6 +5130,52 @@ fun HomeScreenContent(
                         }
                     }
 
+                    // 7-2. 펫보험 가입 유무 및 수의사 정밀 진단서/영수증 수령 신청
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (hasEmergencyPetInsurance) Color(0xFFFEF3C7) else Color(0xFFF8FAFC),
+                            border = BorderStroke(1.dp, if (hasEmergencyPetInsurance) Color(0xFFFDE68A) else Color(0xFFE2E8F0))
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("🐾", fontSize = 16.sp)
+                                        Text("펫보험 가입 유무 & 진단서/영수증 수령 신청", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF92400E))
+                                    }
+                                    Checkbox(
+                                        checked = hasEmergencyPetInsurance,
+                                        onCheckedChange = { hasEmergencyPetInsurance = it }
+                                    )
+                                }
+
+                                if (hasEmergencyPetInsurance) {
+                                    HorizontalDivider(color = Color(0xFFFDE68A))
+                                    Text("• 가입 보험사 선택 (청구용 수의사 정밀 진단서 & 치료 영수증 수령)", fontSize = 11.sp, color = Color(0xFFB45309))
+                                    androidx.compose.foundation.lazy.LazyRow(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        items(insuranceCompanies.size) { idx ->
+                                            val comp = insuranceCompanies[idx]
+                                            FilterChip(
+                                                selected = (selectedEmergencyInsuranceCompany == comp),
+                                                onClick = { selectedEmergencyInsuranceCompany = comp },
+                                                label = { Text(comp, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                                            )
+                                        }
+                                    }
+                                    Text("※ 담당 가드가 진료 후 수의사 정밀 진단서 및 청구 서류를 리포트에 첨부해 드립니다.", fontSize = 10.sp, color = Color.Gray)
+                                }
+                            }
+                        }
+                    }
+
                     // 8. 응급 출동 가결제 금액 및 환불 안내
                     item {
                         Surface(
@@ -5098,8 +5209,9 @@ fun HomeScreenContent(
                     onClick = {
                         val finalEmergencyHospital = if (isCustomEmergencyHospital && customEmergencyHospitalName.isNotEmpty()) customEmergencyHospitalName else selectedEmergencyHospital
                         val symptomsStr = if (selectedEmergencySymptoms.isNotEmpty()) selectedEmergencySymptoms.joinToString(", ") else "급성 응급 증상"
+                        val insuranceEmergencyNote = if (hasEmergencyPetInsurance) " | 🐾 펫보험: $selectedEmergencyInsuranceCompany (진단서/영수증 첨부 필수)" else ""
                         val combinedEmergencyNote = "증상: $symptomsStr | 비상연락: $emergencyPhone" +
-                                if (customEmergencyNote.isNotEmpty()) " | 메모: $customEmergencyNote" else ""
+                                (if (customEmergencyNote.isNotEmpty()) " | 메모: $customEmergencyNote" else "") + insuranceEmergencyNote
 
                         val newEmergencyBooking = BookingItem(
                             serviceType = "야간 응급 출동",
