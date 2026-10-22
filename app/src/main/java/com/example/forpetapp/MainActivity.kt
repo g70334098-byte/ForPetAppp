@@ -2506,16 +2506,17 @@ fun BookingHistoryScreen(
     }
 }
 
-// 1번: 🩺 보듬펫 AI 반려동물 건강 증상 상담 챗봇 다이얼로그
+// 1번: 🩺 발자국동행 AI 반려동물 건강 증상 & 위치기반 멀티턴 종합 상담봇 다이얼로그
 @Composable
 fun AiHealthChatDialog(
+    locationText: String = "부산 강서구 명지동",
     onDismiss: () -> Unit,
     onGoToBooking: () -> Unit
 ) {
     var inputQuery by remember { mutableStateOf("") }
     val chatLogs = remember {
         mutableStateListOf(
-            Pair("AI 수의사 보조 🤖", "안녕하세요! 🐾 발자국동행 AI 반려동물 건강 상담원입니다. 아이의 증상(구토, 기침, 절뚝거림 등)을 말씀해 주시면 1차 예상 진료 과목과 응급 수치를 안내해 드립니다.")
+            Pair("AI 수의사 보조 🤖", "안녕하세요! 🐾 발자국동행 AI 반려동물 스마트 종합 상담원입니다.\n\n• 아픈 증상(구토, 다리 절뚝거림, 기침 등)\n• 내 근처 24시 제휴 동물병원 안내\n• 이용 요금, 펫보험 청구 서류 안내\n\n무엇이든 편하게 물어보시면 맞춤 답변을 드립니다!")
         )
     }
 
@@ -2524,7 +2525,7 @@ fun AiHealthChatDialog(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("🩺", fontSize = 22.sp)
-                Text("발자국동행 AI 반려동물 건강 증상 상담봇", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("발자국동행 AI 스마트 종합 상담봇", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         },
         text = {
@@ -2535,7 +2536,7 @@ fun AiHealthChatDialog(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(260.dp)
+                        .height(280.dp)
                         .background(Color(0xFFF1F5F9), RoundedCornerShape(10.dp))
                         .padding(10.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -2572,7 +2573,7 @@ fun AiHealthChatDialog(
                     OutlinedTextField(
                         value = inputQuery,
                         onValueChange = { inputQuery = it },
-                        placeholder = { Text("증상 입력 (예: 아이가 토해요)") },
+                        placeholder = { Text("질문 입력 (예: 근처 병원 있어? / 요금 얼마야?)", fontSize = 11.sp) },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
@@ -2580,13 +2581,49 @@ fun AiHealthChatDialog(
                         onClick = {
                             if (inputQuery.isNotEmpty()) {
                                 chatLogs.add(Pair("보호자님", inputQuery))
-                                val userQ = inputQuery
+                                val userQ = inputQuery.trim()
                                 inputQuery = ""
 
                                 val aiResponse = when {
-                                    userQ.contains("토") || userQ.contains("구토") -> "🩺 [1차 분석 완료]\n• 추천 진료 과목: 내과 / 24시 응급센터\n• 응급도: 보통 ~ 높음 (지속 구토 시 탈수 주의)\n• 행동 지침: 음식물 섭취 일시 중단 후 수의사 진료를 권장합니다."
-                                    userQ.contains("다리") || userQ.contains("절뚝") || userQ.contains("슬개골") -> "🩺 [1차 분석 완료]\n• 추천 진료 과목: 정형외과 / 외과\n• 응급도: 보통 (슬개골 탈구 또는 십자인대 파열 가능성)\n• 행동 지침: 뛰거나 계단 오르기를 금지하고 안심 이송으로 병원에 방문하세요."
-                                    else -> "🩺 [1차 분석 완료]\n• 추천 진료 과목: 일반 내과 / 구강 치과\n• 응급도: 보통\n• 행동 지침: 아이 상태를 관찰하며 발자국동행 안심 진료 대행 예약을 추천해 드립니다."
+                                    // 1. 근처 병원 및 위치기반 문의
+                                    userQ.contains("병원") || userQ.contains("근처") || userQ.contains("어디") || userQ.contains("위치") || userQ.contains("24시") || userQ.contains("추천") ->
+                                        "📍 [위치기반 제휴 동물병원 추천]\n보호자님의 현재 수신 위치인 [$locationText] 인근 추천 24시 응급 & 제휴 병원입니다:\n\n" +
+                                        "• 명지24시온누리메디컬센터\n  - 주소: 부산 강서구 명지오션시티4로 80\n  - 📞 전화: 051-271-2475 (24시 응급 가능)\n\n" +
+                                        "• 하단24시웰니스동물병원\n  - 주소: 부산 사하구 낙동대로 550 (하단역 3번출구 앞)\n  - 📞 전화: 051-208-2400 (24시 응급 가능)\n\n" +
+                                        "• 사상24시응급메디컬센터\n  - 주소: 부산 사상구 괘법동 사상역 근처\n  - 📞 전화: 051-315-2475\n\n" +
+                                        "원하시는 병원으로 담당 가드가 안전하게 픽업 이송해 드립니다!"
+
+                                    // 2. 이용 요금 및 가격 문의
+                                    userQ.contains("요금") || userQ.contains("가격") || userQ.contains("얼마") || userQ.contains("비용") || userQ.contains("수수료") ->
+                                        "💰 [발자국동행 투명 정찰제 요금 안내]\n\n" +
+                                        "1. 🏥 병원 진료 대행 서비스:\n• 기본 이용료 (왕복 이동 + 동행 1시간 포함): 25,000원 ~ 35,000원\n• 진료 대기시간 추가 (30분당): 5,000원\n\n" +
+                                        "2. 🚨 24시 야간 응급 출동 서비스:\n• 응급 출동 기본료: 45,000원 ~ 55,000원\n• 야간 할증 (22:00 ~ 06:00): +10,000원\n\n" +
+                                        "※ 출발 전 취소 시 100% 즉시 환불됩니다!"
+
+                                    // 3. 펫보험 및 진단서 문의
+                                    userQ.contains("보험") || userQ.contains("펫보험") || userQ.contains("진단서") || userQ.contains("청구") || userQ.contains("영수증") ->
+                                        "🐾 [펫보험 청구 서류 수령 안내]\n네! 예약 접수 시 '펫보험 가입 유무'를 체크하시면 담당 가드가 진료 완료 후 수의사 정밀 진단서 및 치료비 상세 영수증을 청구용으로 리포트에 자동 첨부해 드립니다."
+
+                                    // 4. 가드 및 레이 전용차 / 바디캠 문의
+                                    userQ.contains("가드") || userQ.contains("기사") || userQ.contains("차") || userQ.contains("레이") || userQ.contains("바디캠") || userQ.contains("안전") ->
+                                        "🚙 [발자국동행 안심 가드 & 레이 전용차]\n모든 안심 이송에는 아이의 안전을 위해 펫 전용 안전시트와 실시간 바디캠 라이브 모니터링이 기본 무료 제공되며, 자격을 갖춘 담당 가드가 직접 1:1로 안심 동행합니다."
+
+                                    // 5. 증상 분석 (구토, 다리, 피부 등)
+                                    userQ.contains("토") || userQ.contains("구토") ->
+                                        "🩺 [1차 증상 분석 완료]\n• 추천 진료 과목: 내과 / 24시 응급센터\n• 응급도: 보통 ~ 높음 (지속 구토 시 탈수 주의)\n• 행동 지침: 음식물 섭취 일시 중단 후 수의사 진료를 권장합니다."
+
+                                    userQ.contains("다리") || userQ.contains("절뚝") || userQ.contains("슬개골") ->
+                                        "🩺 [1차 증상 분석 완료]\n• 추천 진료 과목: 정형외과 / 외과\n• 응급도: 보통 (슬개골 탈구 또는 십자인대 파열 가능성)\n• 행동 지침: 뛰거나 계단 오르기를 금지하고 안심 이송으로 병원에 방문하세요."
+
+                                    userQ.contains("피부") || userQ.contains("긁") || userQ.contains("털") ->
+                                        "🩺 [1차 증상 분석 완료]\n• 추천 진료 과목: 피부과\n• 응급도: 낮음 ~ 보통\n• 행동 지침: 환부를 핥지 못하도록 넥카라 착용 후 피부과 진료를 추천해 드립니다."
+
+                                    // 6. 인사 및 감사 응답
+                                    userQ.contains("고마") || userQ.contains("감사") || userQ.contains("안녕") || userQ.contains("알겠") || userQ.contains("응") ->
+                                        "네 보호자님! 언제든 도움이 필요하시면 편하게 질문해 주세요. 아이의 안전과 빠른 회복을 위해 발자국동행이 항상 함께하겠습니다 🐾"
+
+                                    else ->
+                                        "🩺 [1차 종합 분석 완료]\n입력해 주신 질문을 확인했습니다. 아이의 증상 관찰이 필요하시거나 근처 병원으로 이동이 필요하시면, 하단의 '🏥 바로 진료 대행 예약하기' 버튼을 누르시면 담당 가드가 즉시 안심 이송을 도와드립니다!"
                                 }
                                 chatLogs.add(Pair("AI 수의사 보조 🤖", aiResponse))
                             }
@@ -4273,6 +4310,7 @@ fun HomeScreenContent(
 
     if (showAiChatDialog) {
         AiHealthChatDialog(
+            locationText = "부산 강서구 명지동",
             onDismiss = { showAiChatDialog = false },
             onGoToBooking = { showBookingDialog = true }
         )
