@@ -4447,6 +4447,54 @@ fun HomeScreenContent(
                         }
                     }
 
+                    // 2-2. 🐾 펫보험 가입 유무 및 수의사 정밀 진단서/영수증 수령 신청
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (hasPetInsurance) Color(0xFFFEF3C7) else Color(0xFFF8FAFC),
+                            border = BorderStroke(1.5.dp, if (hasPetInsurance) Color(0xFFFDE68A) else Color(0xFFE2E8F0))
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("🐾", fontSize = 18.sp)
+                                        Column {
+                                            Text("펫보험 가입 유무 & 진단서/영수증 수령 신청", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E))
+                                            Text("보험 청구용 수의사 정밀 진단서를 리포트에 첨부해 드립니다.", fontSize = 10.sp, color = Color.Gray)
+                                        }
+                                    }
+                                    Checkbox(
+                                        checked = hasPetInsurance,
+                                        onCheckedChange = { hasPetInsurance = it }
+                                    )
+                                }
+
+                                if (hasPetInsurance) {
+                                    HorizontalDivider(color = Color(0xFFFDE68A))
+                                    Text("• 가입 보험사 선택 (청구용 수의사 정밀 진단서 & 치료 영수증 수령)", fontSize = 11.sp, color = Color(0xFFB45309), fontWeight = FontWeight.Bold)
+                                    androidx.compose.foundation.lazy.LazyRow(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        items(insuranceCompanies.size) { idx ->
+                                            val comp = insuranceCompanies[idx]
+                                            FilterChip(
+                                                selected = (selectedInsuranceCompany == comp),
+                                                onClick = { selectedInsuranceCompany = comp },
+                                                label = { Text(comp, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // 3. 서비스 목적 다중 선택 (중복 가능)
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -4794,52 +4842,6 @@ fun HomeScreenContent(
                             }
                         }
                     }
-
-                    // 10. 펫보험 가입 유무 및 수의사 정밀 진단서/영수증 수령 신청
-                    item {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (hasPetInsurance) Color(0xFFFEF3C7) else Color(0xFFF8FAFC),
-                            border = BorderStroke(1.dp, if (hasPetInsurance) Color(0xFFFDE68A) else Color(0xFFE2E8F0))
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text("🐾", fontSize = 16.sp)
-                                        Text("펫보험 가입 유무 & 진단서/영수증 수령 신청", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF92400E))
-                                    }
-                                    Checkbox(
-                                        checked = hasPetInsurance,
-                                        onCheckedChange = { hasPetInsurance = it }
-                                    )
-                                }
-
-                                if (hasPetInsurance) {
-                                    HorizontalDivider(color = Color(0xFFFDE68A))
-                                    Text("• 가입 보험사 선택 (청구용 수의사 정밀 진단서 & 치료 영수증 수령)", fontSize = 11.sp, color = Color(0xFFB45309))
-                                    androidx.compose.foundation.lazy.LazyRow(
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        items(insuranceCompanies.size) { idx ->
-                                            val comp = insuranceCompanies[idx]
-                                            FilterChip(
-                                                selected = (selectedInsuranceCompany == comp),
-                                                onClick = { selectedInsuranceCompany = comp },
-                                                label = { Text(comp, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
-                                            )
-                                        }
-                                    }
-                                    Text("※ 담당 가드가 진료 후 수의사 정밀 진단서 및 청구 서류를 리포트에 첨부해 드립니다.", fontSize = 10.sp, color = Color.Gray)
-                                }
-                            }
-                        }
-                    }
                 }
             },
             confirmButton = {
@@ -5013,6 +5015,54 @@ fun HomeScreenContent(
                         }
                     }
 
+                    // 2-2. 🐾 펫보험 가입 유무 및 수의사 정밀 진단서/영수증 수령 신청
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (hasEmergencyPetInsurance) Color(0xFFFEF3C7) else Color(0xFFF8FAFC),
+                            border = BorderStroke(1.5.dp, if (hasEmergencyPetInsurance) Color(0xFFFDE68A) else Color(0xFFE2E8F0))
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("🐾", fontSize = 18.sp)
+                                        Column {
+                                            Text("펫보험 가입 유무 & 진단서/영수증 수령 신청", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E))
+                                            Text("보험 청구용 수의사 정밀 진단서를 리포트에 첨부해 드립니다.", fontSize = 10.sp, color = Color.Gray)
+                                        }
+                                    }
+                                    Checkbox(
+                                        checked = hasEmergencyPetInsurance,
+                                        onCheckedChange = { hasEmergencyPetInsurance = it }
+                                    )
+                                }
+
+                                if (hasEmergencyPetInsurance) {
+                                    HorizontalDivider(color = Color(0xFFFDE68A))
+                                    Text("• 가입 보험사 선택 (청구용 수의사 정밀 진단서 & 치료 영수증 수령)", fontSize = 11.sp, color = Color(0xFFB45309), fontWeight = FontWeight.Bold)
+                                    androidx.compose.foundation.lazy.LazyRow(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        items(insuranceCompanies.size) { idx ->
+                                            val comp = insuranceCompanies[idx]
+                                            FilterChip(
+                                                selected = (selectedEmergencyInsuranceCompany == comp),
+                                                onClick = { selectedEmergencyInsuranceCompany = comp },
+                                                label = { Text(comp, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // 3. 긴급 응급 상황 및 증상 선택 (다중 선택)
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -5175,52 +5225,6 @@ fun HomeScreenContent(
                                 Column {
                                     Text("발자국동행 24H 최우선 긴급 응급 출동차 배차", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFBE123C))
                                     Text("안심 긴급 출동 (상황 및 거리에 따라 더 빠른 긴급차 배차 가능)", fontSize = 10.sp, color = Color(0xFFE11D48))
-                                }
-                            }
-                        }
-                    }
-
-                    // 7-2. 펫보험 가입 유무 및 수의사 정밀 진단서/영수증 수령 신청
-                    item {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (hasEmergencyPetInsurance) Color(0xFFFEF3C7) else Color(0xFFF8FAFC),
-                            border = BorderStroke(1.dp, if (hasEmergencyPetInsurance) Color(0xFFFDE68A) else Color(0xFFE2E8F0))
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text("🐾", fontSize = 16.sp)
-                                        Text("펫보험 가입 유무 & 진단서/영수증 수령 신청", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF92400E))
-                                    }
-                                    Checkbox(
-                                        checked = hasEmergencyPetInsurance,
-                                        onCheckedChange = { hasEmergencyPetInsurance = it }
-                                    )
-                                }
-
-                                if (hasEmergencyPetInsurance) {
-                                    HorizontalDivider(color = Color(0xFFFDE68A))
-                                    Text("• 가입 보험사 선택 (청구용 수의사 정밀 진단서 & 치료 영수증 수령)", fontSize = 11.sp, color = Color(0xFFB45309))
-                                    androidx.compose.foundation.lazy.LazyRow(
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        items(insuranceCompanies.size) { idx ->
-                                            val comp = insuranceCompanies[idx]
-                                            FilterChip(
-                                                selected = (selectedEmergencyInsuranceCompany == comp),
-                                                onClick = { selectedEmergencyInsuranceCompany = comp },
-                                                label = { Text(comp, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
-                                            )
-                                        }
-                                    }
-                                    Text("※ 담당 가드가 진료 후 수의사 정밀 진단서 및 청구 서류를 리포트에 첨부해 드립니다.", fontSize = 10.sp, color = Color.Gray)
                                 }
                             }
                         }
