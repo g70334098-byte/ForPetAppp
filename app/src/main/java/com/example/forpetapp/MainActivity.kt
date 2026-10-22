@@ -1143,16 +1143,34 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
             TopAppBar(
                 title = {
                     Column {
-                        Text(
-                            when(selectedTab) {
-                                0 -> "🐾 발자국동행"
-                                1 -> "📅 예약 내역"
-                                2 -> "🐾 내 반려동물"
-                                else -> "👤 마이페이지"
-                            },
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            if (selectedTab == 0) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color(0xFFFFF7ED),
+                                    border = BorderStroke(1.5.dp, Color(0xFFF97316)),
+                                    modifier = Modifier.size(26.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text("🐾", fontSize = 15.sp)
+                                    }
+                                }
+                                Text("발자국동행", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF0F172A))
+                            } else {
+                                Text(
+                                    when(selectedTab) {
+                                        1 -> "📅 예약 내역"
+                                        2 -> "🐾 내 반려동물"
+                                        else -> "👤 마이페이지"
+                                    },
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
+                                )
+                            }
+                        }
                         Text(
                             text = locationStatusText,
                             fontSize = 10.sp,
@@ -3488,19 +3506,34 @@ fun HomeScreenContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 1. 인사 카드
+        // 1. 인사 및 공식 엠블럼 로고 카드
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(text = "안녕하세요! 👋", fontSize = 13.sp, color = Color.Gray)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(text = "오늘 우리 아이 어디로 갈까요?", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = "🚙 넓은 공간의 '발자국동행 기아 레이(RAY)' 펫 전용차량이 준비되어 있습니다.", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Medium)
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFFFFF7ED),
+                        border = BorderStroke(1.5.dp, Color(0xFFF97316)),
+                        modifier = Modifier.size(52.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("🐾", fontSize = 28.sp)
+                        }
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(text = "발자국동행", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                        Text(text = "반려동물과 함께 걷는 따뜻한 길 🐾", fontSize = 11.sp, color = Color(0xFFEA580C), fontWeight = FontWeight.Bold)
+                        Text(text = "🚙 넓은 공간의 '발자국동행 기아 레이(RAY)' 펫 전용차 연동", fontSize = 11.sp, color = Color(0xFF0284C7))
+                    }
                 }
             }
         }

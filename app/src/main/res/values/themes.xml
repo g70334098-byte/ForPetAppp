@@ -4,6 +4,6 @@
     <style name="Theme.Forpetapp" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">#F8FAFC</item>
         <item name="android:windowSplashScreenBackground" tools:targetApi="s">#FAF9F6</item>
-        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="s">@drawable/ic_launcher_foreground</item>
+        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="s">@mipmap/ic_launcher</item>
     </style>
 </resources>
