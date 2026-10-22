@@ -3977,7 +3977,7 @@ fun HomeScreenContent(
                     modifier = Modifier.weight(1f),
                     badgeText = "🏥 케어 서비스",
                     title = "병원 진료 대행\n(병원 예약자 전용)",
-                    carModelText = "🚙 기아 레이(RAY) 펫케어",
+                    carModelText = "",
                     features = listOf(
                         "• 펫 전용 안심 시트탑재",
                         "• 실시간 바디캠 라이브 연동",
