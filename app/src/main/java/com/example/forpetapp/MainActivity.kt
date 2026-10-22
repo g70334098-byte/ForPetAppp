@@ -2204,7 +2204,7 @@ fun BookingHistoryScreen(
         val driverName = "박찬헌 가드"
         val driverTitle = "발자국동행 담당 가드"
         val driverPhone = "010-2654-5394"
-        val vehicleNumber = "부산 38가 5394"
+        val vehicleNumber = "60수 8888"
         val driverGpsLocation = "부산 강서구 명지국제8로 230 인근"
         val driverStatusMessage = "🚙 픽업 장소로 이동 중입니다 (약 7분 후 도착 예정)"
 
@@ -2281,11 +2281,30 @@ fun BookingHistoryScreen(
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("차량 번호판", fontSize = 12.sp, color = Color.Gray)
-                                Text(vehicleNumber, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                Column {
+                                    Text("담당 가드 차량 번호판", fontSize = 11.sp, color = Color.Gray)
+                                    Text(vehicleNumber, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2563EB))
+                                }
+                                Button(
+                                    onClick = {
+                                        try {
+                                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                            val clip = android.content.ClipData.newPlainText("차량번호", "60수8888")
+                                            clipboard.setPrimaryClip(clip)
+                                            Toast.makeText(context, "📋 담당 가드 차량번호 [60수 8888]이 클립보드에 복사되었습니다! 아파트 앱/월패드에 사전 등록해 주세요.", Toast.LENGTH_LONG).show()
+                                        } catch (_: Exception) {}
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                    shape = RoundedCornerShape(6.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
+                                ) {
+                                    Text("📋 차번 [60수8888] 복사", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
+                            Text("※ 아파트 차단기 통과를 위해 아파트 앱/월패드에 [60수 8888]을 방문차량으로 사전 등록해 주시면 더 빠른 무인 픽업이 가능합니다.", fontSize = 10.sp, color = Color(0xFF1E40AF), lineHeight = 14.sp)
                             HorizontalDivider()
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -4332,6 +4351,8 @@ fun HomeScreenContent(
         var selectedSpecies by remember { mutableStateOf("강아지") }
         var bookingPetName by remember { mutableStateOf("초코") }
         var bookingOwnerName by remember(userNickname) { mutableStateOf(userNickname) }
+        var userAddress by remember { mutableStateOf("부산 강서구 명지국제8로 150") }
+        var userDetailAddress by remember { mutableStateOf("101동 1502호") }
 
         // 1. 진료 목적 다중 선택 (중복 체크 가능)
         var isCareSelected by remember { mutableStateOf(true) }
@@ -4443,6 +4464,106 @@ fun HomeScreenContent(
                                     modifier = Modifier.weight(1f),
                                     singleLine = true
                                 )
+                            }
+                        }
+                    }
+
+                    // 2-3. 📍 픽업 및 귀가 고객 자택 주소 & 구글 지도 핀 위치 설정
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("📍 픽업 고객 자택 주소 (구글 지도 핀 위치 연동)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                TextButton(
+                                    onClick = {
+                                        fetchRealDeviceLocation(context) { realAddr ->
+                                            userAddress = realAddr.replace("📍 ", "").replace(" (실제 GPS 수신)", "")
+                                        }
+                                        Toast.makeText(context, "📍 현재 GPS 단말기 주소가 자동 적용되었습니다!", Toast.LENGTH_SHORT).show()
+                                    },
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text("📍 GPS 주소 가져오기", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            OutlinedTextField(
+                                value = userAddress,
+                                onValueChange = { userAddress = it },
+                                label = { Text("도로명 / 지번 주소") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+
+                            OutlinedTextField(
+                                value = userDetailAddress,
+                                onValueChange = { userDetailAddress = it },
+                                label = { Text("동/호수 및 건물 상세 주소 (예: 101동 1502호)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFF0F9FF),
+                                border = BorderStroke(1.dp, Color(0xFFBAE6FD))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text("🗺️", fontSize = 14.sp)
+                                    Text("구글 지도 픽업 핀 위치 자동 연동됨 (경도: 128.91, 위도: 35.08)", fontSize = 10.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+
+                    // 2-4. 🏢 신도시 아파트 방문 차량 차번 사전 등록 안내
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF6FF)),
+                            border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("🏢", fontSize = 16.sp)
+                                        Text("아파트 차단기 출입 등록 안내", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1E40AF))
+                                    }
+                                    Button(
+                                        onClick = {
+                                            try {
+                                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                                val clip = android.content.ClipData.newPlainText("차량번호", "60수8888")
+                                                clipboard.setPrimaryClip(clip)
+                                                Toast.makeText(context, "📋 담당 가드 차량번호 [60수 8888]이 클립보드에 복사되었습니다! 아파트 앱/월패드에 사전 등록해 주세요.", Toast.LENGTH_LONG).show()
+                                            } catch (_: Exception) {}
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        shape = RoundedCornerShape(6.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
+                                    ) {
+                                        Text("📋 차번 [60수8888] 복사", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
+                                HorizontalDivider(color = Color(0xFFBFDBFE))
+                                Text("• 신도시 아파트 차단기 통과를 위해 담당 가드 차량 [60수 8888]을 아파트 앱이나 월패드에 방문차량으로 등록해 두시면 가드의 단지 진입이 더욱 빠릅니다!", fontSize = 11.sp, color = Color(0xFF1E3A8A), lineHeight = 15.sp)
                             }
                         }
                     }
@@ -4861,8 +4982,9 @@ fun HomeScreenContent(
                         }
 
                         val symptomStr = if (selectedSymptoms.isNotEmpty()) selectedSymptoms.joinToString(", ") else "상세상담"
+                        val addressSummary = "📍 주소: $userAddress $userDetailAddress"
                         val insuranceNote = if (hasPetInsurance) " | 🐾 펫보험: $selectedInsuranceCompany (진단서/영수증 첨부 필수)" else ""
-                        val combinedNote = "목적: $purposeStr | 과목: $selectedDepartment ($symptomStr) | $entrySummary" +
+                        val combinedNote = "$addressSummary | 목적: $purposeStr | 과목: $selectedDepartment ($symptomStr) | $entrySummary" +
                                 (if (customSymptomNote.isNotEmpty()) " | 메모: $customSymptomNote" else "") + insuranceNote
 
                         val finalHospital = if (isCustomHospital && customHospitalName.isNotEmpty()) customHospitalName else selectedHospitalName
