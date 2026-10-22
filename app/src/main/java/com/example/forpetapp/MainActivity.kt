@@ -3609,6 +3609,8 @@ fun HomeScreenContent(
     var showNoticeDialog by remember { mutableStateOf(false) }
     var showEventDialog by remember { mutableStateOf(false) }
     var showAiChatDialog by remember { mutableStateOf(false) }
+    var showTimeSlotPicker by remember { mutableStateOf(false) }
+    var selectedBookingTime by remember { mutableStateOf("오전 10:00") }
     var selectedHospital by remember { mutableStateOf<HospitalInfo?>(null) }
 
     val reviewsList = remember {
@@ -4383,11 +4385,10 @@ fun HomeScreenContent(
         var selectedInsuranceCompany by remember { mutableStateOf("메리츠 펫퍼민트") }
         val insuranceCompanies = listOf("메리츠 펫퍼민트", "DB손해보험 펫", "KB손해보험 펫", "삼성화재 펫", "현대해상 펫", "기타 펫보험")
 
-        // 4. 병원 및 희망 시간
+        // 4. 병원 및 희망 시간 (30분 단위 전용 팝업)
         var selectedHospitalName by remember { mutableStateOf("명지24시온누리메디컬센터") }
         var isCustomHospital by remember { mutableStateOf(false) }
         var customHospitalName by remember { mutableStateOf("") }
-        var selectedBookingTime by remember { mutableStateOf("오전 10:00") }
         var isHospitalDropdownExpanded by remember { mutableStateOf(false) }
 
         // 5. 자택 안심 출입 설정 (부재 시 도어락 / 스마트키 / 비밀번호 보안)
@@ -4468,7 +4469,7 @@ fun HomeScreenContent(
                         }
                     }
 
-                    // 2-3. 📍 픽업 및 귀가 고객 자택 주소 & 구글 지도 핀 위치 설정
+                    // 2-3. 📮 자택 주소 입력 및 우편번호 검색
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(
@@ -4476,17 +4477,17 @@ fun HomeScreenContent(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("📍 픽업 고객 자택 주소 (구글 지도 핀 위치 연동)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                Text("📍 픽업 고객 자택 주소", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
                                 TextButton(
                                     onClick = {
                                         fetchRealDeviceLocation(context) { realAddr ->
                                             userAddress = realAddr.replace("📍 ", "").replace(" (실제 GPS 수신)", "")
                                         }
-                                        Toast.makeText(context, "📍 현재 GPS 단말기 주소가 자동 적용되었습니다!", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "📮 현재 스마트폰 GPS 위치 주소가 자동 입력되었습니다!", Toast.LENGTH_SHORT).show()
                                     },
                                     contentPadding = PaddingValues(0.dp)
                                 ) {
-                                    Text("📍 GPS 주소 가져오기", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                                    Text("📮 우편번호/주소 검색", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
                                 }
                             }
 
@@ -4505,26 +4506,10 @@ fun HomeScreenContent(
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
-
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFFF0F9FF),
-                                border = BorderStroke(1.dp, Color(0xFFBAE6FD))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text("🗺️", fontSize = 14.sp)
-                                    Text("구글 지도 픽업 핀 위치 자동 연동됨 (경도: 128.91, 위도: 35.08)", fontSize = 10.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
-                                }
-                            }
                         }
                     }
 
-                    // 2-4. 🏢 신도시 아파트 방문 차량 차번 사전 등록 안내
+                    // 2-4. 🏢 아파트/오피스텔 차단기 출입 등록 안내
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -4534,84 +4519,44 @@ fun HomeScreenContent(
                         ) {
                             Column(
                                 modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text("🏢", fontSize = 16.sp)
-                                        Text("아파트 차단기 출입 등록 안내", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1E40AF))
-                                    }
-                                    Button(
-                                        onClick = {
-                                            try {
-                                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                                val clip = android.content.ClipData.newPlainText("차량번호", "60수8888")
-                                                clipboard.setPrimaryClip(clip)
-                                                Toast.makeText(context, "📋 담당 가드 차량번호 [60수 8888]이 클립보드에 복사되었습니다! 아파트 앱/월패드에 사전 등록해 주세요.", Toast.LENGTH_LONG).show()
-                                            } catch (_: Exception) {}
-                                        },
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                        shape = RoundedCornerShape(6.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
-                                    ) {
-                                        Text("📋 차번 [60수8888] 복사", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                    }
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("🏢", fontSize = 16.sp)
+                                    Text("아파트/오피스텔 차단기 출입 등록 안내", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1E40AF))
                                 }
-
                                 HorizontalDivider(color = Color(0xFFBFDBFE))
-                                Text("• 신도시 아파트 차단기 통과를 위해 담당 가드 차량 [60수 8888]을 아파트 앱이나 월패드에 방문차량으로 등록해 두시면 가드의 단지 진입이 더욱 빠릅니다!", fontSize = 11.sp, color = Color(0xFF1E3A8A), lineHeight = 15.sp)
+                                Text("• 단지 내 차단기 출입이 필요한 아파트의 경우, 오더 수락 후 담당 가드가 지정(배차)되면 팝업 및 알림으로 가드의 차량 번호판이 수신됩니다. 배차 알림을 확인하시어 방문차량으로 등록해 주시면 더 빠른 무인 픽업이 가능합니다!", fontSize = 11.sp, color = Color(0xFF1E3A8A), lineHeight = 15.sp)
                             }
                         }
                     }
 
-                    // 2-2. 🐾 펫보험 가입 유무 및 수의사 정밀 진단서/영수증 수령 신청
+                    // 2-2. 🐾 펫보험 가입 유무 체크
                     item {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(10.dp),
                             color = if (hasPetInsurance) Color(0xFFFEF3C7) else Color(0xFFF8FAFC),
-                            border = BorderStroke(1.5.dp, if (hasPetInsurance) Color(0xFFFDE68A) else Color(0xFFE2E8F0))
+                            border = BorderStroke(1.dp, if (hasPetInsurance) Color(0xFFFDE68A) else Color(0xFFE2E8F0))
                         ) {
-                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text("🐾", fontSize = 18.sp)
-                                        Column {
-                                            Text("펫보험 가입 유무 & 진단서/영수증 수령 신청", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E))
-                                            Text("보험 청구용 수의사 정밀 진단서를 리포트에 첨부해 드립니다.", fontSize = 10.sp, color = Color.Gray)
-                                        }
-                                    }
-                                    Checkbox(
-                                        checked = hasPetInsurance,
-                                        onCheckedChange = { hasPetInsurance = it }
-                                    )
-                                }
-
-                                if (hasPetInsurance) {
-                                    HorizontalDivider(color = Color(0xFFFDE68A))
-                                    Text("• 가입 보험사 선택 (청구용 수의사 정밀 진단서 & 치료 영수증 수령)", fontSize = 11.sp, color = Color(0xFFB45309), fontWeight = FontWeight.Bold)
-                                    androidx.compose.foundation.lazy.LazyRow(
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        items(insuranceCompanies.size) { idx ->
-                                            val comp = insuranceCompanies[idx]
-                                            FilterChip(
-                                                selected = (selectedInsuranceCompany == comp),
-                                                onClick = { selectedInsuranceCompany = comp },
-                                                label = { Text(comp, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
-                                            )
-                                        }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("🐾", fontSize = 16.sp)
+                                    Column {
+                                        Text("펫보험 가입 유무 체크", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E))
+                                        Text("결제 완료 후 진료 리포트에 정밀 진단서 및 치료 영수증이 모바일로 자동 수령됩니다.", fontSize = 10.sp, color = Color.Gray)
                                     }
                                 }
+                                Checkbox(
+                                    checked = hasPetInsurance,
+                                    onCheckedChange = { hasPetInsurance = it }
+                                )
                             }
                         }
                     }
@@ -4818,17 +4763,22 @@ fun HomeScreenContent(
 
                             Spacer(modifier = Modifier.height(2.dp))
 
-                            Row(
+                            // 30분 단위 희망 방문 시각 선택 버튼 (09:00 ~ 16:00 전용 팝업)
+                            OutlinedButton(
+                                onClick = { showTimeSlotPicker = true },
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                shape = RoundedCornerShape(8.dp)
                             ) {
-                                listOf("오전 10:00", "오후 02:00", "오후 04:00", "오후 06:00").forEach { time ->
-                                    FilterChip(
-                                        selected = (selectedBookingTime == time),
-                                        onClick = { selectedBookingTime = time },
-                                        label = { Text(time, fontSize = 11.sp, fontWeight = FontWeight.Medium) },
-                                        modifier = Modifier.weight(1f)
-                                    )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("⏰", fontSize = 16.sp)
+                                        Text("희망 방문 시각: $selectedBookingTime", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 13.sp)
+                                    }
+                                    Text("시간 변경 ➔", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -5022,6 +4972,53 @@ fun HomeScreenContent(
                 TextButton(onClick = { showBookingDialog = false }) {
                     Text("취소")
                 }
+            }
+        )
+    }
+
+    if (showTimeSlotPicker) {
+        val timeList = listOf(
+            "오전 09:00", "오전 09:30", "오전 10:00", "오전 10:30",
+            "오전 11:00", "오전 11:30", "오후 12:00", "오후 12:30",
+            "오후 01:00", "오후 01:30", "오후 02:00", "오후 02:30",
+            "오후 03:00", "오후 03:30", "오후 04:00"
+        )
+        AlertDialog(
+            onDismissRequest = { showTimeSlotPicker = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("⏰", fontSize = 20.sp)
+                    Text("희망 방문 시각 선택 (09:00 ~ 16:00)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(280.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(timeList.chunked(2).size) { idx ->
+                        val pair = timeList.chunked(2)[idx]
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            pair.forEach { slot ->
+                                FilterChip(
+                                    selected = (selectedBookingTime == slot),
+                                    onClick = {
+                                        selectedBookingTime = slot
+                                        showTimeSlotPicker = false
+                                    },
+                                    label = { Text(slot, fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            if (pair.size == 1) Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showTimeSlotPicker = false }) { Text("취소") }
             }
         )
     }
