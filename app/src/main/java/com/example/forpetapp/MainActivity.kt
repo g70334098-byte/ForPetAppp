@@ -5229,50 +5229,29 @@ fun HomeScreenContent(
                         }
                     }
 
-                    // 2-2. 🐾 펫보험 가입 유무 및 수의사 정밀 진단서/영수증 수령 신청
+                    // 2-2. 🐾 펫보험 가입 유무 체크
                     item {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(10.dp),
                             color = if (hasEmergencyPetInsurance) Color(0xFFFEF3C7) else Color(0xFFF8FAFC),
-                            border = BorderStroke(1.5.dp, if (hasEmergencyPetInsurance) Color(0xFFFDE68A) else Color(0xFFE2E8F0))
+                            border = BorderStroke(1.dp, if (hasEmergencyPetInsurance) Color(0xFFFDE68A) else Color(0xFFE2E8F0))
                         ) {
-                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text("🐾", fontSize = 18.sp)
-                                        Column {
-                                            Text("펫보험 가입 유무 & 진단서/영수증 수령 신청", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E))
-                                            Text("보험 청구용 수의사 정밀 진단서를 리포트에 첨부해 드립니다.", fontSize = 10.sp, color = Color.Gray)
-                                        }
-                                    }
-                                    Checkbox(
-                                        checked = hasEmergencyPetInsurance,
-                                        onCheckedChange = { hasEmergencyPetInsurance = it }
-                                    )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("🐾", fontSize = 16.sp)
+                                    Text("펫보험 가입 유무 체크", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
                                 }
-
-                                if (hasEmergencyPetInsurance) {
-                                    HorizontalDivider(color = Color(0xFFFDE68A))
-                                    Text("• 가입 보험사 선택 (청구용 수의사 정밀 진단서 & 치료 영수증 수령)", fontSize = 11.sp, color = Color(0xFFB45309), fontWeight = FontWeight.Bold)
-                                    androidx.compose.foundation.lazy.LazyRow(
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        items(insuranceCompanies.size) { idx ->
-                                            val comp = insuranceCompanies[idx]
-                                            FilterChip(
-                                                selected = (selectedEmergencyInsuranceCompany == comp),
-                                                onClick = { selectedEmergencyInsuranceCompany = comp },
-                                                label = { Text(comp, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
-                                            )
-                                        }
-                                    }
-                                }
+                                Checkbox(
+                                    checked = hasEmergencyPetInsurance,
+                                    onCheckedChange = { hasEmergencyPetInsurance = it }
+                                )
                             }
                         }
                     }
