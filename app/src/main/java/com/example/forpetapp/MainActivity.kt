@@ -5258,6 +5258,43 @@ fun HomeScreenContent(
                         }
                     }
 
+                    // 2-3. 📮 자택 주소 입력 및 우편번호 검색
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("📍 픽업 고객 자택 주소", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                TextButton(
+                                    onClick = {
+                                        showPostalCodeSearchDialog = true
+                                    },
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text("📮 우편번호/주소 검색", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            OutlinedTextField(
+                                value = userAddress,
+                                onValueChange = { userAddress = it },
+                                label = { Text("도로명 / 지번 주소") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+
+                            OutlinedTextField(
+                                value = userDetailAddress,
+                                onValueChange = { userDetailAddress = it },
+                                label = { Text("동/호수 및 건물 상세 주소 (예: 101동 1502호)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                        }
+                    }
+
                     // 3. 긴급 응급 상황 및 증상 선택 (다중 선택)
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -5372,18 +5409,23 @@ fun HomeScreenContent(
                         }
                     }
 
-                    // 5. 출동 희망 시각
+                    // 5. 출동 희망 시간 (24시 최우선 즉시 긴급 출동 전용)
                     item {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("5. 출동 희망 시간 ⏰", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                listOf("🚨 즉시 긴급 출동 (최우선)", "⏰ 30분 이내 방문", "⏰ 1시간 이내 방문").forEach { dispatchTime ->
-                                    FilterChip(
-                                        selected = (selectedDispatchTime == dispatchTime),
-                                        onClick = { selectedDispatchTime = dispatchTime },
-                                        label = { Text(dispatchTime, fontSize = 12.sp, fontWeight = FontWeight.Bold) },
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFFFF1F2),
+                            border = BorderStroke(1.dp, Color(0xFFFECDD3))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text("🚨", fontSize = 20.sp)
+                                Column {
+                                    Text("출동 시각: 즉시 긴급 출동 (최우선 배차)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFBE123C))
+                                    Text("긴급 오더 접수 즉시 담당 가드가 최단거리로 직통 출동합니다.", fontSize = 10.sp, color = Color(0xFFE11D48))
                                 }
                             }
                         }
@@ -5458,12 +5500,13 @@ fun HomeScreenContent(
                     onClick = {
                         val finalEmergencyHospital = if (isCustomEmergencyHospital && customEmergencyHospitalName.isNotEmpty()) customEmergencyHospitalName else selectedEmergencyHospital
                         val symptomsStr = if (selectedEmergencySymptoms.isNotEmpty()) selectedEmergencySymptoms.joinToString(", ") else "급성 응급 증상"
-                        val insuranceEmergencyNote = if (hasEmergencyPetInsurance) " | 🐾 펫보험: $selectedEmergencyInsuranceCompany (진단서/영수증 첨부 필수)" else ""
-                        val combinedEmergencyNote = "증상: $symptomsStr | 비상연락: $emergencyPhone" +
+                        val emergencyAddressSummary = "📍 주소: $userAddress $userDetailAddress"
+                        val insuranceEmergencyNote = if (hasEmergencyPetInsurance) " | 🐾 펫보험 가입 유무 체크됨" else ""
+                        val combinedEmergencyNote = "$emergencyAddressSummary | 증상: $symptomsStr | 비상연락: $emergencyPhone" +
                                 (if (customEmergencyNote.isNotEmpty()) " | 메모: $customEmergencyNote" else "") + insuranceEmergencyNote
 
                         val newEmergencyBooking = BookingItem(
-                            serviceType = "야간 응급 출동",
+                            serviceType = "긴급 응급 출동 (병원 미예약자)",
                             species = emergencySpecies,
                             petName = emergencyPetName,
                             ownerName = emergencyOwnerName,
