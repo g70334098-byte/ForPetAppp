@@ -3917,13 +3917,13 @@ fun HomeScreenContent(
                 DetailedServiceCard(
                     modifier = Modifier.weight(1f),
                     badgeText = "🚨 24H 긴급 배차",
-                    title = "야간 응급 출동",
+                    title = "긴급 응급 출동 (병원 미 예약자)",
                     carModelText = "🚑 24시 최우선 긴급 출동차",
                     features = listOf(
                         "• 24시 응급 동물병원 직통",
-                        "• 야간 전문 기사 즉시 출동",
+                        "• 야간/긴급 전문 가드 출동",
                         "• 최단거리 속응 긴급차 배차",
-                        "• 상황별 더 빠른 긴급차 배차"
+                        "• 병원 미예약 시 즉시 연동"
                     ),
                     buttonText = "출동 요청 ➔",
                     cardBgColor = Color(0xFFE11D48),
@@ -5065,14 +5065,15 @@ fun HomeScreenContent(
             "오전 09:00", "오전 09:30", "오전 10:00", "오전 10:30",
             "오전 11:00", "오전 11:30", "오후 12:00", "오후 12:30",
             "오후 01:00", "오후 01:30", "오후 02:00", "오후 02:30",
-            "오후 03:00", "오후 03:30", "오후 04:00"
+            "오후 03:00", "오후 03:30", "오후 04:00", "오후 04:30",
+            "오후 05:00", "오후 05:30", "오후 06:00", "오후 06:30"
         )
         AlertDialog(
             onDismissRequest = { showTimeSlotPicker = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("⏰", fontSize = 20.sp)
-                    Text("희망 방문 시각 선택 (09:00 ~ 16:00)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("희망 방문 시각 선택 (09:00 ~ 18:30)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             },
             text = {
@@ -5159,7 +5160,7 @@ fun HomeScreenContent(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text("🚨", fontSize = 20.sp)
-                        Text("24시 야간 응급 출동 신청", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFFD32F2F))
+                        Text("긴급 응급 출동 신청 (병원 미 예약자)", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFFD32F2F))
                     }
                     Text("24시 응급 전용차가 최우선 배차됩니다. (상황에 따라 더 빠른 차량이 출동할 수 있습니다)", fontSize = 11.sp, color = Color(0xFFD32F2F))
                 }
