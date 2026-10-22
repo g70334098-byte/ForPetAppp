@@ -3576,6 +3576,92 @@ fun DetailedServiceCard(
     }
 }
 
+// 📮 우편번호 및 도로명/지번 주소 검색 전용 다이얼로그
+@Composable
+fun PostalCodeSearchDialog(
+    onDismiss: () -> Unit,
+    onAddressSelected: (String, String) -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    
+    val sampleAddresses = listOf(
+        Pair("46720", "부산 강서구 명지국제8로 150 (명지동, 명지오션시티)"),
+        Pair("46721", "부산 강서구 명지국제7로 200 (명지동, 에코델타시티)"),
+        Pair("46722", "부산 강서구 명지오션시티4로 80 (명지동)"),
+        Pair("49300", "부산 사하구 낙동대로 550 (하단동, 하단역 인근)"),
+        Pair("49301", "부산 사하구 다대로 300 (다대동)"),
+        Pair("46900", "부산 사상구 사상로 150 (괘법동, 사상역 인근)"),
+        Pair("46500", "부산 북구 화명대로 32 (화명동)")
+    )
+
+    val filteredList = sampleAddresses.filter { (zip, addr) ->
+        searchQuery.isEmpty() || addr.contains(searchQuery) || zip.contains(searchQuery)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("📮", fontSize = 20.sp)
+                Text("우편번호 및 도로명 주소 검색", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("도로명, 건물명, 지번 검색 (예: 명지국제8로)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Text("검색 결과 목록 (${filteredList.size}건)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(filteredList.size) { idx ->
+                        val (zip, addr) = filteredList[idx]
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onAddressSelected(zip, addr)
+                                    onDismiss()
+                                },
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFE0F2FE)) {
+                                        Text(zip, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                    }
+                                    Text("도로명", fontSize = 10.sp, color = Color.Gray)
+                                }
+                                Text(addr, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("취소") }
+        }
+    )
+}
+
 // ⭐ 이용 후기 데이터 클래스
 data class ReviewItem(
     val id: String = System.currentTimeMillis().toString(),
@@ -3610,6 +3696,9 @@ fun HomeScreenContent(
     var showEventDialog by remember { mutableStateOf(false) }
     var showAiChatDialog by remember { mutableStateOf(false) }
     var showTimeSlotPicker by remember { mutableStateOf(false) }
+    var showPostalCodeSearchDialog by remember { mutableStateOf(false) }
+    var userAddress by remember { mutableStateOf("부산 강서구 명지국제8로 150") }
+    var userDetailAddress by remember { mutableStateOf("101동 1502호") }
     var selectedBookingTime by remember { mutableStateOf("오전 10:00") }
     var selectedHospital by remember { mutableStateOf<HospitalInfo?>(null) }
 
@@ -4353,8 +4442,6 @@ fun HomeScreenContent(
         var selectedSpecies by remember { mutableStateOf("강아지") }
         var bookingPetName by remember { mutableStateOf("초코") }
         var bookingOwnerName by remember(userNickname) { mutableStateOf(userNickname) }
-        var userAddress by remember { mutableStateOf("부산 강서구 명지국제8로 150") }
-        var userDetailAddress by remember { mutableStateOf("101동 1502호") }
 
         // 1. 진료 목적 다중 선택 (중복 체크 가능)
         var isCareSelected by remember { mutableStateOf(true) }
@@ -4480,10 +4567,7 @@ fun HomeScreenContent(
                                 Text("📍 픽업 고객 자택 주소", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
                                 TextButton(
                                     onClick = {
-                                        fetchRealDeviceLocation(context) { realAddr ->
-                                            userAddress = realAddr.replace("📍 ", "").replace(" (실제 GPS 수신)", "")
-                                        }
-                                        Toast.makeText(context, "📮 현재 스마트폰 GPS 위치 주소가 자동 입력되었습니다!", Toast.LENGTH_SHORT).show()
+                                        showPostalCodeSearchDialog = true
                                     },
                                     contentPadding = PaddingValues(0.dp)
                                 ) {
@@ -5019,6 +5103,16 @@ fun HomeScreenContent(
             },
             confirmButton = {
                 TextButton(onClick = { showTimeSlotPicker = false }) { Text("취소") }
+            }
+        )
+    }
+
+    if (showPostalCodeSearchDialog) {
+        PostalCodeSearchDialog(
+            onDismiss = { showPostalCodeSearchDialog = false },
+            onAddressSelected = { zip, addr ->
+                userAddress = "[$zip] $addr"
+                Toast.makeText(context, "📮 선택한 주소[$zip $addr]가 입력되었습니다!", Toast.LENGTH_SHORT).show()
             }
         )
     }
