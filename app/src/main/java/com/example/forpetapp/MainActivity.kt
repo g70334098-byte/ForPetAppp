@@ -130,7 +130,7 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("🐾 발자국동행", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-        Text("반려동물 안심 이동 케어 서비스", fontSize = 14.sp, color = Color.Gray)
+        Text("반려동물과 함께 걷는 따뜻한 길 🐾", fontSize = 14.sp, color = Color(0xFFEA580C), fontWeight = FontWeight.Bold)
 
         Spacer(modifier = Modifier.height(40.dp))
 
