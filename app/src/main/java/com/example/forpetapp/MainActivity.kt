@@ -1175,6 +1175,9 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
     var userPoints by remember { mutableIntStateOf(3000) }
     var userNickname by remember { mutableStateOf("발자국동행보호자") }
     var userPhone by remember { mutableStateOf("010-1234-5678") }
+    var userAddress by remember { mutableStateOf("부산 강서구 명지국제8로 150") }
+    var userDetailAddress by remember { mutableStateOf("101동 1502호") }
+    var savedPetImageUri by remember { mutableStateOf<Uri?>(null) }
     val userReferralCode = remember { "K7TB94" }
 
     val bookingList = remember {
@@ -1316,6 +1319,8 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                     userReferralCode = userReferralCode,
                     userNickname = userNickname,
                     userPhone = userPhone,
+                    initialAddress = userAddress,
+                    initialDetailAddress = userDetailAddress,
                     onAddBooking = { newBooking -> bookingList.add(0, newBooking) },
                     onNavigateToBookingTab = { selectedTab = 1 }
                 )
@@ -1323,15 +1328,24 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                     bookingList = bookingList,
                     onNavigateToHome = { selectedTab = 0 }
                 )
-                2 -> MyPetDetailScreen()
+                2 -> MyPetDetailScreen(
+                    savedImageUri = savedPetImageUri,
+                    onSavePetProfile = { uri ->
+                        savedPetImageUri = uri
+                    }
+                )
                 3 -> MyPageScreen(
                     userPoints = userPoints,
                     userReferralCode = userReferralCode,
                     userNickname = userNickname,
                     userPhone = userPhone,
-                    onUpdateProfile = { newNick, newPhone ->
+                    userAddress = userAddress,
+                    userDetailAddress = userDetailAddress,
+                    onUpdateProfile = { newNick, newPhone, newAddress, newDetailAddress ->
                         userNickname = newNick
                         userPhone = newPhone
+                        userAddress = newAddress
+                        userDetailAddress = newDetailAddress
                     }
                 )
             }
@@ -2827,7 +2841,9 @@ fun MyPageScreen(
     userReferralCode: String = "K7TB94",
     userNickname: String = "발자국동행보호자",
     userPhone: String = "010-1234-5678",
-    onUpdateProfile: (String, String) -> Unit = { _, _ -> }
+    userAddress: String = "부산 강서구 명지국제8로 150",
+    userDetailAddress: String = "101동 1502호",
+    onUpdateProfile: (String, String, String, String) -> Unit = { _, _, _, _ -> }
 ) {
     val context = LocalContext.current
     var showPointHistoryDialog by remember { mutableStateOf(false) }
@@ -2858,9 +2874,11 @@ fun MyPageScreen(
         )
     }
 
-    // State for Nickname & Phone Number (Bound to user profile)
+    // State for Nickname, Phone Number & Address (Bound to user profile)
     var nickname by remember(userNickname) { mutableStateOf(userNickname) }
     var userPhoneState by remember(userPhone) { mutableStateOf(userPhone) }
+    var addressState by remember(userAddress) { mutableStateOf(userAddress) }
+    var detailAddressState by remember(userDetailAddress) { mutableStateOf(userDetailAddress) }
 
     // State for Payment Card (null by default so no card is pre-registered)
     var registeredCard by remember { mutableStateOf<String?>(null) }
@@ -3005,6 +3023,22 @@ fun MyPageScreen(
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
+
+                            OutlinedTextField(
+                                value = addressState,
+                                onValueChange = { addressState = it },
+                                label = { Text("📍 보호자 자택 주소 (도로명)") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            OutlinedTextField(
+                                value = detailAddressState,
+                                onValueChange = { detailAddressState = it },
+                                label = { Text("🏢 자택 상세 주소 (동/호수)") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
 
@@ -3015,8 +3049,8 @@ fun MyPageScreen(
                     ) {
                         Button(
                             onClick = {
-                                onUpdateProfile(nickname, userPhoneState)
-                                Toast.makeText(context, "보호자 프로필 정보(닉네임: $nickname, 연락처: $userPhoneState)가 계정에 성공적으로 저장되었습니다!", Toast.LENGTH_LONG).show()
+                                onUpdateProfile(nickname, userPhoneState, addressState, detailAddressState)
+                                Toast.makeText(context, "💾 보호자 프로필 정보 및 자택 주소가 성공적으로 저장되었습니다!", Toast.LENGTH_LONG).show()
                             },
                             shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
@@ -3722,6 +3756,8 @@ fun HomeScreenContent(
     userReferralCode: String = "K7TB94",
     userNickname: String = "발자국동행보호자",
     userPhone: String = "010-1234-5678",
+    initialAddress: String = "부산 강서구 명지국제8로 150",
+    initialDetailAddress: String = "101동 1502호",
     onAddBooking: (BookingItem) -> Unit = {},
     onNavigateToBookingTab: () -> Unit = {}
 ) {
@@ -3737,8 +3773,8 @@ fun HomeScreenContent(
     var showAiChatDialog by remember { mutableStateOf(false) }
     var showTimeSlotPicker by remember { mutableStateOf(false) }
     var showPostalCodeSearchDialog by remember { mutableStateOf(false) }
-    var userAddress by remember { mutableStateOf("부산 강서구 명지국제8로 150") }
-    var userDetailAddress by remember { mutableStateOf("101동 1502호") }
+    var userAddress by remember(initialAddress) { mutableStateOf(initialAddress) }
+    var userDetailAddress by remember(initialDetailAddress) { mutableStateOf(initialDetailAddress) }
     var selectedBookingTime by remember { mutableStateOf("오전 10:00") }
     var selectedHospital by remember { mutableStateOf<HospitalInfo?>(null) }
 
@@ -6007,9 +6043,12 @@ fun FaqItem(question: String, answer: String) {
 // 🐶 반려동물 프로필 화면
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyPetDetailScreen() {
+fun MyPetDetailScreen(
+    savedImageUri: Uri? = null,
+    onSavePetProfile: (Uri?) -> Unit = {}
+) {
     val context = LocalContext.current
-    var petImageUri by remember { mutableStateOf<Uri?>(null) }
+    var petImageUri by remember(savedImageUri) { mutableStateOf<Uri?>(savedImageUri) }
     var petSpecies by remember { mutableStateOf("강아지") }
     var petName by remember { mutableStateOf("초코") }
     var ownerRealName by remember { mutableStateOf("홍길동") }
@@ -6047,7 +6086,11 @@ fun MyPetDetailScreen() {
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { petImageUri = it }
+        uri?.let {
+            petImageUri = it
+            onSavePetProfile(it)
+            Toast.makeText(context, "📷 반려동물 대표 사진이 설정 및 저장되었습니다!", Toast.LENGTH_SHORT).show()
+        }
     }
 
     LazyColumn(
@@ -6386,7 +6429,8 @@ fun MyPetDetailScreen() {
                     Button(
                         onClick = {
                             isSaved = true
-                            Toast.makeText(context, "프로필이 저장되었습니다.", Toast.LENGTH_SHORT).show()
+                            onSavePetProfile(petImageUri)
+                            Toast.makeText(context, "💾 반려동물 프로필 사진과 정보가 안전하게 계정에 저장되었습니다!", Toast.LENGTH_LONG).show()
                         },
                         modifier = Modifier
                             .fillMaxWidth()
