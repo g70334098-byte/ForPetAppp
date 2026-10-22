@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -129,8 +130,20 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("🐾 발자국동행", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-        Text("반려동물과 함께 걷는 따뜻한 길 🐾", fontSize = 14.sp, color = Color(0xFFEA580C), fontWeight = FontWeight.Bold)
+        // 어플 대표 아이콘 이미지
+        Image(
+            painter = painterResource(id = R.mipmap.ic_launcher),
+            contentDescription = "발자국동행 로고",
+            modifier = Modifier
+                .size(90.dp)
+                .clip(CircleShape)
+                .border(2.dp, Color(0xFFF97316), CircleShape)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text("발자국동행", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+        Text("반려동물과 함께 걷는 따뜻한 길 🐾", fontSize = 13.sp, color = Color(0xFFEA580C), fontWeight = FontWeight.Bold)
 
         Spacer(modifier = Modifier.height(40.dp))
 
@@ -1148,16 +1161,14 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             if (selectedTab == 0) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = Color(0xFFFFF7ED),
-                                    border = BorderStroke(1.5.dp, Color(0xFFF97316)),
-                                    modifier = Modifier.size(26.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text("🐾", fontSize = 15.sp)
-                                    }
-                                }
+                                Image(
+                                    painter = painterResource(id = R.mipmap.ic_launcher),
+                                    contentDescription = "발자국동행 로고",
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .clip(CircleShape)
+                                        .border(1.dp, Color(0xFFF97316), CircleShape)
+                                )
                                 Text("발자국동행", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF0F172A))
                             } else {
                                 Text(
@@ -3506,7 +3517,7 @@ fun HomeScreenContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 1. 인사 및 공식 엠블럼 로고 카드
+        // 1. 인사 및 공식 어플 아이콘 로고 카드
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -3516,21 +3527,19 @@ fun HomeScreenContent(
                 Row(
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color(0xFFFFF7ED),
-                        border = BorderStroke(1.5.dp, Color(0xFFF97316)),
-                        modifier = Modifier.size(52.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text("🐾", fontSize = 28.sp)
-                        }
-                    }
+                    Image(
+                        painter = painterResource(id = R.mipmap.ic_launcher),
+                        contentDescription = "발자국동행 대표 로고",
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .border(1.5.dp, Color(0xFFF97316), CircleShape)
+                    )
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(text = "발자국동행", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                        Text(text = "발자국동행", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
                         Text(text = "반려동물과 함께 걷는 따뜻한 길 🐾", fontSize = 11.sp, color = Color(0xFFEA580C), fontWeight = FontWeight.Bold)
                         Text(text = "🚙 넓은 공간의 '발자국동행 기아 레이(RAY)' 펫 전용차 연동", fontSize = 11.sp, color = Color(0xFF0284C7))
                     }
