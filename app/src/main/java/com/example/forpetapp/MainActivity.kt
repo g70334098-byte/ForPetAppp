@@ -3529,18 +3529,20 @@ fun DetailedServiceCard(
                     color = Color.White
                 )
 
-                // 기아 레이(RAY) 차량 태그
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color.White.copy(alpha = 0.22f)
-                ) {
-                    Text(
-                        text = carModelText,
-                        fontSize = 10.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
+                // 차량 태그 (비어있지 않을 경우에만 표시)
+                if (carModelText.isNotEmpty()) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color.White.copy(alpha = 0.22f)
+                    ) {
+                        Text(
+                            text = carModelText,
+                            fontSize = 10.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(2.dp))
@@ -3917,11 +3919,11 @@ fun HomeScreenContent(
                 DetailedServiceCard(
                     modifier = Modifier.weight(1f),
                     badgeText = "🚨 24H 긴급 배차",
-                    title = "긴급 응급 출동 (병원 미 예약자)",
-                    carModelText = "🚑 24시 최우선 긴급 출동차",
+                    title = "긴급 응급 출동\n(병원 미예약자)",
+                    carModelText = "",
                     features = listOf(
                         "• 24시 응급 동물병원 직통",
-                        "• 야간/긴급 전문 가드 출동",
+                        "• 24시 긴급 전문 가드 출동",
                         "• 최단거리 속응 긴급차 배차",
                         "• 병원 미예약 시 즉시 연동"
                     ),
@@ -4352,9 +4354,9 @@ fun HomeScreenContent(
                                 }
                                 HorizontalDivider()
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text("🚨 24시 야간 응급 출동 서비스 요금", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFD32F2F))
-                                    Text("• 응급 출동 기본료 (야간 24시 긴급 출동): 45,000원 ~ 55,000원", fontSize = 11.sp, color = Color(0xFF334155))
-                                    Text("• 야간/심야 할증 (22:00 ~ 06:00): +10,000원", fontSize = 11.sp, color = Color.Gray)
+                                    Text("🚨 24시 긴급 응급 출동 서비스 요금", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFD32F2F))
+                                    Text("• 24시 긴급 응급 출동 기본료: 45,000원 ~ 55,000원", fontSize = 11.sp, color = Color(0xFF334155))
+                                    Text("• 심야 할증 (23:00 ~ 05:00): +10,000원", fontSize = 11.sp, color = Color.Gray)
                                 }
                                 Text("※ 이동 거리(km) 및 서부산 구 단위에 따라 예상 금액이 산정되며, 미터기 기준 투명 정찰제로 안전하게 운용됩니다.", fontSize = 10.sp, color = Color(0xFF0284C7), lineHeight = 14.sp)
                             }
