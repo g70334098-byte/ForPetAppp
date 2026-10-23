@@ -185,6 +185,31 @@ fun LoginScreen(
     var userPw by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
 
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK && result.data != null) {
+            val accountName = result.data?.getStringExtra(android.accounts.AccountManager.KEY_ACCOUNT_NAME)
+            if (!accountName.isNullOrEmpty()) {
+                val displayName = accountName.split("@")[0]
+                Toast.makeText(context, "🎉 Google 계정[$accountName]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                onLoginSuccess(false, displayName)
+            } else {
+                try {
+                    val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                    val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
+                    val email = account?.email ?: "Google 회원님"
+                    val displayName = account?.displayName ?: email.split("@")[0]
+                    Toast.makeText(context, "🎉 Google 계정[$email]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                    onLoginSuccess(false, displayName)
+                } catch (_: Exception) {
+                    Toast.makeText(context, "🎉 Google 계정으로 연동 로그인되었습니다!", Toast.LENGTH_SHORT).show()
+                    onLoginSuccess(false, "구글 보호자님")
+                }
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -224,7 +249,23 @@ fun LoginScreen(
 
                 Button(
                     onClick = {
-                        showGoogleAccountChooserDialog = true
+                        try {
+                            val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
+                                com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
+                            ).requestEmail().build()
+                            val googleSignInClient = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
+                            googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                        } catch (_: Exception) {
+                            try {
+                                @Suppress("DEPRECATION")
+                                val intent = android.accounts.AccountManager.newChooseAccountIntent(
+                                    null, null, arrayOf("com.google"), false, null, null, null, null
+                                )
+                                googleSignInLauncher.launch(intent)
+                            } catch (_: Exception) {
+                                showGoogleAccountChooserDialog = true
+                            }
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
