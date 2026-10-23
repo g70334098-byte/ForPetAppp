@@ -6992,13 +6992,31 @@ fun MyPetDetailScreen(
         ageText = "3살"
     }
 
+fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): String? {
+    return try {
+        val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+        val outputFile = java.io.File(context.filesDir, "saved_pet_profile.jpg")
+        val outputStream = java.io.FileOutputStream(outputFile)
+        inputStream.use { input ->
+            outputStream.use { output ->
+                input.copyTo(output)
+            }
+        }
+        Uri.fromFile(outputFile).toString()
+    } catch (_: Exception) {
+        uri.toString()
+    }
+}
+
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            petImageUri = it
-            onSavePetProfile(it, petSpecies, petName, ownerRealName, petType, selectedGender, isNeutered, petWeight, petHospital, petSymptoms, selectedBirthMillis)
-            Toast.makeText(context, "📷 반려동물 대표 사진이 계정에 설정 및 저장되었습니다!", Toast.LENGTH_SHORT).show()
+            val savedInternalUriStr = savePetImageToInternalStorage(context, it)
+            val parsedUri = if (savedInternalUriStr != null) Uri.parse(savedInternalUriStr) else it
+            petImageUri = parsedUri
+            onSavePetProfile(parsedUri, petSpecies, petName, ownerRealName, petType, selectedGender, isNeutered, petWeight, petHospital, petSymptoms, selectedBirthMillis)
+            Toast.makeText(context, "📷 반려동물 대표 사진이 디스크 파일에 영구 저장되었습니다!", Toast.LENGTH_SHORT).show()
         }
     }
 
