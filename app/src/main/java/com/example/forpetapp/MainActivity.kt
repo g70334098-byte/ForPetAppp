@@ -4306,10 +4306,12 @@ fun HomeScreenContent(
     var showEventDialog by remember { mutableStateOf(false) }
     var showAiChatDialog by remember { mutableStateOf(false) }
     var showTimeSlotPicker by remember { mutableStateOf(false) }
+    var showHospitalTimePicker by remember { mutableStateOf(false) }
     var showPostalCodeSearchDialog by remember { mutableStateOf(false) }
     var userAddress by remember(initialAddress) { mutableStateOf(initialAddress) }
     var userDetailAddress by remember(initialDetailAddress) { mutableStateOf(initialDetailAddress) }
-    var selectedBookingTime by remember { mutableStateOf("오전 10:00") }
+    var selectedBookingTime by remember { mutableStateOf("오전 10:30") }
+    var hospitalReservedTime by remember { mutableStateOf("오전 11:30") }
     var selectedHospital by remember { mutableStateOf<HospitalInfo?>(null) }
 
     val reviewsList = remember {
@@ -5444,11 +5446,11 @@ fun HomeScreenContent(
                         }
                     }
 
-                    // 7. 예약 완료하신 동물병원 명칭 작성 & 30분 단위 희망 방문 시각 선택
+                    // 7. 예약 완료하신 동물병원 명칭 작성 & 병원 예약 시각 & 픽업 시각 선택
                     item {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                if (isHospitalReserved) "7. 예약 완료하신 동물병원 명칭 직접 입력 🏥" else "7. 방문 희망 동물병원 또는 추천 요청 🏥",
+                                if (isHospitalReserved) "7. 예약 완료하신 동물병원 정보 & 픽업 시각 🏥" else "7. 방문 희망 동물병원 & 픽업 시각 🏥",
                                 fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A)
                             )
                             OutlinedTextField(
@@ -5460,9 +5462,28 @@ fun HomeScreenContent(
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            Spacer(modifier = Modifier.height(2.dp))
+                            if (isHospitalReserved) {
+                                // 🏥 병원 사전 예약 시각 선택 버튼
+                                OutlinedButton(
+                                    onClick = { showHospitalTimePicker = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Text("🏥", fontSize = 16.sp)
+                                            Text("병원 진료 예약 시각: $hospitalReservedTime", fontWeight = FontWeight.Bold, color = Color(0xFF0284C7), fontSize = 13.sp)
+                                        }
+                                        Text("시간 선택 ➔", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
 
-                            // 30분 단위 희망 방문 시각 선택 버튼 (09:00 ~ 18:30 전용 팝업)
+                            // 🚙 가드 자택 픽업 희망 시각 선택 버튼 (09:00 ~ 18:30 전용 팝업)
                             OutlinedButton(
                                 onClick = { showTimeSlotPicker = true },
                                 modifier = Modifier.fillMaxWidth(),
@@ -5474,8 +5495,8 @@ fun HomeScreenContent(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text("⏰", fontSize = 16.sp)
-                                        Text("희망 방문 시각: $selectedBookingTime", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 13.sp)
+                                        Text("🚙", fontSize = 16.sp)
+                                        Text("가드 자택 픽업 시각: $selectedBookingTime", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 13.sp)
                                     }
                                     Text("시간 변경 ➔", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
                                 }
@@ -5689,7 +5710,7 @@ fun HomeScreenContent(
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("⏰", fontSize = 20.sp)
-                    Text("희망 방문 시각 선택 (09:00 ~ 18:30)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("가드 자택 픽업 시각 선택 (09:00 ~ 18:30)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             },
             text = {
@@ -5720,6 +5741,54 @@ fun HomeScreenContent(
             },
             confirmButton = {
                 TextButton(onClick = { showTimeSlotPicker = false }) { Text("취소") }
+            }
+        )
+    }
+
+    if (showHospitalTimePicker) {
+        val timeList = listOf(
+            "오전 09:00", "오전 09:30", "오전 10:00", "오전 10:30",
+            "오전 11:00", "오전 11:30", "오후 12:00", "오후 12:30",
+            "오후 01:00", "오후 01:30", "오후 02:00", "오후 02:30",
+            "오후 03:00", "오후 03:30", "오후 04:00", "오후 04:30",
+            "오후 05:00", "오후 05:30", "오후 06:00", "오후 06:30"
+        )
+        AlertDialog(
+            onDismissRequest = { showHospitalTimePicker = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("🏥", fontSize = 20.sp)
+                    Text("병원 진료 예약 시각 선택 (09:00 ~ 18:30)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(280.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(timeList.chunked(2).size) { idx ->
+                        val pair = timeList.chunked(2)[idx]
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            pair.forEach { slot ->
+                                FilterChip(
+                                    selected = (hospitalReservedTime == slot),
+                                    onClick = {
+                                        hospitalReservedTime = slot
+                                        showHospitalTimePicker = false
+                                    },
+                                    label = { Text(slot, fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            if (pair.size == 1) Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showHospitalTimePicker = false }) { Text("취소") }
             }
         )
     }
