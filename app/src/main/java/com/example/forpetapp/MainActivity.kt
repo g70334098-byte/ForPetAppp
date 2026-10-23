@@ -180,6 +180,7 @@ fun LoginScreen(
 ) {
     val context = LocalContext.current
     var showAdminLogin by remember { mutableStateOf(false) }
+    var showGoogleAccountChooserDialog by remember { mutableStateOf(false) }
     var userId by remember { mutableStateOf("") }
     var userPw by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
@@ -223,18 +224,7 @@ fun LoginScreen(
 
                 Button(
                     onClick = {
-                        try {
-                            val auth = FirebaseAuth.getInstance()
-                            val currentUser = auth.currentUser
-                            if (currentUser != null) {
-                                Toast.makeText(context, "Google 로그인 성공! (${currentUser.email ?: "회원님"})", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(context, "Google 계정 간편 연동으로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                            }
-                        } catch (_: Exception) {
-                            Toast.makeText(context, "Google 계정 간편 연동으로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                        }
-                        onLoginSuccess(false, "발자국동행 회원님")
+                        showGoogleAccountChooserDialog = true
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -413,6 +403,92 @@ fun LoginScreen(
                 Text("담당 가드 로그인 (가드 모드)", fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
         }
+    }
+
+    if (showGoogleAccountChooserDialog) {
+        var customGoogleEmail by remember { mutableStateOf("") }
+        val sampleDeviceAccounts = listOf(
+            "g70334098@gmail.com",
+            "forpet.app.official@gmail.com"
+        )
+
+        AlertDialog(
+            onDismissRequest = { showGoogleAccountChooserDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("🔴", fontSize = 22.sp)
+                    Text("Google 계정 선택", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text("발자국동행에 연동할 구글 계정(Gmail)을 선택해 주세요.", fontSize = 12.sp, color = Color.Gray)
+
+                    sampleDeviceAccounts.forEach { acc ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    val name = acc.split("@")[0]
+                                    Toast.makeText(context, "🎉 Google 계정[$acc]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                                    showGoogleAccountChooserDialog = false
+                                    onLoginSuccess(false, name)
+                                },
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Surface(shape = CircleShape, color = Color(0xFFE0F2FE), modifier = Modifier.size(36.dp)) {
+                                    Box(contentAlignment = Alignment.Center) { Text("👤", fontSize = 18.sp) }
+                                }
+                                Column {
+                                    Text(acc, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                    Text("Google 계정 연동 완료", fontSize = 10.sp, color = Color(0xFF0284C7))
+                                }
+                            }
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    Text("다른 Google 계정 직접 입력", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                    OutlinedTextField(
+                        value = customGoogleEmail,
+                        onValueChange = { customGoogleEmail = it },
+                        label = { Text("Gmail 이메일 주소 입력") },
+                        placeholder = { Text("예: mypet@gmail.com") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (customGoogleEmail.isNotEmpty()) {
+                            val name = if (customGoogleEmail.contains("@")) customGoogleEmail.split("@")[0] else customGoogleEmail
+                            Toast.makeText(context, "🎉 Google 계정[$customGoogleEmail]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                            showGoogleAccountChooserDialog = false
+                            onLoginSuccess(false, name)
+                        } else {
+                            Toast.makeText(context, "구글 계정 이메일을 입력하거나 선택해 주세요.", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                ) {
+                    Text("이 계정으로 로그인", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showGoogleAccountChooserDialog = false }) { Text("취소") }
+            }
+        )
     }
 }
 
