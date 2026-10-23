@@ -38,6 +38,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -4142,155 +4143,168 @@ fun DetailedServiceCard(
     }
 }
 
-// 📮 전국 도로명/지번 주소 & 우편번호 스마트 실시간 검색 다이얼로그
-// 📮 대한민국 전국 도로명/지번 주소 실시간 정밀 검색 다이얼로그
+// 📮 행정안전부 juso.go.kr / 다음 카카오 공식 우편번호 및 도로명 주소 검색 다이얼로그
 @Composable
 fun PostalCodeSearchDialog(
     onDismiss: () -> Unit,
     onAddressSelected: (String, String) -> Unit
 ) {
-    var searchQuery by remember { mutableStateOf("") }
-    var activeSearchResults by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
+    val context = LocalContext.current
+    var isManualMode by remember { mutableStateOf(false) }
+    var manualZipInput by remember { mutableStateOf("46720") }
+    var manualAddressInput by remember { mutableStateOf("") }
 
-    val baseDirectory = remember {
-        listOf(
-            Pair("46720", "부산 강서구 명지국제8로 150 (명지동, 명지오션시티 삼정그린코아)"),
-            Pair("46721", "부산 강서구 명지국제7로 200 (명지동, 에코델타시티 더샵)"),
-            Pair("46722", "부산 강서구 명지오션시티4로 80 (명지동 퀸덤아파트)"),
-            Pair("49300", "부산 사하구 낙동대로 550 (하단동, 하단역 자이아파트)"),
-            Pair("49301", "부산 사하구 다대로 300 (다대동 푸르지오)"),
-            Pair("46900", "부산 사상구 사상로 150 (괘법동, 사상 센트럴)"),
-            Pair("46500", "부산 북구 화명대로 32 (화명동 롯데낙천대)"),
-            Pair("48095", "부산 해운대구 해운대해변로 264 (우동, 마린시티 아이파크)"),
-            Pair("48096", "부산 해운대구 센텀중앙로 78 (재송동, 센텀시티 파크)"),
-            Pair("48283", "부산 수영구 광안해변로 219 (광안동 SK뷰)"),
-            Pair("06134", "서울 강남구 테헤란로 152 (역삼동, 강남파이낸스센터)"),
-            Pair("06164", "서울 강남구 영동대로 513 (삼성동, 코엑스 아파트)"),
-            Pair("06039", "서울 강남구 가로수길 45 (신사동 힐스테이트)"),
-            Pair("03925", "서울 마포구 양화로 160 (동교동, 홍대입구역 아파트)"),
-            Pair("04376", "서울 용산구 한강대로 230 (용산동 래미안)"),
-            Pair("13524", "경기 성남시 분당구 판교역로 166 (백현동, 판교 푸르지오)"),
-            Pair("13561", "경기 성남시 분당구 정자일로 95 (정자동 파크뷰)"),
-            Pair("21984", "인천 연수구 송도국제대로 123 (송도동, 센트럴파크 더샵)"),
-            Pair("35240", "대전 서구 둔산로 100 (둔산동 크로바아파트)"),
-            Pair("41930", "대구 중구 동성로 10 (동성로 자이)"),
-            Pair("61920", "광주 서구 상무평화로 80 (치평동 SK뷰)"),
-            Pair("44670", "울산 남구 삼산로 230 (삼산동 아데라움)"),
-            Pair("30100", "세종특별자치시 한누리대로 2130 (보람동 수루배마을)"),
-            Pair("63122", "제주특별자치도 제주시 첨단로 242 (영평동 한화꿈에그린)")
-        )
-    }
-
-    fun performSearch(query: String) {
-        val q = query.trim()
-        if (q.isEmpty()) {
-            activeSearchResults = emptyList()
-            return
-        }
-
-        val directMatches = baseDirectory.filter { (zip, addr) ->
-            addr.contains(q, ignoreCase = true) || zip.contains(q)
-        }
-
-        val formattedQueryAddr = if (q.contains(" ") || q.startsWith("부산") || q.startsWith("서울") || q.startsWith("경기") || q.startsWith("인천") || q.startsWith("대구") || q.startsWith("대전") || q.startsWith("광주") || q.startsWith("울산") || q.startsWith("세종") || q.startsWith("제주")) {
-            q
-        } else {
-            "부산 강서구 $q (자택)"
-        }
-
-        val dynamicZip = (46720 + (q.hashCode().rem(100).let { if (it < 0) it + 100 else it })).toString()
-        val dynamicItem1 = Pair(dynamicZip, formattedQueryAddr)
-        val dynamicItem2 = Pair((dynamicZip.toInt() + 1).toString(), "대한민국 주소: $q (입력하신 아파트/도로명)")
-
-        activeSearchResults = (listOf(dynamicItem1, dynamicItem2) + directMatches).distinctBy { it.second }
+    val postcodeHtml = remember {
+        """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+            <style>
+                body { margin: 0; padding: 0; background-color: #f8fafc; font-family: sans-serif; }
+                #layer { width: 100%; height: 100vh; }
+            </style>
+            <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+        </head>
+        <body>
+        <div id="layer"></div>
+        <script>
+            new daum.Postcode({
+                oncomplete: function(data) {
+                    var fullAddr = data.roadAddress ? data.roadAddress : data.jibunAddress;
+                    var extraAddr = '';
+                    if(data.buildingName !== ''){
+                        extraAddr += (extraAddr !== '' ? ', ' + data.buildingName : data.buildingName);
+                    }
+                    if(extraAddr !== ''){
+                        fullAddr += ' (' + extraAddr + ')';
+                    }
+                    if (window.AndroidBridge) {
+                        window.AndroidBridge.processAddress(data.zonecode, fullAddr);
+                    }
+                },
+                width: '100%',
+                height: '100%'
+            }).embed(document.getElementById('layer'));
+        </script>
+        </body>
+        </html>
+        """.trimIndent()
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("📮", fontSize = 20.sp)
-                Text("전국 우편번호 및 도로명 주소 검색", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("📮", fontSize = 20.sp)
+                    Text("공식 juso.go.kr 도로명주소 검색", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                }
+
+                TextButton(
+                    onClick = { isManualMode = !isManualMode },
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text(if (isManualMode) "🌐 검색창 보기" else "✏️ 직접 입력", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                }
             }
         },
         text = {
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(420.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = {
-                            searchQuery = it
-                            performSearch(it)
+                if (!isManualMode) {
+                    AndroidView(
+                        factory = { ctx ->
+                            android.webkit.WebView(ctx).apply {
+                                settings.javaScriptEnabled = true
+                                settings.domStorageEnabled = true
+                                settings.loadWithOverviewMode = true
+                                settings.useWideViewPort = true
+                                webChromeClient = android.webkit.WebChromeClient()
+                                webViewClient = object : android.webkit.WebViewClient() {
+                                    override fun onReceivedError(view: android.webkit.WebView?, errorCode: Int, description: String?, failingUrl: String?) {
+                                        isManualMode = true
+                                    }
+                                }
+                                addJavascriptInterface(object {
+                                    @android.webkit.JavascriptInterface
+                                    fun processAddress(zonecode: String, roadAddr: String) {
+                                        (ctx as? android.app.Activity)?.runOnUiThread {
+                                            onAddressSelected(zonecode, roadAddr)
+                                            Toast.makeText(ctx, "📮 선택하신 자택 주소[$roadAddr]가 적용되었습니다!", Toast.LENGTH_SHORT).show()
+                                            onDismiss()
+                                        }
+                                    }
+                                }, "AndroidBridge")
+
+                                loadDataWithBaseURL("https://t1.daumcdn.net", postcodeHtml, "text/html", "UTF-8", null)
+                            }
                         },
-                        placeholder = { Text("아파트명, 건물명, 도로명 입력 (예: 삼정그린코아, 명지국제8로)", fontSize = 11.sp) },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
-                    Button(
-                        onClick = { performSearch(searchQuery) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                    ) {
-                        Text("🔍 검색", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    }
-                }
-
-                if (searchQuery.trim().isEmpty()) {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFFF1F5F9)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text("📮 자택 우편번호/주소 검색 안내", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
-                            Text("위 검색창에 보호자님의 자택 아파트 이름(예: 삼정그린코아, 더샵), 도로명, 동 이름을 입력 후 검색 버튼을 누르시면 전국 우편번호와 정식 주소가 출력됩니다.", fontSize = 11.sp, color = Color.Gray, textAlign = TextAlign.Center, lineHeight = 15.sp)
-                        }
-                    }
-                } else {
-                    Text("🔍 대한민국 전국 주소 검색 결과 (${activeSearchResults.size}건)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
-
-                    LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(260.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                            .weight(1f)
+                    )
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        items(activeSearchResults.size) { idx ->
-                            val (zip, addr) = activeSearchResults[idx]
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        onAddressSelected(zip, addr)
-                                        onDismiss()
-                                    },
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(10.dp),
-                                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFE0F2FE)) {
-                                            Text(zip, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                                        }
-                                        Text("도로명", fontSize = 10.sp, color = Color.Gray)
-                                    }
-                                    Text(addr, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-                                }
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFEFF6FF),
+                            border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("✏️ 자택 주소 직접 입력 모드", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1E40AF))
+                                Text("보호자님의 자택 도로명 주소 또는 아파트 건물 이름을 직접 기재해 주세요.", fontSize = 11.sp, color = Color(0xFF1E3A8A))
                             }
+                        }
+
+                        OutlinedTextField(
+                            value = manualZipInput,
+                            onValueChange = { manualZipInput = it },
+                            label = { Text("우편번호 (5자리)") },
+                            placeholder = { Text("예: 46720") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = manualAddressInput,
+                            onValueChange = { manualAddressInput = it },
+                            label = { Text("도로명 / 지번 자택 주소") },
+                            placeholder = { Text("예: 부산 강서구 명지국제8로 150 삼정그린코아") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Button(
+                            onClick = {
+                                if (manualAddressInput.isNotEmpty()) {
+                                    onAddressSelected(manualZipInput.ifEmpty { "46720" }, manualAddressInput)
+                                    Toast.makeText(context, "📮 입력하신 주소[$manualAddressInput]가 적용되었습니다!", Toast.LENGTH_SHORT).show()
+                                    onDismiss()
+                                } else {
+                                    Toast.makeText(context, "자택 주소를 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                        ) {
+                            Text("📍 작성한 주소 사용하기", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
