@@ -1528,6 +1528,13 @@ object PersistentStorageManager {
             .apply()
     }
 
+    fun saveReferralRedeemed(context: android.content.Context, redeemed: Boolean) {
+        getPrefs(context).edit().putBoolean("referral_redeemed", redeemed).apply()
+    }
+
+    fun loadReferralRedeemed(context: android.content.Context): Boolean =
+        getPrefs(context).getBoolean("referral_redeemed", false)
+
     fun loadUserNickname(context: android.content.Context, defaultVal: String) =
         getPrefs(context).getString("user_nickname", defaultVal) ?: defaultVal
 
@@ -4683,7 +4690,7 @@ fun HomeScreenContent(
                         ) {
                             Text("공지", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                         }
-                        Text("서부산(강서/사하/사상/북구) 24시 응급 출동 서비스 정식 오픈 안내", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFF0F172A), maxLines = 1)
+                        Text("발자국동행 병원 진료 대행 & 장례식장 연계 안심 운구 서비스 정식 안내", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFF0F172A), maxLines = 1)
                     }
                     Text("더보기 ➔", fontSize = 11.sp, color = Color.Gray)
                 }
@@ -6783,10 +6790,10 @@ fun HomeScreenContent(
                     item {
                         Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC))) {
                             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("📢 서부산 24시 응급 출동 서비스 정식 오픈 안내", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                Text("📢 발자국동행 안심 이동 케어 & 장례 연계 서비스 안내", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
                                 Text("2026.10.18", fontSize = 10.sp, color = Color.Gray)
                                 HorizontalDivider()
-                                Text("강서구, 사하구, 사상구, 북구 서부산 전 지역에 산소 챔버 완비 24시 긴급차 최우선 이송 서비스가 정식 오픈되었습니다.", fontSize = 11.sp, color = Color(0xFF334155), lineHeight = 15.sp)
+                                Text("강서구, 사하구, 사상구, 북구 서부산 전 지역에 1:1 병원 진료 대행 및 장례 안심 운구 연계 서비스가 정식 운영 중입니다.", fontSize = 11.sp, color = Color(0xFF334155), lineHeight = 15.sp)
                             }
                         }
                     }
@@ -6812,13 +6819,14 @@ fun HomeScreenContent(
 
     if (showEventDialog) {
         var inputFriendCode by remember { mutableStateOf("") }
+        var isReferralRedeemed by remember { mutableStateOf(PersistentStorageManager.loadReferralRedeemed(context)) }
 
         AlertDialog(
             onDismissRequest = { showEventDialog = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("🎁", fontSize = 20.sp)
-                    Text("친구 추천 이벤트 (1명당 3,000P)", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    Text("친구 추천 이벤트 (최초 1회 3,000P)", fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 }
             },
             text = {
@@ -6852,7 +6860,7 @@ fun HomeScreenContent(
                     }
 
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("🎁 친구의 추천 코드 입력하기", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                        Text("🎁 친구의 추천 코드 입력하기 (최초 1회)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -6860,23 +6868,29 @@ fun HomeScreenContent(
                             OutlinedTextField(
                                 value = inputFriendCode,
                                 onValueChange = { inputFriendCode = it.uppercase() },
-                                placeholder = { Text("6자리 코드 입력") },
+                                placeholder = { Text(if (isReferralRedeemed) "이미 3,000P 적립 완료" else "6자리 코드 입력") },
+                                enabled = !isReferralRedeemed,
                                 modifier = Modifier.weight(1f),
                                 singleLine = true
                             )
                             Button(
                                 onClick = {
-                                    if (inputFriendCode.length >= 6) {
+                                    if (isReferralRedeemed) {
+                                        Toast.makeText(context, "⚠️ 추천 코드는 계정당 최초 1회만 적립 가능합니다! (이미 3,000P 적립 완료)", Toast.LENGTH_LONG).show()
+                                    } else if (inputFriendCode.length >= 6) {
                                         onUpdatePoints(userPoints + 3000)
-                                        Toast.makeText(context, "🎉 친구 추천 코드가 등록되어 3,000 P가 즉시 적립되었습니다!", Toast.LENGTH_LONG).show()
+                                        isReferralRedeemed = true
+                                        PersistentStorageManager.saveReferralRedeemed(context, true)
+                                        Toast.makeText(context, "🎉 친구 추천 코드가 최초 등록되어 3,000 P가 성공적으로 적립되었습니다!", Toast.LENGTH_LONG).show()
                                         inputFriendCode = ""
                                     } else {
                                         Toast.makeText(context, "올바른 6자리 영문 추천 코드를 입력해 주세요.", Toast.LENGTH_SHORT).show()
                                     }
                                 },
+                                enabled = !isReferralRedeemed,
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
                             ) {
-                                Text("적립", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text(if (isReferralRedeemed) "완료" else "적립", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             }
                         }
                     }
