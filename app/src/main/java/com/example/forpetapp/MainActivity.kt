@@ -394,6 +394,10 @@ fun LoginScreen(
     var userPw by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
 
+    LaunchedEffect(Unit) {
+        PersistentStorageManager.clearAllData(context)
+    }
+
     fun processLoginWithPhoneCheck(isAdmin: Boolean, isDedicatedAdminWorkspace: Boolean, displayName: String) {
         val savedPhone = PersistentStorageManager.loadUserPhone(context, "")
         if (savedPhone.length >= 10) {
@@ -5502,7 +5506,7 @@ fun HomeScreenContent(
                         }
                     }
 
-                    // 2-3. 📮 자택 주소 입력 및 우편번호 검색
+                    // 2-3. 📍 자택 주소 직접 입력 및 자동 주소록 저장
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(
@@ -5510,28 +5514,30 @@ fun HomeScreenContent(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("📍 픽업 고객 자택 주소", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                                TextButton(
-                                    onClick = {
-                                        showPostalCodeSearchDialog = true
-                                    },
-                                    contentPadding = PaddingValues(0.dp)
-                                ) {
-                                    Text("📮 우편번호/주소 검색", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                                Text("📍 자택 주소 직접 입력 (자동 주소록 저장)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFE0F2FE)) {
+                                    Text("자동 저장됨 💾", fontSize = 10.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                 }
                             }
 
                             OutlinedTextField(
                                 value = userAddress,
-                                onValueChange = { userAddress = it },
-                                label = { Text("도로명 / 지번 주소") },
+                                onValueChange = {
+                                    userAddress = it
+                                    PersistentStorageManager.saveUserProfile(context, userNickname, userPhone, it, userDetailAddress, PersistentStorageManager.loadRegisteredCard(context))
+                                },
+                                label = { Text("자택 도로명 / 아파트 주소") },
+                                placeholder = { Text("예: 부산 강서구 명지국제8로 150") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
 
                             OutlinedTextField(
                                 value = userDetailAddress,
-                                onValueChange = { userDetailAddress = it },
+                                onValueChange = {
+                                    userDetailAddress = it
+                                    PersistentStorageManager.saveUserProfile(context, userNickname, userPhone, userAddress, it, PersistentStorageManager.loadRegisteredCard(context))
+                                },
                                 label = { Text("동/호수 및 건물 상세 주소 (예: 101동 1502호)") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
@@ -6202,7 +6208,7 @@ fun HomeScreenContent(
                         }
                     }
 
-                    // 2-3. 📮 자택 주소 입력 및 우편번호 검색
+                    // 2-3. 📍 자택 주소 직접 입력 및 자동 주소록 저장
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(
@@ -6210,28 +6216,30 @@ fun HomeScreenContent(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("📍 픽업 고객 자택 주소", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                                TextButton(
-                                    onClick = {
-                                        showPostalCodeSearchDialog = true
-                                    },
-                                    contentPadding = PaddingValues(0.dp)
-                                ) {
-                                    Text("📮 우편번호/주소 검색", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                                Text("📍 자택 주소 직접 입력 (자동 주소록 저장)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFE0F2FE)) {
+                                    Text("자동 저장됨 💾", fontSize = 10.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                 }
                             }
 
                             OutlinedTextField(
                                 value = userAddress,
-                                onValueChange = { userAddress = it },
-                                label = { Text("도로명 / 지번 주소") },
+                                onValueChange = {
+                                    userAddress = it
+                                    PersistentStorageManager.saveUserProfile(context, userNickname, userPhone, it, userDetailAddress, PersistentStorageManager.loadRegisteredCard(context))
+                                },
+                                label = { Text("자택 도로명 / 아파트 주소") },
+                                placeholder = { Text("예: 부산 강서구 명지국제8로 150") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
 
                             OutlinedTextField(
                                 value = userDetailAddress,
-                                onValueChange = { userDetailAddress = it },
+                                onValueChange = {
+                                    userDetailAddress = it
+                                    PersistentStorageManager.saveUserProfile(context, userNickname, userPhone, userAddress, it, PersistentStorageManager.loadRegisteredCard(context))
+                                },
                                 label = { Text("동/호수 및 건물 상세 주소 (예: 101동 1502호)") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
