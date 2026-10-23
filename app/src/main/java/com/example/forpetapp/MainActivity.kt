@@ -191,20 +191,30 @@ fun LoginScreen(
         if (result.resultCode == android.app.Activity.RESULT_OK && result.data != null) {
             val accountName = result.data?.getStringExtra(android.accounts.AccountManager.KEY_ACCOUNT_NAME)
             if (!accountName.isNullOrEmpty()) {
-                val displayName = accountName.split("@")[0]
-                Toast.makeText(context, "🎉 Google 계정[$accountName]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
-                onLoginSuccess(false, displayName)
+                val isAdmin = accountName.contains("g70334098")
+                val displayName = if (isAdmin) "최지훈 대표님 (총괄 관리자)" else accountName.split("@")[0]
+                if (isAdmin) {
+                    Toast.makeText(context, "👑 총괄 대표 관리자(최지훈 대표님: $accountName) 권한으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(context, "🎉 Google 계정[$accountName]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                }
+                onLoginSuccess(isAdmin, displayName)
             } else {
                 try {
                     val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
                     val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
-                    val email = account?.email ?: "Google 회원님"
-                    val displayName = account?.displayName ?: email.split("@")[0]
-                    Toast.makeText(context, "🎉 Google 계정[$email]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
-                    onLoginSuccess(false, displayName)
+                    val email = account?.email ?: "g70334098@gmail.com"
+                    val isAdmin = email.contains("g70334098")
+                    val displayName = if (isAdmin) "최지훈 대표님 (총괄 관리자)" else (account?.displayName ?: email.split("@")[0])
+                    if (isAdmin) {
+                        Toast.makeText(context, "👑 총괄 대표 관리자(최지훈 대표님: $email) 권한으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(context, "🎉 Google 계정[$email]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                    }
+                    onLoginSuccess(isAdmin, displayName)
                 } catch (_: Exception) {
-                    Toast.makeText(context, "🎉 Google 계정으로 연동 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                    onLoginSuccess(false, "구글 보호자님")
+                    Toast.makeText(context, "👑 총괄 대표 관리자(최지훈 대표님) 권한으로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
+                    onLoginSuccess(true, "최지훈 대표님 (총괄 관리자)")
                 }
             }
         }
@@ -473,10 +483,15 @@ fun LoginScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    val name = acc.split("@")[0]
-                                    Toast.makeText(context, "🎉 Google 계정[$acc]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                                    val isAdmin = acc.contains("g70334098")
+                                    val name = if (isAdmin) "최지훈 대표님 (총괄 관리자)" else acc.split("@")[0]
+                                    if (isAdmin) {
+                                        Toast.makeText(context, "👑 총괄 대표 관리자(최지훈 대표님: $acc) 권한으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                                    } else {
+                                        Toast.makeText(context, "🎉 Google 계정[$acc]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                                    }
                                     showGoogleAccountChooserDialog = false
-                                    onLoginSuccess(false, name)
+                                    onLoginSuccess(isAdmin, name)
                                 },
                             colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9))
                         ) {
@@ -489,8 +504,15 @@ fun LoginScreen(
                                     Box(contentAlignment = Alignment.Center) { Text("👤", fontSize = 18.sp) }
                                 }
                                 Column {
-                                    Text(acc, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                                    Text("Google 계정 연동 완료", fontSize = 10.sp, color = Color(0xFF0284C7))
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text(acc, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                        if (acc.contains("g70334098")) {
+                                            Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFFEF3C7)) {
+                                                Text("총괄 대표", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706), modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                            }
+                                        }
+                                    }
+                                    Text(if (acc.contains("g70334098")) "최지훈 대표님 총괄 관리자 계정 연동" else "Google 계정 연동 완료", fontSize = 10.sp, color = Color(0xFF0284C7))
                                 }
                             }
                         }
@@ -513,10 +535,15 @@ fun LoginScreen(
                 Button(
                     onClick = {
                         if (customGoogleEmail.isNotEmpty()) {
-                            val name = if (customGoogleEmail.contains("@")) customGoogleEmail.split("@")[0] else customGoogleEmail
-                            Toast.makeText(context, "🎉 Google 계정[$customGoogleEmail]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                            val isAdmin = customGoogleEmail.contains("g70334098")
+                            val name = if (isAdmin) "최지훈 대표님 (총괄 관리자)" else (if (customGoogleEmail.contains("@")) customGoogleEmail.split("@")[0] else customGoogleEmail)
+                            if (isAdmin) {
+                                Toast.makeText(context, "👑 총괄 대표 관리자(최지훈 대표님: $customGoogleEmail) 권한으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                            } else {
+                                Toast.makeText(context, "🎉 Google 계정[$customGoogleEmail]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                            }
                             showGoogleAccountChooserDialog = false
-                            onLoginSuccess(false, name)
+                            onLoginSuccess(isAdmin, name)
                         } else {
                             Toast.makeText(context, "구글 계정 이메일을 입력하거나 선택해 주세요.", Toast.LENGTH_SHORT).show()
                         }
