@@ -372,30 +372,20 @@ fun LoginScreen(
         if (result.resultCode == android.app.Activity.RESULT_OK && result.data != null) {
             val accountName = result.data?.getStringExtra(android.accounts.AccountManager.KEY_ACCOUNT_NAME)
             if (!accountName.isNullOrEmpty()) {
-                val isAdmin = accountName.contains("g70334098")
-                val displayName = if (isAdmin) "최지훈 대표님 (총괄 관리자)" else accountName.split("@")[0]
-                if (isAdmin) {
-                    Toast.makeText(context, "👑 총괄 대표 관리자(최지훈 대표님: $accountName) 권한으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
-                } else {
-                    Toast.makeText(context, "🎉 Google 계정[$accountName]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
-                }
-                processLoginWithPhoneCheck(isAdmin, false, displayName)
+                val displayName = accountName.split("@")[0]
+                Toast.makeText(context, "🎉 Google 계정[$accountName]으로 간편 연동 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                processLoginWithPhoneCheck(false, false, displayName)
             } else {
                 try {
                     val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
                     val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
                     val email = account?.email ?: "g70334098@gmail.com"
-                    val isAdmin = email.contains("g70334098")
-                    val displayName = if (isAdmin) "최지훈 대표님 (총괄 관리자)" else (account?.displayName ?: email.split("@")[0])
-                    if (isAdmin) {
-                        Toast.makeText(context, "👑 총괄 대표 관리자(최지훈 대표님: $email) 권한으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
-                    } else {
-                        Toast.makeText(context, "🎉 Google 계정[$email]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
-                    }
-                    processLoginWithPhoneCheck(isAdmin, false, displayName)
+                    val displayName = account?.displayName ?: email.split("@")[0]
+                    Toast.makeText(context, "🎉 Google 계정[$email]으로 간편 연동 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                    processLoginWithPhoneCheck(false, false, displayName)
                 } catch (_: Exception) {
-                    Toast.makeText(context, "👑 총괄 대표 관리자(최지훈 대표님) 권한으로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                    processLoginWithPhoneCheck(true, false, "최지훈 대표님 (총괄 관리자)")
+                    Toast.makeText(context, "🎉 Google 계정으로 연동 로그인되었습니다!", Toast.LENGTH_SHORT).show()
+                    processLoginWithPhoneCheck(false, false, "구글 회원님")
                 }
             }
         }
@@ -513,6 +503,15 @@ fun LoginScreen(
                         Text("💬", fontSize = 15.sp)
                         Text("카카오톡으로 1초 시작하기", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
+                }
+
+                TextButton(
+                    onClick = {
+                        PersistentStorageManager.clearAllData(context)
+                        Toast.makeText(context, "🧹 계정 데이터가 초기화되었습니다! 이제 [Google 계정으로 시작하기]를 누르면 신규 가입 SMS 인증창이 오픈됩니다.", Toast.LENGTH_LONG).show()
+                    }
+                ) {
+                    Text("🔄 계정 데이터 초기화 (신규 가입 SMS 인증 테스트용)", fontSize = 11.sp, color = Color.Gray)
                 }
             }
         }
@@ -664,15 +663,10 @@ fun LoginScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    val isAdmin = acc.contains("g70334098")
-                                    val name = if (isAdmin) "최지훈 대표님 (총괄 관리자)" else acc.split("@")[0]
-                                    if (isAdmin) {
-                                        Toast.makeText(context, "👑 총괄 대표 관리자(최지훈 대표님: $acc) 권한으로 로그인되었습니다! (일반 화면 리뷰 삭제 권한 부여)", Toast.LENGTH_LONG).show()
-                                    } else {
-                                        Toast.makeText(context, "🎉 Google 계정[$acc]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
-                                    }
+                                    val name = acc.split("@")[0]
+                                    Toast.makeText(context, "🎉 Google 계정[$acc]으로 연동 로그인되었습니다!", Toast.LENGTH_LONG).show()
                                     showGoogleAccountChooserDialog = false
-                                    processLoginWithPhoneCheck(isAdmin, false, name)
+                                    processLoginWithPhoneCheck(false, false, name)
                                 },
                             colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9))
                         ) {
@@ -685,15 +679,8 @@ fun LoginScreen(
                                     Box(contentAlignment = Alignment.Center) { Text("👤", fontSize = 18.sp) }
                                 }
                                 Column {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text(acc, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                                        if (acc.contains("g70334098")) {
-                                            Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFFEF3C7)) {
-                                                Text("총괄 대표", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706), modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
-                                            }
-                                        }
-                                    }
-                                    Text(if (acc.contains("g70334098")) "최지훈 대표님 총괄 관리자 계정 연동" else "Google 계정 연동 완료", fontSize = 10.sp, color = Color(0xFF0284C7))
+                                    Text(acc, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                    Text("Google 계정 연동 가능", fontSize = 10.sp, color = Color(0xFF0284C7))
                                 }
                             }
                         }
@@ -716,15 +703,10 @@ fun LoginScreen(
                 Button(
                     onClick = {
                         if (customGoogleEmail.isNotEmpty()) {
-                            val isAdmin = customGoogleEmail.contains("g70334098")
-                            val name = if (isAdmin) "최지훈 대표님 (총괄 관리자)" else (if (customGoogleEmail.contains("@")) customGoogleEmail.split("@")[0] else customGoogleEmail)
-                            if (isAdmin) {
-                                Toast.makeText(context, "👑 총괄 대표 관리자(최지훈 대표님: $customGoogleEmail) 권한으로 로그인되었습니다! (일반 화면 리뷰 삭제 권한 부여)", Toast.LENGTH_LONG).show()
-                            } else {
-                                Toast.makeText(context, "🎉 Google 계정[$customGoogleEmail]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
-                            }
+                            val name = if (customGoogleEmail.contains("@")) customGoogleEmail.split("@")[0] else customGoogleEmail
+                            Toast.makeText(context, "🎉 Google 계정[$customGoogleEmail]으로 연동 로그인되었습니다!", Toast.LENGTH_LONG).show()
                             showGoogleAccountChooserDialog = false
-                            processLoginWithPhoneCheck(isAdmin, false, name)
+                            processLoginWithPhoneCheck(false, false, name)
                         } else {
                             Toast.makeText(context, "구글 계정 이메일을 입력하거나 선택해 주세요.", Toast.LENGTH_SHORT).show()
                         }
@@ -1516,6 +1498,10 @@ object PersistentStorageManager {
 
     private fun getPrefs(context: android.content.Context) =
         context.getSharedPreferences(PREF_NAME, android.content.Context.MODE_PRIVATE)
+
+    fun clearAllData(context: android.content.Context) {
+        getPrefs(context).edit().clear().apply()
+    }
 
     // 마이페이지 회원 정보 저장/로드
     fun saveUserProfile(context: android.content.Context, nickname: String, phone: String, address: String, detailAddress: String, card: String?) {
