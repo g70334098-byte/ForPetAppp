@@ -5180,7 +5180,7 @@ fun HomeScreenContent(
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text("8. 자택 안심 출입 & 도어락 보안 설정 🔑", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                            Text("부재 시 픽업 드라이버가 아이를 안심하고 픽업할 수 있도록 설정하세요.", fontSize = 11.sp, color = Color.Gray)
+                            Text("부재 시 픽업 전담 가드가 아이를 안심하고 픽업할 수 있도록 설정하세요.", fontSize = 11.sp, color = Color.Gray)
 
                             androidx.compose.foundation.lazy.LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -5244,7 +5244,7 @@ fun HomeScreenContent(
                                 ) {
                                     Text("🔒", fontSize = 18.sp)
                                     Text(
-                                        text = "보안 보증: 입력하신 자택 출입 정보는 픽업 드라이버 출동 시 시한부 암호화 제공되며, 이송 완료 즉시 시스템에서 영구 파기됩니다.",
+                                        text = "보안 보증: 입력하신 자택 출입 정보는 픽업 전담 가드 출동 시 시한부 암호화 제공되며, 이송 완료 즉시 시스템에서 영구 파기됩니다.",
                                         fontSize = 10.sp,
                                         color = Color(0xFF15803D),
                                         lineHeight = 14.sp,
@@ -5280,7 +5280,7 @@ fun HomeScreenContent(
                                 }
                                 HorizontalDivider(color = Color(0xFFFDE68A))
                                 Text("• 등록 카드로 사전 가결제되며, 진료 완료 후 실제 시간·거리에 따라 자동 최종 정산(추가금 결제 / 차액 환불)됩니다.", fontSize = 11.sp, color = Color(0xFFB45309), lineHeight = 15.sp)
-                                Text("• ℹ️ 픽업 드라이버 출동 전 취소 시 100% 즉시 환불됩니다.", fontSize = 11.sp, color = Color(0xFFB45309), fontWeight = FontWeight.Bold)
+                                Text("• ℹ️ 픽업 전담 가드 출동 전 취소 시 100% 즉시 환불됩니다.", fontSize = 11.sp, color = Color(0xFFB45309), fontWeight = FontWeight.Bold)
                             }
                         }
                     }
