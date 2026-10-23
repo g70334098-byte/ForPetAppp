@@ -3988,6 +3988,7 @@ fun HomeScreenContent(
     val context = LocalContext.current
     var showBookingDialog by remember { mutableStateOf(false) }
     var showBookingNoticeDialog by remember { mutableStateOf(false) }
+    var isHospitalReserved by remember { mutableStateOf(true) }
     var showEmergencyDialog by remember { mutableStateOf(false) }
     var showFuneralBookingDialog by remember { mutableStateOf(false) }
     var showHospitalListDialog by remember { mutableStateOf(false) }
@@ -4759,49 +4760,50 @@ fun HomeScreenContent(
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("🏥", fontSize = 22.sp)
-                    Text("병원 진료 대행 (병원 예약자 전용) 안내", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("동물병원 예약 여부 선택", fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 }
             },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    Text("보호자님, 진료받으실 동물병원에 예약을 이미 완료하셨습니까?", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFFEFF6FF),
-                        border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                        color = Color(0xFFF8FAFC),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
                     ) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("⚠️ 이용 자격 필수 안내", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF1E40AF))
-                            HorizontalDivider(color = Color(0xFFBFDBFE))
-                            Text("본 서비스는 보호자님께서 동물병원에 직접 예약을 완료하신 건에 한해 이용 가능합니다.\n\n• 병원에 예약을 하지 않으신 경우 메인 화면의 '🚨 긴급 응급 출동 (병원 미예약자)' 서비스를 이용해 주시기 바랍니다.", fontSize = 12.sp, color = Color(0xFF1E3A8A), lineHeight = 16.sp)
+                            Text("• ⭕ 예 (병원 예약 완료자): 예약하신 동물병원 명칭 기재 후 1:1 안심 진료 대행 접수", fontSize = 11.sp, color = Color(0xFF0F172A))
+                            Text("• ❌ 아니오 (병원 미예약자): 담당 가드가 현장에서 당일 진료 접수 및 동행 케어 진행", fontSize = 11.sp, color = Color(0xFF0284C7))
                         }
                     }
-
-                    Text("보호자님, 진료받으실 동물병원 예약을 이미 완료하셨습니까?", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
+                        isHospitalReserved = true
                         showBookingNoticeDialog = false
                         showBookingDialog = true
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
                 ) {
-                    Text("예, 병원 예약 완료했습니다", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("⭕ 예 (병원 예약 완료자)", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             },
             dismissButton = {
                 OutlinedButton(
                     onClick = {
+                        isHospitalReserved = false
                         showBookingNoticeDialog = false
-                        showEmergencyDialog = true
+                        showBookingDialog = true
                     }
                 ) {
-                    Text("🚨 긴급 출동 서비스로 이동", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFD32F2F))
+                    Text("❌ 아니오 (병원 미예약자)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0284C7))
                 }
             }
         )
@@ -4863,9 +4865,14 @@ fun HomeScreenContent(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text("🏥", fontSize = 20.sp)
-                        Text("병원 진료 대행 예약", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text(if (isHospitalReserved) "병원 진료 대행 (병원 예약자 전용)" else "병원 동행 & 당일 접수 (병원 미예약자 전용)", fontWeight = FontWeight.Bold, fontSize = 17.sp)
                     }
-                    Text("증상, 수술/마취 및 목적을 선택하시면 수의사 선생님께 전달됩니다.", fontSize = 11.sp, color = Color(0xFF0284C7))
+                    Text(
+                        if (isHospitalReserved) "예약 완료하신 동물병원 명칭을 기재해 주시면 가드가 1:1 안심 케어합니다."
+                        else "병원 미예약 건: 가드가 도착 후 인근 추천/희망 병원으로 당일 현장 접수를 도와드립니다.",
+                        fontSize = 11.sp,
+                        color = Color(0xFF0284C7)
+                    )
                 }
             },
             text = {
@@ -5133,12 +5140,15 @@ fun HomeScreenContent(
                     // 7. 예약 완료하신 동물병원 명칭 작성 & 30분 단위 희망 방문 시각 선택
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("7. 예약 완료하신 동물병원 명칭 직접 입력 🏥", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text(
+                                if (isHospitalReserved) "7. 예약 완료하신 동물병원 명칭 직접 입력 🏥" else "7. 방문 희망 동물병원 또는 추천 요청 🏥",
+                                fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A)
+                            )
                             OutlinedTextField(
                                 value = customHospitalName,
                                 onValueChange = { customHospitalName = it },
-                                label = { Text("예약 완료하신 동물병원 명칭 (필수)") },
-                                placeholder = { Text("예: 부산 명지24시온누리메디컬센터, 큰마음동물병원") },
+                                label = { Text(if (isHospitalReserved) "예약 완료하신 동물병원 명칭 (필수)" else "방문 희망 동물병원 (미입력 시 24시 제휴병원 추천)") },
+                                placeholder = { Text(if (isHospitalReserved) "예: 부산 명지24시온누리메디컬센터, 큰마음동물병원" else "예: 사상24시 동물의원 / 명지 인근 24시 추천 병원") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -5319,13 +5329,14 @@ fun HomeScreenContent(
                         val combinedNote = "$addressSummary | 목적: $purposeStr | 과목: $selectedDepartment ($symptomStr) | $entrySummary" +
                                 (if (customSymptomNote.isNotEmpty()) " | 메모: $customSymptomNote" else "") + insuranceNote
 
-                        val finalHospital = if (isCustomHospital && customHospitalName.isNotEmpty()) customHospitalName else selectedHospitalName
+                        val finalHospital = customHospitalName.trim().ifEmpty { if (isHospitalReserved) "명지24시온누리메디컬센터" else "명지 인근 24시 추천 병원" }
+                        val reservationTag = if (isHospitalReserved) "(병원 예약 완료건)" else "(병원 미예약 당일 접수건)"
 
                         val calculatedPriceValue = 30000 + (if (isMedicineSelected) 5000 else 0) + (if (isSurgerySelected) 10000 else 0)
                         val formattedPriceStr = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(calculatedPriceValue)
 
                         val newBooking = BookingItem(
-                            serviceType = "병원 진료 대행",
+                            serviceType = "병원 진료 대행 $reservationTag",
                             species = selectedSpecies,
                             petName = bookingPetName,
                             ownerName = bookingOwnerName,
