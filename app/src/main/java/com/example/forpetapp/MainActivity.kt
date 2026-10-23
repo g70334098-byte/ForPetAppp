@@ -33,9 +33,13 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -173,7 +177,38 @@ fun AdaptiveAppIcon(
     }
 }
 
-// 📱 최초 1회 휴대폰 SMS 본인인증 다이얼로그
+// 📱 대한민국 휴대폰 번호 전용 VisualTransformation (커서 튐 완전 차단)
+class KoreanPhoneNumberVisualTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val trimmed = if (text.text.length >= 11) text.text.substring(0, 11) else text.text
+        var out = ""
+        for (i in trimmed.indices) {
+            out += trimmed[i]
+            if (i == 2 || i == 6) {
+                out += "-"
+            }
+        }
+
+        val phoneNumberOffsetTranslator = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                if (offset <= 2) return offset
+                if (offset <= 6) return offset + 1
+                if (offset <= 11) return offset + 2
+                return out.length
+            }
+
+            override fun transformedToOriginal(offset: Int): Int {
+                if (offset <= 3) return offset
+                if (offset <= 8) return offset - 1
+                if (offset <= 13) return offset - 2
+                return trimmed.length
+            }
+        }
+
+        return TransformedText(AnnotatedString(out), phoneNumberOffsetTranslator)
+    }
+}
+
 fun formatPhoneNumber(input: String): String {
     val digits = input.replace(Regex("[^0-9]"), "")
     return when {
@@ -191,11 +226,13 @@ fun PhoneVerificationDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    var inputPhoneNum by remember { mutableStateOf(formatPhoneNumber(initialPhone.ifEmpty { "010" })) }
+    var inputPhoneDigits by remember { mutableStateOf(initialPhone.filter { it.isDigit() }.ifEmpty { "010" }) }
     var inputAuthCode by remember { mutableStateOf("") }
     var generatedAuthCode by remember { mutableStateOf("") }
     var firebaseVerificationId by remember { mutableStateOf<String?>(null) }
     var isCodeSent by remember { mutableStateOf(false) }
+
+    val formattedPhone = formatPhoneNumber(inputPhoneDigits)
 
     fun sendFirebaseSms(phoneNumber: String) {
         val rawNum = phoneNumber.replace("-", "").trim()
@@ -213,7 +250,7 @@ fun PhoneVerificationDialog(
                 val callbacks = object : com.google.firebase.auth.PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
                     override fun onVerificationCompleted(credential: com.google.firebase.auth.PhoneAuthCredential) {
                         Toast.makeText(context, "🎉 SMS 자동 인증이 성공적으로 완료되었습니다!", Toast.LENGTH_LONG).show()
-                        onVerifiedSuccess(inputPhoneNum)
+                        onVerifiedSuccess(formattedPhone)
                     }
 
                     override fun onVerificationFailed(e: com.google.firebase.FirebaseException) {
@@ -276,28 +313,34 @@ fun PhoneVerificationDialog(
                     }
                 }
 
-                Text("1. 휴대폰 번호 입력 (자동 - 하이픈 적용)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                Text("1. 휴대폰 번호 입력 (숫자 연속 입력)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
-                        value = inputPhoneNum,
-                        onValueChange = { inputPhoneNum = formatPhoneNumber(it) },
+                        value = inputPhoneDigits,
+                        onValueChange = { newText ->
+                            val digitsOnly = newText.filter { it.isDigit() }
+                            if (digitsOnly.length <= 11) {
+                                inputPhoneDigits = digitsOnly
+                            }
+                        },
                         label = { Text("휴대폰 번호") },
-                        placeholder = { Text("010-1234-5678") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        placeholder = { Text("01012345678") },
+                        visualTransformation = KoreanPhoneNumberVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
 
                     Button(
                         onClick = {
-                            if (inputPhoneNum.length >= 12) {
-                                sendFirebaseSms(inputPhoneNum)
+                            if (inputPhoneDigits.length >= 10) {
+                                sendFirebaseSms(formattedPhone)
                             } else {
-                                Toast.makeText(context, "올바른 휴대폰 번호를 입력해 주세요. (예: 010-1234-5678)", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "올바른 휴대폰 번호를 입력해 주세요. (예: 01012345678)", Toast.LENGTH_SHORT).show()
                             }
                         },
                         shape = RoundedCornerShape(8.dp),
@@ -360,7 +403,7 @@ fun PhoneVerificationDialog(
                         )
                         if (isCodeValid) {
                             Toast.makeText(context, "🎉 휴대폰 본인인증이 성공적으로 완료되었습니다!", Toast.LENGTH_LONG).show()
-                            onVerifiedSuccess(inputPhoneNum)
+                            onVerifiedSuccess(formattedPhone)
                         } else {
                             Toast.makeText(context, "인증번호가 일치하지 않습니다. 다시 확인해 주세요.", Toast.LENGTH_SHORT).show()
                         }
