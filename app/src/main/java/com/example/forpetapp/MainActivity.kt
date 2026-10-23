@@ -4653,9 +4653,9 @@ fun HomeScreenContent(
                                 }
                                 HorizontalDivider()
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text("🚨 24시 긴급 응급 출동 서비스 요금", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFD32F2F))
-                                    Text("• 24시 긴급 응급 출동 기본료: 45,000원 ~ 55,000원", fontSize = 11.sp, color = Color(0xFF334155))
-                                    Text("• 심야 할증 (23:00 ~ 05:00): +10,000원", fontSize = 11.sp, color = Color.Gray)
+                                    Text("🕊️ 장례식장 연계 안심 운구 서비스 요금", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1E293B))
+                                    Text("• 장례 안심 운구 기본료 (왕복/직통 운구 포함): 50,000원", fontSize = 11.sp, color = Color(0xFF334155))
+                                    Text("• 개별 화장 및 메모리얼 스톤 비용: 장례식장 현장 절차 선택 후 정산", fontSize = 11.sp, color = Color.Gray)
                                 }
                                 Text("※ 이동 거리(km) 및 서부산 구 단위에 따라 예상 금액이 산정되며, 미터기 기준 투명 정찰제로 안전하게 운용됩니다.", fontSize = 10.sp, color = Color(0xFF0284C7), lineHeight = 14.sp)
                             }
