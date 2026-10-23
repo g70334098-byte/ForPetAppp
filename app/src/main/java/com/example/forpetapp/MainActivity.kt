@@ -197,7 +197,6 @@ fun LoginScreen(
             modifier = Modifier
                 .size(90.dp)
                 .clip(CircleShape)
-                .border(2.dp, Color(0xFFF97316), CircleShape)
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -1228,7 +1227,6 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                                     modifier = Modifier
                                         .size(30.dp)
                                         .clip(CircleShape)
-                                        .border(1.dp, Color(0xFFF97316), CircleShape)
                                 )
                                 Text("발자국동행", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF0F172A))
                             } else {
@@ -3837,7 +3835,6 @@ fun HomeScreenContent(
                         modifier = Modifier
                             .size(56.dp)
                             .clip(CircleShape)
-                            .border(1.5.dp, Color(0xFFF97316), CircleShape)
                     )
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
