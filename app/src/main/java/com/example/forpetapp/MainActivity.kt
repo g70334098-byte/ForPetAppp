@@ -437,10 +437,6 @@ fun LoginScreen(
     var userPw by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
 
-    LaunchedEffect(Unit) {
-        PersistentStorageManager.clearAllData(context)
-    }
-
     fun processLoginWithPhoneCheck(isAdmin: Boolean, isDedicatedAdminWorkspace: Boolean, displayName: String) {
         val savedPhone = PersistentStorageManager.loadUserPhone(context, "")
         if (savedPhone.length >= 10) {
