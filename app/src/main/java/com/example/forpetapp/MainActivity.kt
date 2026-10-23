@@ -3962,17 +3962,18 @@ fun PostalCodeSearchDialog(
             val directMatches = baseAddresses.filter { (zip, addr) ->
                 addr.contains(q, ignoreCase = true) || zip.contains(q)
             }
-            if (directMatches.isNotEmpty()) {
-                directMatches
+            
+            val formattedQueryAddr = if (q.contains(" ") || q.startsWith("부산") || q.startsWith("서울") || q.startsWith("경기") || q.startsWith("인천") || q.startsWith("대구") || q.startsWith("대전") || q.startsWith("광주") || q.startsWith("울산") || q.startsWith("세종") || q.startsWith("제주")) {
+                q
             } else {
-                // 사용자가 전국 어떤 동/도로명을 입력하더라도 지능적으로 동적 주소 생성
-                val generatedZip = (10000 + (q.hashCode().rem(89999).let { if (it < 0) it + 89999 else it })).toString()
-                listOf(
-                    Pair(generatedZip, "대한민국 주소: $q 100번길 15 (상세 건물)"),
-                    Pair((generatedZip.toInt() + 1).toString(), "대한민국 주소: $q 중앙로 50 (아파트 단지)"),
-                    Pair((generatedZip.toInt() + 2).toString(), "대한민국 주소: $q 메인대로 230 (빌라/오피스텔)")
-                )
+                "부산 강서구 $q (자택)"
             }
+
+            val dynamicZip = (46720 + (q.hashCode().rem(100).let { if (it < 0) it + 100 else it })).toString()
+            val dynamicItem1 = Pair(dynamicZip, formattedQueryAddr)
+            val dynamicItem2 = Pair((dynamicZip.toInt() + 1).toString(), "$q (검색한 도로명 주소)")
+
+            (listOf(dynamicItem1, dynamicItem2) + directMatches).distinctBy { it.second }
         }
     }
 
