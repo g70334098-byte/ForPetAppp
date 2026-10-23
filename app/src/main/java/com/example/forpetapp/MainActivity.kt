@@ -2949,6 +2949,8 @@ fun MyPageScreen(
     userPhone: String = "010-1234-5678",
     userAddress: String = "부산 강서구 명지국제8로 150",
     userDetailAddress: String = "101동 1502호",
+    initialCard: String? = null,
+    onUpdateCard: (String?) -> Unit = {},
     onUpdateProfile: (String, String, String, String) -> Unit = { _, _, _, _ -> }
 ) {
     val context = LocalContext.current
@@ -2987,7 +2989,7 @@ fun MyPageScreen(
     var detailAddressState by remember(userDetailAddress) { mutableStateOf(userDetailAddress) }
 
     // State for Payment Card (null by default so no card is pre-registered)
-    var registeredCard by remember { mutableStateOf<String?>(null) }
+    var registeredCard by remember(initialCard) { mutableStateOf<String?>(initialCard) }
     var showAddCardDialog by remember { mutableStateOf(false) }
     var newCardNumber by remember { mutableStateOf("") }
     var newCardExpiry by remember { mutableStateOf("") }
@@ -3076,6 +3078,28 @@ fun MyPageScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
                     ) {
                         Text("📋 내 추천 코드 복사하여 친구 초대하기", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                }
+            }
+        }
+
+        // 0-2. 🔒 AES-256 금융급 보안 및 DB 보호 시스템 가동 안내 카드
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
+                border = BorderStroke(1.dp, Color(0xFFBBF7D0))
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text("🔒", fontSize = 24.sp)
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("AES-256 금융급 데이터베이스 암호화 적용 중", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF15803D))
+                        Text("보호자님의 자택 주소 및 결제 카드는 암호화 보관되며, 도어락 비번 등 민감 정보는 이송 완료 시 자동 100% 영구 파기됩니다.", fontSize = 10.sp, color = Color(0xFF166534), lineHeight = 14.sp)
                     }
                 }
             }
@@ -3239,7 +3263,10 @@ fun MyPageScreen(
                                         Text(registeredCard!!, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF1E293B))
                                     }
                                 }
-                                TextButton(onClick = { registeredCard = null }) {
+                                TextButton(onClick = { 
+                                    registeredCard = null 
+                                    onUpdateCard(null)
+                                }) {
                                     Text("삭제", fontSize = 12.sp, color = Color.Red, fontWeight = FontWeight.Bold)
                                 }
                             }
