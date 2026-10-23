@@ -80,10 +80,10 @@ fun ForPetApp() {
 
     when (currentScreen) {
         ScreenState.LOGIN -> LoginScreen(
-            onLoginSuccess = { isAdmin, adminName ->
+            onLoginSuccess = { isAdmin, isDedicatedAdminWorkspace, adminName ->
                 isAdminUser = isAdmin
                 currentAdminName = adminName
-                if (isAdmin) {
+                if (isDedicatedAdminWorkspace) {
                     currentScreen = ScreenState.ADMIN
                 } else {
                     currentScreen = ScreenState.MAIN
@@ -342,7 +342,7 @@ fun PhoneVerificationDialog(
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (Boolean, String) -> Unit,
+    onLoginSuccess: (Boolean, Boolean, String) -> Unit,
     onDriverLoginSuccess: () -> Unit = {},
     onNavigateToSignUp: () -> Unit
 ) {
@@ -355,10 +355,10 @@ fun LoginScreen(
     var userPw by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
 
-    fun processLoginWithPhoneCheck(isAdmin: Boolean, displayName: String) {
+    fun processLoginWithPhoneCheck(isAdmin: Boolean, isDedicatedAdminWorkspace: Boolean, displayName: String) {
         val savedPhone = PersistentStorageManager.loadUserPhone(context, "")
         if (savedPhone.length >= 10) {
-            onLoginSuccess(isAdmin, displayName)
+            onLoginSuccess(isAdmin, isDedicatedAdminWorkspace, displayName)
         } else {
             pendingLoginData = Pair(isAdmin, displayName)
             showPhoneVerificationDialog = true
@@ -378,7 +378,7 @@ fun LoginScreen(
                 } else {
                     Toast.makeText(context, "🎉 Google 계정[$accountName]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
                 }
-                processLoginWithPhoneCheck(isAdmin, displayName)
+                processLoginWithPhoneCheck(isAdmin, false, displayName)
             } else {
                 try {
                     val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
@@ -391,10 +391,10 @@ fun LoginScreen(
                     } else {
                         Toast.makeText(context, "🎉 Google 계정[$email]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
                     }
-                    processLoginWithPhoneCheck(isAdmin, displayName)
+                    processLoginWithPhoneCheck(isAdmin, false, displayName)
                 } catch (_: Exception) {
                     Toast.makeText(context, "👑 총괄 대표 관리자(최지훈 대표님) 권한으로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                    processLoginWithPhoneCheck(true, "최지훈 대표님 (총괄 관리자)")
+                    processLoginWithPhoneCheck(true, false, "최지훈 대표님 (총괄 관리자)")
                 }
             }
         }
@@ -481,22 +481,22 @@ fun LoginScreen(
                                     if (error != null) {
                                         UserApiClient.instance.loginWithKakaoAccount(context) { token2, error2 ->
                                             Toast.makeText(context, "💛 카카오 계정으로 간편 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                                            onLoginSuccess(false, "발자국동행 회원님")
+                                            processLoginWithPhoneCheck(false, false, "발자국동행 회원님")
                                         }
                                     } else {
                                         Toast.makeText(context, "💛 카카오톡 원클릭 연동으로 간편 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                                        onLoginSuccess(false, "발자국동행 회원님")
+                                        processLoginWithPhoneCheck(false, false, "발자국동행 회원님")
                                     }
                                 }
                             } else {
                                 UserApiClient.instance.loginWithKakaoAccount(context) { token, error ->
                                     Toast.makeText(context, "💛 카카오 계정으로 간편 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                                    onLoginSuccess(false, "발자국동행 회원님")
+                                    processLoginWithPhoneCheck(false, false, "발자국동행 회원님")
                                 }
                             }
                         } catch (_: Exception) {
                             Toast.makeText(context, "💛 카카오톡 간편 연동으로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                            onLoginSuccess(false, "발자국동행 회원님")
+                            processLoginWithPhoneCheck(false, false, "발자국동행 회원님")
                         }
                     },
                     modifier = Modifier
@@ -580,13 +580,13 @@ fun LoginScreen(
                             when {
                                 trimmedId == "k7turbo" && trimmedPw == "942800" -> {
                                     errorMessage = ""
-                                    Toast.makeText(context, "👑 총괄 대표 관리자 (최지훈 대표님) 권한으로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                                    onLoginSuccess(true, "최지훈 대표님")
+                                    Toast.makeText(context, "👑 총괄 대표 관리자 대시보드 (최지훈 대표님)로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
+                                    onLoginSuccess(true, true, "최지훈 대표님")
                                 }
                                 trimmedId == "seonha2525" && trimmedPw == "7521739ee@" -> {
                                     errorMessage = ""
-                                    Toast.makeText(context, "👑 총괄 대표 관리자 (이선하 대표님) 권한으로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                                    onLoginSuccess(true, "이선하 대표님")
+                                    Toast.makeText(context, "👑 총괄 대표 관리자 대시보드 (이선하 대표님)로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
+                                    onLoginSuccess(true, true, "이선하 대표님")
                                 }
                                 trimmedId == "driver" && trimmedPw == "942800" -> {
                                     errorMessage = ""
@@ -666,12 +666,12 @@ fun LoginScreen(
                                     val isAdmin = acc.contains("g70334098")
                                     val name = if (isAdmin) "최지훈 대표님 (총괄 관리자)" else acc.split("@")[0]
                                     if (isAdmin) {
-                                        Toast.makeText(context, "👑 총괄 대표 관리자(최지훈 대표님: $acc) 권한으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(context, "👑 총괄 대표 관리자(최지훈 대표님: $acc) 권한으로 로그인되었습니다! (일반 화면 리뷰 삭제 권한 부여)", Toast.LENGTH_LONG).show()
                                     } else {
                                         Toast.makeText(context, "🎉 Google 계정[$acc]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
                                     }
                                     showGoogleAccountChooserDialog = false
-                                    processLoginWithPhoneCheck(isAdmin, name)
+                                    processLoginWithPhoneCheck(isAdmin, false, name)
                                 },
                             colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9))
                         ) {
@@ -718,12 +718,12 @@ fun LoginScreen(
                             val isAdmin = customGoogleEmail.contains("g70334098")
                             val name = if (isAdmin) "최지훈 대표님 (총괄 관리자)" else (if (customGoogleEmail.contains("@")) customGoogleEmail.split("@")[0] else customGoogleEmail)
                             if (isAdmin) {
-                                Toast.makeText(context, "👑 총괄 대표 관리자(최지훈 대표님: $customGoogleEmail) 권한으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, "👑 총괄 대표 관리자(최지훈 대표님: $customGoogleEmail) 권한으로 로그인되었습니다! (일반 화면 리뷰 삭제 권한 부여)", Toast.LENGTH_LONG).show()
                             } else {
                                 Toast.makeText(context, "🎉 Google 계정[$customGoogleEmail]으로 로그인되었습니다!", Toast.LENGTH_LONG).show()
                             }
                             showGoogleAccountChooserDialog = false
-                            processLoginWithPhoneCheck(isAdmin, name)
+                            processLoginWithPhoneCheck(isAdmin, false, name)
                         } else {
                             Toast.makeText(context, "구글 계정 이메일을 입력하거나 선택해 주세요.", Toast.LENGTH_SHORT).show()
                         }
@@ -752,7 +752,7 @@ fun LoginScreen(
                     card = PersistentStorageManager.loadRegisteredCard(context)
                 )
                 showPhoneVerificationDialog = false
-                onLoginSuccess(pendingLoginData!!.first, pendingLoginData!!.second)
+                onLoginSuccess(pendingLoginData!!.first, false, pendingLoginData!!.second)
             },
             onDismiss = { showPhoneVerificationDialog = false }
         )
