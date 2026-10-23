@@ -3759,8 +3759,8 @@ fun PetFuneralBookingDialog(
     var selectedProcType by remember { mutableStateOf("🕯️ 단독 개별 화장 & 추모예식") }
     val procTypes = listOf("🕯️ 단독 개별 화장 & 추모예식", "💎 메모리얼 스톤 (영구보관)", "🌳 수목장 / 자연장 연계", "🚗 장례식장 왕복 이동 동승")
 
-    var selectedFuneralHome by remember { mutableStateOf("부산/서부산 24시 안심 장례식장") }
-    val funeralHomes = listOf("부산/서부산 24시 안심 장례식장", "김해/양산 24시 메모리얼 파크", "창원/경남 24시 추모관", "기타 희망 장례식장 (직접 작성)")
+    var selectedFuneralHome by remember { mutableStateOf("부산/서부산 안심 장례식장") }
+    val funeralHomes = listOf("부산/서부산 안심 장례식장", "김해/양산 메모리얼 파크", "창원/경남 추모관", "기타 희망 장례식장 (직접 작성)")
     var isCustomFuneralHome by remember { mutableStateOf(false) }
     var customFuneralHomeName by remember { mutableStateOf("") }
 
@@ -3957,14 +3957,14 @@ fun PetFuneralBookingDialog(
                         petName = petName,
                         ownerName = ownerName,
                         hospitalName = finalFuneralHome,
-                        time = "24시 즉시 운구 출동",
-                        status = "🕊️ 운구 준비 중 (담당 가드 즉시 출동)",
-                        vehicleInfo = "발자국동행 24시 안심 추모 운구차",
+                        time = "장례 안심 운구 접수완료",
+                        status = "🕊️ 운구 준비 중 (상담사 곧 연락 예정)",
+                        vehicleInfo = "발자국동행 안심 추모 운구차",
                         symptomNote = noteSummary,
                         estimatedPrice = "50,000원 (가결제)"
                     )
                     onAddBooking(newFuneralBooking)
-                    Toast.makeText(context, "🕊️ '$petName' 아이의 24시 장례 안심 운구 접수가 완료되었습니다. 담당 가드가 즉시 연락드립니다.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "🕊️ '$petName' 아이의 장례 안심 운구 예약이 접수되었습니다. 전문 상담사가 확인 후 곧 연락드릴 예정입니다.", Toast.LENGTH_LONG).show()
                     onDismiss()
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155))
@@ -4242,11 +4242,11 @@ fun HomeScreenContent(
 
                 DetailedServiceCard(
                     modifier = Modifier.weight(1f),
-                    badgeText = "🕊️ 24H 안심 운구",
-                    title = "반려동물 장례식장 연계\n(24시 안심 운구)",
+                    badgeText = "🕊️ 장례 안심 운구",
+                    title = "반려동물 장례식장 연계\n(안심 운구 서비스)",
                     carModelText = "",
                     features = listOf(
-                        "• 24시 서부산/경남 장례식장 연계",
+                        "• 서부산/경남 협력 장례식장 연계",
                         "• 안심 전용 추모 운구 차량 출동",
                         "• 보호자 동승 및 무인 운구 대행",
                         "• 단독 개별 화장 & 스톤 연계"
