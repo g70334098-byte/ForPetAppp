@@ -1252,7 +1252,19 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
     var userPhone by remember { mutableStateOf("010-1234-5678") }
     var userAddress by remember { mutableStateOf("부산 강서구 명지국제8로 150") }
     var userDetailAddress by remember { mutableStateOf("101동 1502호") }
+    
+    // 🐾 반려동물 프로필 정보 상위 호이스팅 (탭 이동 및 앱 재진입 시 100% 영구 상태 보존)
     var savedPetImageUri by remember { mutableStateOf<Uri?>(null) }
+    var savedPetSpecies by remember { mutableStateOf("강아지") }
+    var savedPetName by remember { mutableStateOf("초코") }
+    var savedOwnerRealName by remember { mutableStateOf("홍길동") }
+    var savedPetType by remember { mutableStateOf("말티즈") }
+    var savedGender by remember { mutableStateOf("남아") }
+    var savedIsNeutered by remember { mutableStateOf(true) }
+    var savedPetWeight by remember { mutableStateOf("4.5") }
+    var savedPetHospital by remember { mutableStateOf("명지24시온누리메디컬센터") }
+    var savedPetSymptoms by remember { mutableStateOf("구토 및 식욕 부진, 슬개골 탈구 2기") }
+    var savedBirthMillis by remember { mutableStateOf<Long?>(null) }
     val userReferralCode = remember { "K7TB94" }
 
     val bookingList = remember {
@@ -1404,8 +1416,28 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                 )
                 2 -> MyPetDetailScreen(
                     savedImageUri = savedPetImageUri,
-                    onSavePetProfile = { uri ->
-                        savedPetImageUri = uri
+                    savedPetSpecies = savedPetSpecies,
+                    savedPetName = savedPetName,
+                    savedOwnerRealName = savedOwnerRealName,
+                    savedPetType = savedPetType,
+                    savedGender = savedGender,
+                    savedIsNeutered = savedIsNeutered,
+                    savedPetWeight = savedPetWeight,
+                    savedPetHospital = savedPetHospital,
+                    savedPetSymptoms = savedPetSymptoms,
+                    savedBirthMillis = savedBirthMillis,
+                    onSavePetProfile = { imageUri, species, name, owner, type, gender, neutered, weight, hospital, symptoms, birthMillis ->
+                        savedPetImageUri = imageUri
+                        savedPetSpecies = species
+                        savedPetName = name
+                        savedOwnerRealName = owner
+                        savedPetType = type
+                        savedGender = gender
+                        savedIsNeutered = neutered
+                        savedPetWeight = weight
+                        savedPetHospital = hospital
+                        savedPetSymptoms = symptoms
+                        savedBirthMillis = birthMillis
                     }
                 )
                 3 -> MyPageScreen(
@@ -6361,21 +6393,33 @@ data class PetDDayItem(
 @Composable
 fun MyPetDetailScreen(
     savedImageUri: Uri? = null,
-    onSavePetProfile: (Uri?) -> Unit = {}
+    savedPetSpecies: String = "강아지",
+    savedPetName: String = "초코",
+    savedOwnerRealName: String = "홍길동",
+    savedPetType: String = "말티즈",
+    savedGender: String = "남아",
+    savedIsNeutered: Boolean = true,
+    savedPetWeight: String = "4.5",
+    savedPetHospital: String = "명지24시온누리메디컬센터",
+    savedPetSymptoms: String = "구토 및 식욕 부진, 슬개골 탈구 2기",
+    savedBirthMillis: Long? = null,
+    onSavePetProfile: (Uri?, String, String, String, String, String, Boolean, String, String, String, Long?) -> Unit = { _, _, _, _, _, _, _, _, _, _, _ -> }
 ) {
     val context = LocalContext.current
     var petImageUri by remember(savedImageUri) { mutableStateOf<Uri?>(savedImageUri) }
-    var petSpecies by remember { mutableStateOf("강아지") }
-    var petName by remember { mutableStateOf("초코") }
-    var ownerRealName by remember { mutableStateOf("홍길동") }
-    var petType by remember { mutableStateOf("말티즈") }
-    var selectedGender by remember { mutableStateOf("남아") }
-    var isNeutered by remember { mutableStateOf(true) }
+    var petSpecies by remember(savedPetSpecies) { mutableStateOf(savedPetSpecies) }
+    var petName by remember(savedPetName) { mutableStateOf(savedPetName) }
+    var ownerRealName by remember(savedOwnerRealName) { mutableStateOf(savedOwnerRealName) }
+    var petType by remember(savedPetType) { mutableStateOf(savedPetType) }
+    var selectedGender by remember(savedGender) { mutableStateOf(savedGender) }
+    var isNeutered by remember(savedIsNeutered) { mutableStateOf(savedIsNeutered) }
+    var petWeight by remember(savedPetWeight) { mutableStateOf(savedPetWeight) }
+    var petHospital by remember(savedPetHospital) { mutableStateOf(savedPetHospital) }
+    var petSymptoms by remember(savedPetSymptoms) { mutableStateOf(savedPetSymptoms) }
+    var selectedBirthMillis by remember(savedBirthMillis) { mutableStateOf<Long?>(savedBirthMillis) }
     var genderDropdownExpanded by remember { mutableStateOf(false) }
 
-    var selectedBirthMillis by remember { mutableStateOf<Long?>(null) }
     var showDatePickerDialog by remember { mutableStateOf(false) }
-
     var showAddDDayDialog by remember { mutableStateOf(false) }
 
     // D-Day 일정을 자유롭게 추가/삭제/수정 가능한 리스트
@@ -6399,9 +6443,6 @@ fun MyPetDetailScreen(
         )
     }
 
-    var petWeight by remember { mutableStateOf("4.5") }
-    var petHospital by remember { mutableStateOf("명지24시온누리메디컬센터") }
-    var petSymptoms by remember { mutableStateOf("구토 및 식욕 부진, 슬개골 탈구 2기") }
     var isSaved by remember { mutableStateOf(false) }
 
     val birthDateText: String
@@ -6427,8 +6468,8 @@ fun MyPetDetailScreen(
     ) { uri: Uri? ->
         uri?.let {
             petImageUri = it
-            onSavePetProfile(it)
-            Toast.makeText(context, "📷 반려동물 대표 사진이 설정 및 저장되었습니다!", Toast.LENGTH_SHORT).show()
+            onSavePetProfile(it, petSpecies, petName, ownerRealName, petType, selectedGender, isNeutered, petWeight, petHospital, petSymptoms, selectedBirthMillis)
+            Toast.makeText(context, "📷 반려동물 대표 사진이 계정에 설정 및 저장되었습니다!", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -6789,8 +6830,8 @@ fun MyPetDetailScreen(
                     Button(
                         onClick = {
                             isSaved = true
-                            onSavePetProfile(petImageUri)
-                            Toast.makeText(context, "💾 반려동물 프로필 사진과 정보가 안전하게 계정에 저장되었습니다!", Toast.LENGTH_LONG).show()
+                            onSavePetProfile(petImageUri, petSpecies, petName, ownerRealName, petType, selectedGender, isNeutered, petWeight, petHospital, petSymptoms, selectedBirthMillis)
+                            Toast.makeText(context, "💾 반려동물('$petName') 프로필 사진과 데이터가 계정에 안전하게 저장되었습니다!", Toast.LENGTH_LONG).show()
                         },
                         modifier = Modifier
                             .fillMaxWidth()
