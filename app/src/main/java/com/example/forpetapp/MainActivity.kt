@@ -173,7 +173,17 @@ fun AdaptiveAppIcon(
     }
 }
 
-// 📱 최초 1회 Firebase Phone Auth SMS 본인인증 다이얼로그
+// 📱 최초 1회 휴대폰 SMS 본인인증 다이얼로그
+fun formatPhoneNumber(input: String): String {
+    val digits = input.replace(Regex("[^0-9]"), "")
+    return when {
+        digits.length <= 3 -> digits
+        digits.length <= 7 -> "${digits.substring(0, 3)}-${digits.substring(3)}"
+        digits.length <= 11 -> "${digits.substring(0, 3)}-${digits.substring(3, 7)}-${digits.substring(7)}"
+        else -> "${digits.substring(0, 3)}-${digits.substring(3, 7)}-${digits.substring(7, 11)}"
+    }
+}
+
 @Composable
 fun PhoneVerificationDialog(
     initialPhone: String,
@@ -181,7 +191,7 @@ fun PhoneVerificationDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    var inputPhoneNum by remember { mutableStateOf(initialPhone.ifEmpty { "010-" }) }
+    var inputPhoneNum by remember { mutableStateOf(formatPhoneNumber(initialPhone.ifEmpty { "010" })) }
     var inputAuthCode by remember { mutableStateOf("") }
     var generatedAuthCode by remember { mutableStateOf("") }
     var firebaseVerificationId by remember { mutableStateOf<String?>(null) }
@@ -202,7 +212,7 @@ fun PhoneVerificationDialog(
             if (activity != null) {
                 val callbacks = object : com.google.firebase.auth.PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
                     override fun onVerificationCompleted(credential: com.google.firebase.auth.PhoneAuthCredential) {
-                        Toast.makeText(context, "🎉 Firebase SMS 자동 인증이 완료되었습니다!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "🎉 SMS 자동 인증이 성공적으로 완료되었습니다!", Toast.LENGTH_LONG).show()
                         onVerifiedSuccess(inputPhoneNum)
                     }
 
@@ -210,13 +220,13 @@ fun PhoneVerificationDialog(
                         val fallbackCode = (100000..999999).random().toString()
                         generatedAuthCode = fallbackCode
                         isCodeSent = true
-                        Toast.makeText(context, "📱 [발자국동행] Firebase SMS 인증번호 [$fallbackCode] 발송 완료!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "📱 [발자국동행] SMS 인증번호 [$fallbackCode] 발송 완료!", Toast.LENGTH_LONG).show()
                     }
 
                     override fun onCodeSent(verificationId: String, token: com.google.firebase.auth.PhoneAuthProvider.ForceResendingToken) {
                         firebaseVerificationId = verificationId
                         isCodeSent = true
-                        Toast.makeText(context, "📱 Firebase SMS 인증문자가 스마트폰으로 발송되었습니다!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "📱 SMS 인증문자가 휴대폰으로 성공적으로 발송되었습니다!", Toast.LENGTH_LONG).show()
                     }
                 }
 
@@ -231,13 +241,13 @@ fun PhoneVerificationDialog(
                 val fallbackCode = (100000..999999).random().toString()
                 generatedAuthCode = fallbackCode
                 isCodeSent = true
-                Toast.makeText(context, "📱 [발자국동행] Firebase SMS 인증번호 [$fallbackCode] 발송 완료!", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "📱 [발자국동행] SMS 인증번호 [$fallbackCode] 발송 완료!", Toast.LENGTH_LONG).show()
             }
         } catch (_: Exception) {
             val fallbackCode = (100000..999999).random().toString()
             generatedAuthCode = fallbackCode
             isCodeSent = true
-            Toast.makeText(context, "📱 [발자국동행] Firebase SMS 인증번호 [$fallbackCode] 발송 완료!", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "📱 [발자국동행] SMS 인증번호 [$fallbackCode] 발송 완료!", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -246,7 +256,7 @@ fun PhoneVerificationDialog(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("📱", fontSize = 22.sp)
-                Text("최초 1회 Firebase 본인인증", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("최초 1회 휴대폰 본인인증", fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
         },
         text = {
@@ -261,12 +271,12 @@ fun PhoneVerificationDialog(
                     border = BorderStroke(1.dp, Color(0xFFBFDBFE))
                 ) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("🔒 Firebase SMS 본인인증 가동 중", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1E40AF))
-                        Text("구글/카카오 최초 가입 시 1회 Firebase 휴대폰 인증이 진행됩니다. 인증된 번호는 가드 배차 및 안심 이송 연락 시에만 안전하게 사용됩니다.", fontSize = 11.sp, color = Color(0xFF1E3A8A), lineHeight = 15.sp)
+                        Text("🔒 안전 이송을 위한 휴대폰 본인인증", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1E40AF))
+                        Text("구글/카카오 최초 가입 시 1회 휴대폰 번호 인증이 진행됩니다. 인증된 번호는 가드 배차 및 안심 이송 연락 시에만 안전하게 사용됩니다.", fontSize = 11.sp, color = Color(0xFF1E3A8A), lineHeight = 15.sp)
                     }
                 }
 
-                Text("1. 휴대폰 번호 입력", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                Text("1. 휴대폰 번호 입력 (자동 - 하이픈 적용)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -274,7 +284,7 @@ fun PhoneVerificationDialog(
                 ) {
                     OutlinedTextField(
                         value = inputPhoneNum,
-                        onValueChange = { inputPhoneNum = it },
+                        onValueChange = { inputPhoneNum = formatPhoneNumber(it) },
                         label = { Text("휴대폰 번호") },
                         placeholder = { Text("010-1234-5678") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
@@ -284,26 +294,54 @@ fun PhoneVerificationDialog(
 
                     Button(
                         onClick = {
-                            if (inputPhoneNum.length >= 10) {
+                            if (inputPhoneNum.length >= 12) {
                                 sendFirebaseSms(inputPhoneNum)
                             } else {
-                                Toast.makeText(context, "올바른 휴대폰 번호를 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "올바른 휴대폰 번호를 입력해 주세요. (예: 010-1234-5678)", Toast.LENGTH_SHORT).show()
                             }
                         },
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
                     ) {
-                        Text(if (isCodeSent) "재발송" else "Firebase 인증", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text(if (isCodeSent) "재발송" else "SMS 인증", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
 
                 if (isCodeSent) {
-                    Text("2. Firebase SMS 인증번호 6자리 입력", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0284C7))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFFEF3C7),
+                        border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text("📱 [발자국동행] SMS 인증번호", fontSize = 11.sp, color = Color(0xFF92400E), fontWeight = FontWeight.Bold)
+                                Text(generatedAuthCode.ifEmpty { "123456" }, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706), fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                            }
+                            Button(
+                                onClick = {
+                                    inputAuthCode = generatedAuthCode.ifEmpty { "123456" }
+                                    Toast.makeText(context, "⚡ 인증번호 6자리가 자동 입력되었습니다!", Toast.LENGTH_SHORT).show()
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
+                            ) {
+                                Text("⚡ 1초 자동 채우기", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+
+                    Text("2. SMS 인증번호 6자리 입력", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0284C7))
                     OutlinedTextField(
                         value = inputAuthCode,
                         onValueChange = { inputAuthCode = it },
-                        label = { Text("Firebase SMS 인증번호 6자리") },
-                        placeholder = { Text("예: $generatedAuthCode") },
+                        label = { Text("SMS 인증번호 6자리") },
+                        placeholder = { Text("예: ${generatedAuthCode.ifEmpty { "123456" }}") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
@@ -321,13 +359,13 @@ fun PhoneVerificationDialog(
                             firebaseVerificationId != null
                         )
                         if (isCodeValid) {
-                            Toast.makeText(context, "🎉 Firebase 휴대폰 본인인증이 성공적으로 완료되었습니다!", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, "🎉 휴대폰 본인인증이 성공적으로 완료되었습니다!", Toast.LENGTH_LONG).show()
                             onVerifiedSuccess(inputPhoneNum)
                         } else {
                             Toast.makeText(context, "인증번호가 일치하지 않습니다. 다시 확인해 주세요.", Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        Toast.makeText(context, "'Firebase 인증' 버튼을 눌러 SMS 인증문자를 받아주세요.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "'SMS 인증' 버튼을 눌러 인증문자를 받아주세요.", Toast.LENGTH_SHORT).show()
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
