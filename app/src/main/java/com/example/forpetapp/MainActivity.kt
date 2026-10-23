@@ -504,15 +504,6 @@ fun LoginScreen(
                         Text("카카오톡으로 1초 시작하기", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
                 }
-
-                TextButton(
-                    onClick = {
-                        PersistentStorageManager.clearAllData(context)
-                        Toast.makeText(context, "🧹 계정 데이터가 초기화되었습니다! 이제 [Google 계정으로 시작하기]를 누르면 신규 가입 SMS 인증창이 오픈됩니다.", Toast.LENGTH_LONG).show()
-                    }
-                ) {
-                    Text("🔄 계정 데이터 초기화 (신규 가입 SMS 인증 테스트용)", fontSize = 11.sp, color = Color.Gray)
-                }
             }
         }
 
@@ -1524,8 +1515,10 @@ object PersistentStorageManager {
     fun loadUserNickname(context: android.content.Context, defaultVal: String) =
         getPrefs(context).getString("user_nickname", defaultVal) ?: defaultVal
 
-    fun loadUserPhone(context: android.content.Context, defaultVal: String) =
-        getPrefs(context).getString("user_phone", defaultVal) ?: defaultVal
+    fun loadUserPhone(context: android.content.Context, defaultVal: String): String {
+        val phone = getPrefs(context).getString("user_phone", defaultVal) ?: defaultVal
+        return if (phone == "010-1234-5678") "" else phone
+    }
 
     fun loadUserAddress(context: android.content.Context, defaultVal: String) =
         getPrefs(context).getString("user_address", defaultVal) ?: defaultVal
