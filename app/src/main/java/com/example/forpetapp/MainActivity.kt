@@ -4043,6 +4043,7 @@ fun DetailedServiceCard(
     cardBgColor: Color,
     badgeBgColor: Color,
     buttonTextColor: Color,
+    enabled: Boolean = true,
     onButtonClick: () -> Unit
 ) {
     Card(
@@ -4114,13 +4115,16 @@ fun DetailedServiceCard(
 
             Button(
                 onClick = onButtonClick,
+                enabled = enabled,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(42.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = buttonTextColor
+                    containerColor = if (enabled) Color.White else Color(0xFF64748B),
+                    contentColor = if (enabled) buttonTextColor else Color.White,
+                    disabledContainerColor = Color(0xFF64748B),
+                    disabledContentColor = Color.White
                 )
             ) {
                 Text(text = buttonText, fontWeight = FontWeight.Bold, fontSize = 13.sp)
@@ -4788,7 +4792,7 @@ fun HomeScreenContent(
 
                 DetailedServiceCard(
                     modifier = Modifier.weight(1f),
-                    badgeText = "🕊️ 장례 안심 운구",
+                    badgeText = "⏳ 오픈 준비 중",
                     title = "반려동물 장례식장 연계",
                     carModelText = "",
                     features = listOf(
@@ -4797,11 +4801,14 @@ fun HomeScreenContent(
                         "• 보호자 동승/무인 운구대행",
                         "• 단독 개별 화장 & 스톤 연계"
                     ),
-                    buttonText = "장례 운구 문의 ➔",
-                    cardBgColor = Color(0xFF334155),
-                    badgeBgColor = Color(0xFF475569).copy(alpha = 0.6f),
-                    buttonTextColor = Color(0xFF1E293B),
-                    onButtonClick = { showFuneralBookingDialog = true }
+                    buttonText = "⏳ 오픈 예정",
+                    cardBgColor = Color(0xFF475569),
+                    badgeBgColor = Color(0xFF334155),
+                    buttonTextColor = Color(0xFF64748B),
+                    enabled = false,
+                    onButtonClick = {
+                        Toast.makeText(context, "⏳ 반려동물 장례식장 연계 서비스는 현재 정식 오픈 준비 중입니다.", Toast.LENGTH_SHORT).show()
+                    }
                 )
             }
         }
@@ -5224,9 +5231,8 @@ fun HomeScreenContent(
                                 }
                                 HorizontalDivider()
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text("🕊️ 장례식장 연계 안심 운구 서비스 요금", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1E293B))
-                                    Text("• 장례 안심 운구 기본료 (왕복/직통 운구 포함): 50,000원", fontSize = 11.sp, color = Color(0xFF334155))
-                                    Text("• 개별 화장 및 메모리얼 스톤 비용: 장례식장 현장 절차 선택 후 정산", fontSize = 11.sp, color = Color.Gray)
+                                    Text("🕊️ 반려동물 장례식장 연계 서비스", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF475569))
+                                    Text("• 현재 정식 오픈 준비 중입니다. (추후 서비스 개시 예정)", fontSize = 11.sp, color = Color.Gray)
                                 }
                                 Text("※ 이동 거리(km) 및 서부산 구 단위에 따라 예상 금액이 산정되며, 미터기 기준 투명 정찰제로 안전하게 운용됩니다.", fontSize = 10.sp, color = Color(0xFF0284C7), lineHeight = 14.sp)
                             }
