@@ -4671,7 +4671,7 @@ fun HomeScreenContent(
                         ) {
                             Text("공지", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                         }
-                        Text("발자국동행 병원 진료 대행 & 장례식장 연계 안심 운구 서비스 정식 안내", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFF0F172A), maxLines = 1)
+                        Text("발자국동행 1:1 병원 진료 대행 및 안심 이동 케어 서비스 정식 안내", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFF0F172A), maxLines = 1)
                     }
                     Text("더보기 ➔", fontSize = 11.sp, color = Color.Gray)
                 }
@@ -6777,10 +6777,10 @@ fun HomeScreenContent(
                     item {
                         Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC))) {
                             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("📢 발자국동행 안심 이동 케어 & 장례 연계 서비스 안내", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                Text("📢 발자국동행 1:1 병원 진료 대행 서비스 정식 운영 안내", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
                                 Text("2026.10.18", fontSize = 10.sp, color = Color.Gray)
                                 HorizontalDivider()
-                                Text("강서구, 사하구, 사상구, 북구 서부산 전 지역에 1:1 병원 진료 대행 및 장례 안심 운구 연계 서비스가 정식 운영 중입니다.", fontSize = 11.sp, color = Color(0xFF334155), lineHeight = 15.sp)
+                                Text("강서구, 사하구, 사상구, 북구 서부산 전 지역에 보호자 맞춤형 1:1 병원 진료 대행 및 안심 이동 케어 서비스가 정식 운영 중입니다.", fontSize = 11.sp, color = Color(0xFF334155), lineHeight = 15.sp)
                             }
                         }
                     }
