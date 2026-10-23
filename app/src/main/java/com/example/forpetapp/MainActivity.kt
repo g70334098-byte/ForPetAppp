@@ -3734,6 +3734,257 @@ fun PostalCodeSearchDialog(
     )
 }
 
+// 🕊️ 24시 반려동물 장례식장 연계 및 안심 운구 신청 다이얼로그
+@Composable
+fun PetFuneralBookingDialog(
+    userNickname: String,
+    userPhone: String,
+    userAddress: String,
+    userDetailAddress: String,
+    onDismiss: () -> Unit,
+    onAddBooking: (BookingItem) -> Unit
+) {
+    val context = LocalContext.current
+
+    var petSpecies by remember { mutableStateOf("강아지") }
+    var petName by remember { mutableStateOf("초코") }
+    var ownerName by remember(userNickname) { mutableStateOf(userNickname) }
+    var ownerPhone by remember(userPhone) { mutableStateOf(userPhone) }
+
+    var funeralAddress by remember(userAddress) { mutableStateOf(userAddress) }
+    var funeralDetailAddress by remember(userDetailAddress) { mutableStateOf(userDetailAddress) }
+    var showAddressSearch by remember { mutableStateOf(false) }
+
+    // 선택 옵션
+    var selectedProcType by remember { mutableStateOf("🕯️ 단독 개별 화장 & 추모예식") }
+    val procTypes = listOf("🕯️ 단독 개별 화장 & 추모예식", "💎 메모리얼 스톤 (영구보관)", "🌳 수목장 / 자연장 연계", "🚗 장례식장 왕복 이동 동승")
+
+    var selectedFuneralHome by remember { mutableStateOf("부산/서부산 24시 안심 장례식장") }
+    val funeralHomes = listOf("부산/서부산 24시 안심 장례식장", "김해/양산 24시 메모리얼 파크", "창원/경남 24시 추모관", "기타 희망 장례식장 (직접 작성)")
+    var isCustomFuneralHome by remember { mutableStateOf(false) }
+    var customFuneralHomeName by remember { mutableStateOf("") }
+
+    var customNote by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text("🕊️", fontSize = 20.sp)
+                    Text("반려동물 장례식장 연계 & 안심 운구 신청", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color(0xFF1E293B))
+                }
+                Text("아이의 마지막 길, 정성과 존엄을 다해 경건하고 따뜻하게 함께합니다.", fontSize = 11.sp, color = Color(0xFF475569))
+            }
+        },
+        text = {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(460.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // 1. 반려동물 구분 및 기본 정보
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("1. 반려동물 기본 정보 🐾", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = (petSpecies == "강아지"),
+                                onClick = { petSpecies = "강아지" },
+                                label = { Text("🐶 강아지", fontWeight = FontWeight.Bold) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = (petSpecies == "고양이"),
+                                onClick = { petSpecies = "고양이" },
+                                label = { Text("🐱 고양이", fontWeight = FontWeight.Bold) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = petName,
+                                onValueChange = { petName = it },
+                                label = { Text("아이 이름") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = ownerName,
+                                onValueChange = { ownerName = it },
+                                label = { Text("보호자 실명") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                        }
+                    }
+                }
+
+                // 2. 자택 주소 입력
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("📍 픽업/운구 고객 자택 주소", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            TextButton(
+                                onClick = { showAddressSearch = true },
+                                contentPadding = PaddingValues(0.dp)
+                            ) {
+                                Text("📮 우편번호/주소 검색", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        OutlinedTextField(
+                            value = funeralAddress,
+                            onValueChange = { funeralAddress = it },
+                            label = { Text("도로명 / 지번 주소") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+
+                        OutlinedTextField(
+                            value = funeralDetailAddress,
+                            onValueChange = { funeralDetailAddress = it },
+                            label = { Text("동/호수 및 건물 상세 주소") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
+                }
+
+                // 3. 희망 장례 절차 선택
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("3. 희망 장례 추모 절차 선택 🕯️", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                        procTypes.forEach { proc ->
+                            FilterChip(
+                                selected = (selectedProcType == proc),
+                                onClick = { selectedProcType = proc },
+                                label = { Text(proc, fontSize = 12.sp, fontWeight = FontWeight.Bold) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+
+                // 4. 협력 장례식장 선택
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("4. 연계 협력 장례식장 선택 🏛️", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            TextButton(onClick = { isCustomFuneralHome = !isCustomFuneralHome }, contentPadding = PaddingValues(0.dp)) {
+                                Text(if (isCustomFuneralHome) "📋 목록 선택" else "✏️ 직접 입력", fontSize = 12.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        if (!isCustomFuneralHome) {
+                            funeralHomes.forEach { home ->
+                                FilterChip(
+                                    selected = (selectedFuneralHome == home),
+                                    onClick = { selectedFuneralHome = home },
+                                    label = { Text(home, fontSize = 12.sp, fontWeight = FontWeight.Medium) },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        } else {
+                            OutlinedTextField(
+                                value = customFuneralHomeName,
+                                onValueChange = { customFuneralHomeName = it },
+                                label = { Text("희망 장례식장 명칭 직접 입력") },
+                                placeholder = { Text("예: 부산 기장 24시 메모리얼파크") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                        }
+                    }
+                }
+
+                // 5. 메모 및 요청사항
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("5. 기타 전달 및 추모 메모 ✍️", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                        OutlinedTextField(
+                            value = customNote,
+                            onValueChange = { customNote = it },
+                            placeholder = { Text("예: 보호자 2명 동승하여 함께 이동 예정입니다. 조심히 와주세요.") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2
+                        )
+                    }
+                }
+
+                // 6. 안심 운구 정찰제 요금 안내
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFF8FAFC),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("💳 장례 안심 운구 기본료", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                                Text("50,000원 (가결제)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0284C7))
+                            }
+                            Text("※ 개별 화장 및 메모리얼 스톤 비용은 장례식장 현장에서 절차 선택 후 최종 정산됩니다.", fontSize = 10.sp, color = Color.Gray, lineHeight = 14.sp)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val finalFuneralHome = if (isCustomFuneralHome && customFuneralHomeName.isNotEmpty()) customFuneralHomeName else selectedFuneralHome
+                    val noteSummary = "📍 주소: $funeralAddress $funeralDetailAddress | 절차: $selectedProcType | $finalFuneralHome" +
+                            if (customNote.isNotEmpty()) " | 메모: $customNote" else ""
+
+                    val newFuneralBooking = BookingItem(
+                        serviceType = "🕊️ 장례 안심 운구 서비스",
+                        species = petSpecies,
+                        petName = petName,
+                        ownerName = ownerName,
+                        hospitalName = finalFuneralHome,
+                        time = "24시 즉시 운구 출동",
+                        status = "🕊️ 운구 준비 중 (담당 가드 즉시 출동)",
+                        vehicleInfo = "발자국동행 24시 안심 추모 운구차",
+                        symptomNote = noteSummary,
+                        estimatedPrice = "50,000원 (가결제)"
+                    )
+                    onAddBooking(newFuneralBooking)
+                    Toast.makeText(context, "🕊️ '$petName' 아이의 24시 장례 안심 운구 접수가 완료되었습니다. 담당 가드가 즉시 연락드립니다.", Toast.LENGTH_LONG).show()
+                    onDismiss()
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155))
+            ) {
+                Text("🕊️ 장례 운구 접수하기", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("취소") }
+        }
+    )
+
+    if (showAddressSearch) {
+        PostalCodeSearchDialog(
+            onDismiss = { showAddressSearch = false },
+            onAddressSelected = { zip, addr -> funeralAddress = "[$zip] $addr" }
+        )
+    }
+}
+
 // ⭐ 이용 후기 데이터 클래스
 data class ReviewItem(
     val id: String = System.currentTimeMillis().toString(),
@@ -3763,6 +4014,7 @@ fun HomeScreenContent(
     var showBookingDialog by remember { mutableStateOf(false) }
     var showBookingNoticeDialog by remember { mutableStateOf(false) }
     var showEmergencyDialog by remember { mutableStateOf(false) }
+    var showFuneralBookingDialog by remember { mutableStateOf(false) }
     var showHospitalListDialog by remember { mutableStateOf(false) }
     var showFaqDialog by remember { mutableStateOf(false) }
     var showReviewWriteDialog by remember { mutableStateOf(false) }
@@ -3990,20 +4242,20 @@ fun HomeScreenContent(
 
                 DetailedServiceCard(
                     modifier = Modifier.weight(1f),
-                    badgeText = "🚨 24H 긴급 배차",
-                    title = "긴급 응급 출동\n(병원 미예약자)",
+                    badgeText = "🕊️ 24H 안심 운구",
+                    title = "반려동물 장례식장 연계\n(24시 안심 운구)",
                     carModelText = "",
                     features = listOf(
-                        "• 24시 응급 동물병원 직통",
-                        "• 24시 긴급 전문 가드 출동",
-                        "• 최단거리 속응 긴급차 배차",
-                        "• 병원 미예약 시 즉시 연동"
+                        "• 24시 서부산/경남 장례식장 연계",
+                        "• 안심 전용 추모 운구 차량 출동",
+                        "• 보호자 동승 및 무인 운구 대행",
+                        "• 단독 개별 화장 & 스톤 연계"
                     ),
-                    buttonText = "출동 요청 ➔",
-                    cardBgColor = Color(0xFFE11D48),
-                    badgeBgColor = Color(0xFFF43F5E).copy(alpha = 0.45f),
-                    buttonTextColor = Color(0xFFBE123C),
-                    onButtonClick = { showEmergencyDialog = true }
+                    buttonText = "장례 운구 문의 ➔",
+                    cardBgColor = Color(0xFF334155),
+                    badgeBgColor = Color(0xFF475569).copy(alpha = 0.6f),
+                    buttonTextColor = Color(0xFF1E293B),
+                    onButtonClick = { showFuneralBookingDialog = true }
                 )
             }
         }
@@ -4509,6 +4761,20 @@ fun HomeScreenContent(
             locationText = "부산 강서구 명지동",
             onDismiss = { showAiChatDialog = false },
             onGoToBooking = { showBookingDialog = true }
+        )
+    }
+
+    if (showFuneralBookingDialog) {
+        PetFuneralBookingDialog(
+            userNickname = userNickname,
+            userPhone = userPhone,
+            userAddress = userAddress,
+            userDetailAddress = userDetailAddress,
+            onDismiss = { showFuneralBookingDialog = false },
+            onAddBooking = { newBooking ->
+                onAddBooking(newBooking)
+                onNavigateToBookingTab()
+            }
         )
     }
 
