@@ -3759,11 +3759,7 @@ fun PetFuneralBookingDialog(
     var selectedProcType by remember { mutableStateOf("🕯️ 단독 개별 화장 & 추모예식") }
     val procTypes = listOf("🕯️ 단독 개별 화장 & 추모예식", "💎 메모리얼 스톤 (영구보관)", "🌳 수목장 / 자연장 연계", "🚗 장례식장 왕복 이동 동승")
 
-    var selectedFuneralHome by remember { mutableStateOf("부산/서부산 안심 장례식장") }
-    val funeralHomes = listOf("부산/서부산 안심 장례식장", "김해/양산 메모리얼 파크", "창원/경남 추모관", "기타 희망 장례식장 (직접 작성)")
-    var isCustomFuneralHome by remember { mutableStateOf(false) }
     var customFuneralHomeName by remember { mutableStateOf("") }
-
     var customNote by remember { mutableStateOf("") }
 
     AlertDialog(
@@ -3875,39 +3871,18 @@ fun PetFuneralBookingDialog(
                     }
                 }
 
-                // 4. 협력 장례식장 선택
+                // 4. 이용하실 장례식장 명칭 직접 입력
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(
+                        Text("4. 이용/이동하실 장례식장 명칭 직접 입력 🏛️", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                        OutlinedTextField(
+                            value = customFuneralHomeName,
+                            onValueChange = { customFuneralHomeName = it },
+                            label = { Text("이용하실 장례식장 이름 입력") },
+                            placeholder = { Text("예: 부산 기장 메모리얼파크, 김해 펫장례식장 등") },
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("4. 연계 협력 장례식장 선택 🏛️", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                            TextButton(onClick = { isCustomFuneralHome = !isCustomFuneralHome }, contentPadding = PaddingValues(0.dp)) {
-                                Text(if (isCustomFuneralHome) "📋 목록 선택" else "✏️ 직접 입력", fontSize = 12.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
-                            }
-                        }
-
-                        if (!isCustomFuneralHome) {
-                            funeralHomes.forEach { home ->
-                                FilterChip(
-                                    selected = (selectedFuneralHome == home),
-                                    onClick = { selectedFuneralHome = home },
-                                    label = { Text(home, fontSize = 12.sp, fontWeight = FontWeight.Medium) },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        } else {
-                            OutlinedTextField(
-                                value = customFuneralHomeName,
-                                onValueChange = { customFuneralHomeName = it },
-                                label = { Text("희망 장례식장 명칭 직접 입력") },
-                                placeholder = { Text("예: 부산 기장 24시 메모리얼파크") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-                        }
+                            singleLine = true
+                        )
                     }
                 }
 
@@ -3947,7 +3922,7 @@ fun PetFuneralBookingDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val finalFuneralHome = if (isCustomFuneralHome && customFuneralHomeName.isNotEmpty()) customFuneralHomeName else selectedFuneralHome
+                    val finalFuneralHome = customFuneralHomeName.trim().ifEmpty { "이용 희망 장례식장 (상담 후 결정)" }
                     val noteSummary = "📍 주소: $funeralAddress $funeralDetailAddress | 절차: $selectedProcType | $finalFuneralHome" +
                             if (customNote.isNotEmpty()) " | 메모: $customNote" else ""
 
