@@ -4200,13 +4200,13 @@ fun HomeScreenContent(
                 DetailedServiceCard(
                     modifier = Modifier.weight(1f),
                     badgeText = "🏥 케어 서비스",
-                    title = "병원 진료 대행\n(병원 예약자 전용)",
+                    title = "병원 진료 대행",
                     carModelText = "",
                     features = listOf(
+                        "• 병원 예약자 1:1 안심 케어",
                         "• 펫 전용 안심 시트탑재",
                         "• 실시간 바디캠 라이브 연동",
-                        "• 수의사 정밀 진료 리포트",
-                        "• 병원 예약자 1:1 안심 케어"
+                        "• 수의사 정밀 진료 리포트"
                     ),
                     buttonText = "예약하기 ➔",
                     cardBgColor = Color(0xFF0D9488),
@@ -4218,12 +4218,12 @@ fun HomeScreenContent(
                 DetailedServiceCard(
                     modifier = Modifier.weight(1f),
                     badgeText = "🕊️ 장례 안심 운구",
-                    title = "반려동물 장례식장 연계\n(안심 운구 서비스)",
+                    title = "반려동물 장례식장 연계",
                     carModelText = "",
                     features = listOf(
-                        "• 서부산/경남 협력 장례식장 연계",
-                        "• 안심 전용 추모 운구 차량 출동",
-                        "• 보호자 동승 및 무인 운구 대행",
+                        "• 서부산/경남 장례식장 연계",
+                        "• 안심 전용 추모 운구 차량",
+                        "• 보호자 동승/무인 운구대행",
                         "• 단독 개별 화장 & 스톤 연계"
                     ),
                     buttonText = "장례 운구 문의 ➔",
