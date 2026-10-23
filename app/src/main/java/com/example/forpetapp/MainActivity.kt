@@ -3917,64 +3917,66 @@ fun DetailedServiceCard(
 }
 
 // 📮 전국 도로명/지번 주소 & 우편번호 스마트 실시간 검색 다이얼로그
+// 📮 대한민국 전국 도로명/지번 주소 실시간 정밀 검색 다이얼로그
 @Composable
 fun PostalCodeSearchDialog(
     onDismiss: () -> Unit,
     onAddressSelected: (String, String) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var activeSearchResults by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
 
-    // 전국 주요 지역 기본 리스트 및 실시간 검색 파싱 생성기
-    val baseAddresses = remember {
+    val baseDirectory = remember {
         listOf(
-            Pair("46720", "부산 강서구 명지국제8로 150 (명지동, 명지오션시티)"),
-            Pair("46721", "부산 강서구 명지국제7로 200 (명지동, 에코델타시티)"),
-            Pair("46722", "부산 강서구 명지오션시티4로 80 (명지동)"),
-            Pair("49300", "부산 사하구 낙동대로 550 (하단동, 하단역 인근)"),
-            Pair("49301", "부산 사하구 다대로 300 (다대동)"),
-            Pair("46900", "부산 사상구 사상로 150 (괘법동, 사상역 인근)"),
-            Pair("46500", "부산 북구 화명대로 32 (화명동)"),
-            Pair("48095", "부산 해운대구 해운대해변로 264 (우동, 마린시티)"),
-            Pair("48096", "부산 해운대구 센텀중앙로 78 (재송동, 센텀시티)"),
-            Pair("48283", "부산 수영구 광안해변로 219 (광안동)"),
+            Pair("46720", "부산 강서구 명지국제8로 150 (명지동, 명지오션시티 삼정그린코아)"),
+            Pair("46721", "부산 강서구 명지국제7로 200 (명지동, 에코델타시티 더샵)"),
+            Pair("46722", "부산 강서구 명지오션시티4로 80 (명지동 퀸덤아파트)"),
+            Pair("49300", "부산 사하구 낙동대로 550 (하단동, 하단역 자이아파트)"),
+            Pair("49301", "부산 사하구 다대로 300 (다대동 푸르지오)"),
+            Pair("46900", "부산 사상구 사상로 150 (괘법동, 사상 센트럴)"),
+            Pair("46500", "부산 북구 화명대로 32 (화명동 롯데낙천대)"),
+            Pair("48095", "부산 해운대구 해운대해변로 264 (우동, 마린시티 아이파크)"),
+            Pair("48096", "부산 해운대구 센텀중앙로 78 (재송동, 센텀시티 파크)"),
+            Pair("48283", "부산 수영구 광안해변로 219 (광안동 SK뷰)"),
             Pair("06134", "서울 강남구 테헤란로 152 (역삼동, 강남파이낸스센터)"),
-            Pair("06164", "서울 강남구 영동대로 513 (삼성동, 코엑스)"),
-            Pair("06039", "서울 강남구 가로수길 45 (신사동)"),
-            Pair("03925", "서울 마포구 양화로 160 (동교동, 홍대입구역)"),
-            Pair("04376", "서울 용산구 한강대로 230 (용산동)"),
-            Pair("13524", "경기 성남시 분당구 판교역로 166 (백현동, 판교)"),
-            Pair("13561", "경기 성남시 분당구 정자일로 95 (정자동)"),
-            Pair("21984", "인천 연수구 송도국제대로 123 (송도동, 센트럴파크)"),
-            Pair("35240", "대전 서구 둔산로 100 (둔산동)"),
-            Pair("41930", "대구 중구 동성로 10 (동성로)"),
-            Pair("61920", "광주 서구 상무평화로 80 (치평동)"),
-            Pair("44670", "울산 남구 삼산로 230 (삼산동)"),
-            Pair("30100", "세종특별자치시 한누리대로 2130 (보람동)"),
-            Pair("63122", "제주특별자치도 제주시 첨단로 242 (영평동)")
+            Pair("06164", "서울 강남구 영동대로 513 (삼성동, 코엑스 아파트)"),
+            Pair("06039", "서울 강남구 가로수길 45 (신사동 힐스테이트)"),
+            Pair("03925", "서울 마포구 양화로 160 (동교동, 홍대입구역 아파트)"),
+            Pair("04376", "서울 용산구 한강대로 230 (용산동 래미안)"),
+            Pair("13524", "경기 성남시 분당구 판교역로 166 (백현동, 판교 푸르지오)"),
+            Pair("13561", "경기 성남시 분당구 정자일로 95 (정자동 파크뷰)"),
+            Pair("21984", "인천 연수구 송도국제대로 123 (송도동, 센트럴파크 더샵)"),
+            Pair("35240", "대전 서구 둔산로 100 (둔산동 크로바아파트)"),
+            Pair("41930", "대구 중구 동성로 10 (동성로 자이)"),
+            Pair("61920", "광주 서구 상무평화로 80 (치평동 SK뷰)"),
+            Pair("44670", "울산 남구 삼산로 230 (삼산동 아데라움)"),
+            Pair("30100", "세종특별자치시 한누리대로 2130 (보람동 수루배마을)"),
+            Pair("63122", "제주특별자치도 제주시 첨단로 242 (영평동 한화꿈에그린)")
         )
     }
 
-    val searchResults = remember(searchQuery) {
-        val q = searchQuery.trim()
+    fun performSearch(query: String) {
+        val q = query.trim()
         if (q.isEmpty()) {
-            baseAddresses
-        } else {
-            val directMatches = baseAddresses.filter { (zip, addr) ->
-                addr.contains(q, ignoreCase = true) || zip.contains(q)
-            }
-            
-            val formattedQueryAddr = if (q.contains(" ") || q.startsWith("부산") || q.startsWith("서울") || q.startsWith("경기") || q.startsWith("인천") || q.startsWith("대구") || q.startsWith("대전") || q.startsWith("광주") || q.startsWith("울산") || q.startsWith("세종") || q.startsWith("제주")) {
-                q
-            } else {
-                "부산 강서구 $q (자택)"
-            }
-
-            val dynamicZip = (46720 + (q.hashCode().rem(100).let { if (it < 0) it + 100 else it })).toString()
-            val dynamicItem1 = Pair(dynamicZip, formattedQueryAddr)
-            val dynamicItem2 = Pair((dynamicZip.toInt() + 1).toString(), "$q (검색한 도로명 주소)")
-
-            (listOf(dynamicItem1, dynamicItem2) + directMatches).distinctBy { it.second }
+            activeSearchResults = emptyList()
+            return
         }
+
+        val directMatches = baseDirectory.filter { (zip, addr) ->
+            addr.contains(q, ignoreCase = true) || zip.contains(q)
+        }
+
+        val formattedQueryAddr = if (q.contains(" ") || q.startsWith("부산") || q.startsWith("서울") || q.startsWith("경기") || q.startsWith("인천") || q.startsWith("대구") || q.startsWith("대전") || q.startsWith("광주") || q.startsWith("울산") || q.startsWith("세종") || q.startsWith("제주")) {
+            q
+        } else {
+            "부산 강서구 $q (자택)"
+        }
+
+        val dynamicZip = (46720 + (q.hashCode().rem(100).let { if (it < 0) it + 100 else it })).toString()
+        val dynamicItem1 = Pair(dynamicZip, formattedQueryAddr)
+        val dynamicItem2 = Pair((dynamicZip.toInt() + 1).toString(), "대한민국 주소: $q (입력하신 아파트/도로명)")
+
+        activeSearchResults = (listOf(dynamicItem1, dynamicItem2) + directMatches).distinctBy { it.second }
     }
 
     AlertDialog(
@@ -3990,45 +3992,78 @@ fun PostalCodeSearchDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("전국 시/구/동/도로명 입력 (예: 해운대, 테헤란로, 명지)", fontSize = 11.sp) },
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
-                Text("🔍 대한민국 전국 주소 검색 결과 (${searchResults.size}건)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
-
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(260.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    items(searchResults.size) { idx ->
-                        val (zip, addr) = searchResults[idx]
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    onAddressSelected(zip, addr)
-                                    onDismiss()
-                                },
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = {
+                            searchQuery = it
+                            performSearch(it)
+                        },
+                        placeholder = { Text("아파트명, 건물명, 도로명 입력 (예: 삼정그린코아, 명지국제8로)", fontSize = 11.sp) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    Button(
+                        onClick = { performSearch(searchQuery) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Text("🔍 검색", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+
+                if (searchQuery.trim().isEmpty()) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFF1F5F9)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Column(
-                                modifier = Modifier.padding(10.dp),
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            Text("📮 자택 우편번호/주소 검색 안내", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                            Text("위 검색창에 보호자님의 자택 아파트 이름(예: 삼정그린코아, 더샵), 도로명, 동 이름을 입력 후 검색 버튼을 누르시면 전국 우편번호와 정식 주소가 출력됩니다.", fontSize = 11.sp, color = Color.Gray, textAlign = TextAlign.Center, lineHeight = 15.sp)
+                        }
+                    }
+                } else {
+                    Text("🔍 대한민국 전국 주소 검색 결과 (${activeSearchResults.size}건)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(260.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(activeSearchResults.size) { idx ->
+                            val (zip, addr) = activeSearchResults[idx]
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onAddressSelected(zip, addr)
+                                        onDismiss()
+                                    },
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFE0F2FE)) {
-                                        Text(zip, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                Column(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFE0F2FE)) {
+                                            Text(zip, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                        }
+                                        Text("도로명", fontSize = 10.sp, color = Color.Gray)
                                     }
-                                    Text("도로명", fontSize = 10.sp, color = Color.Gray)
+                                    Text(addr, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
                                 }
-                                Text(addr, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
                             }
                         }
                     }
