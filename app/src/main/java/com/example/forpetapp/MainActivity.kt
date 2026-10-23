@@ -6021,6 +6021,13 @@ fun FaqItem(question: String, answer: String) {
     }
 }
 
+// 💉 반려동물 D-Day 일정 데이터 클래스
+data class PetDDayItem(
+    val id: String = System.currentTimeMillis().toString(),
+    val title: String,
+    val targetDateMillis: Long
+)
+
 // 🐶 반려동물 프로필 화면
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -6040,6 +6047,29 @@ fun MyPetDetailScreen(
 
     var selectedBirthMillis by remember { mutableStateOf<Long?>(null) }
     var showDatePickerDialog by remember { mutableStateOf(false) }
+
+    var showAddDDayDialog by remember { mutableStateOf(false) }
+
+    // D-Day 일정을 자유롭게 추가/삭제/수정 가능한 리스트
+    val ddayList = remember {
+        mutableStateListOf(
+            PetDDayItem(
+                id = "1",
+                title = "💉 광견병 백신",
+                targetDateMillis = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 14) }.timeInMillis
+            ),
+            PetDDayItem(
+                id = "2",
+                title = "💊 심장사상충",
+                targetDateMillis = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 3) }.timeInMillis
+            ),
+            PetDDayItem(
+                id = "3",
+                title = "🩺 종합 건강검진",
+                targetDateMillis = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 30) }.timeInMillis
+            )
+        )
+    }
 
     var petWeight by remember { mutableStateOf("4.5") }
     var petHospital by remember { mutableStateOf("명지24시온누리메디컬센터") }
@@ -6142,7 +6172,7 @@ fun MyPetDetailScreen(
             }
         }
 
-        // 💉 예방접종 & 건강 D-Day 수첩 카드
+        // 💉 예방접종 & 건강 D-Day 수첩 카드 (자유로운 커스텀 일정 추가/삭제 연동)
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -6160,54 +6190,75 @@ fun MyPetDetailScreen(
                     ) {
                         Text("💉 예방접종 & 건강 D-Day 수첩", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
                         TextButton(
-                            onClick = {
-                                Toast.makeText(context, "+ 신규 D-Day 건강 일정이 등록되었습니다.", Toast.LENGTH_SHORT).show()
-                            },
+                            onClick = { showAddDDayDialog = true },
                             contentPadding = PaddingValues(0.dp)
                         ) {
                             Text("+ 일정 추가", fontSize = 12.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
                         }
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Surface(
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(10.dp),
-                            color = Color(0xFFEFF6FF),
-                            border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                    if (ddayList.isEmpty()) {
+                        Text("등록된 D-Day 건강 일정이 없습니다. 우측 상단 '+ 일정 추가'를 누르시면 자유롭게 등록하실 수 있습니다!", fontSize = 11.sp, color = Color.Gray, modifier = Modifier.padding(vertical = 8.dp))
+                    } else {
+                        androidx.compose.foundation.lazy.LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text("💉 광견병 백신", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF1E40AF))
-                                Text("D-14", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF2563EB))
-                                Text("예정: 11.01", fontSize = 9.sp, color = Color.Gray)
-                            }
-                        }
+                            items(ddayList.size) { index ->
+                                val item = ddayList[index]
 
-                        Surface(
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(10.dp),
-                            color = Color(0xFFFEF3C7),
-                            border = BorderStroke(1.dp, Color(0xFFFDE68A))
-                        ) {
-                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text("💊 심장사상충", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF92400E))
-                                Text("D-3", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFFD97706))
-                                Text("예정: 10.21", fontSize = 9.sp, color = Color.Gray)
-                            }
-                        }
+                                val todayCal = Calendar.getInstance().apply {
+                                    set(Calendar.HOUR_OF_DAY, 0)
+                                    set(Calendar.MINUTE, 0)
+                                    set(Calendar.SECOND, 0)
+                                    set(Calendar.MILLISECOND, 0)
+                                }
+                                val targetCal = Calendar.getInstance().apply {
+                                    timeInMillis = item.targetDateMillis
+                                    set(Calendar.HOUR_OF_DAY, 0)
+                                    set(Calendar.MINUTE, 0)
+                                    set(Calendar.SECOND, 0)
+                                    set(Calendar.MILLISECOND, 0)
+                                }
+                                val diffDays = ((targetCal.timeInMillis - todayCal.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
+                                val ddayStr = when {
+                                    diffDays == 0 -> "D-Day"
+                                    diffDays > 0 -> "D-$diffDays"
+                                    else -> "D+${-diffDays}"
+                                }
+                                val dateFormatted = SimpleDateFormat("MM.dd", Locale.KOREA).format(Date(item.targetDateMillis))
 
-                        Surface(
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(10.dp),
-                            color = Color(0xFFF1F5F9)
-                        ) {
-                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text("🩺 건강검진", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF475569))
-                                Text("D-30", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF0284C7))
-                                Text("예정: 11.17", fontSize = 9.sp, color = Color.Gray)
+                                Surface(
+                                    modifier = Modifier.width(115.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = if (diffDays <= 3) Color(0xFFFEF3C7) else Color(0xFFEFF6FF),
+                                    border = BorderStroke(1.dp, if (diffDays <= 3) Color(0xFFFDE68A) else Color(0xFFBFDBFE))
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(item.title, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF0F172A), maxLines = 1)
+                                            Text(
+                                                text = "✕",
+                                                fontSize = 11.sp,
+                                                color = Color.Gray,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.clickable {
+                                                    ddayList.remove(item)
+                                                    Toast.makeText(context, "🗑️ 일정['${item.title}']이 삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                                                }
+                                            )
+                                        }
+                                        Text(ddayStr, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = if (diffDays <= 3) Color(0xFFD97706) else Color(0xFF2563EB))
+                                        Text("예정: $dateFormatted", fontSize = 9.sp, color = Color.Gray)
+                                    }
+                                }
                             }
                         }
                     }
@@ -6424,5 +6475,118 @@ fun MyPetDetailScreen(
                 }
             }
         }
+    }
+
+    if (showAddDDayDialog) {
+        var newDDayTitle by remember { mutableStateOf("") }
+        var selectedDDayMillis by remember { mutableStateOf<Long?>(System.currentTimeMillis()) }
+        var showDDayDatePicker by remember { mutableStateOf(false) }
+
+        val presetTitles = listOf("💉 예방접종", "💊 심장사상충", "🩺 건강검진", "✂️ 미용", "🎂 생일", "💊 구충제")
+
+        AlertDialog(
+            onDismissRequest = { showAddDDayDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("💉", fontSize = 20.sp)
+                    Text("신규 D-Day 건강 일정 추가", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text("일정 제목 (직접 작성 또는 간편 선택)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                    
+                    androidx.compose.foundation.lazy.LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(presetTitles.size) { idx ->
+                            val preset = presetTitles[idx]
+                            FilterChip(
+                                selected = (newDDayTitle == preset),
+                                onClick = { newDDayTitle = preset },
+                                label = { Text(preset, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                            )
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = newDDayTitle,
+                        onValueChange = { newDDayTitle = it },
+                        label = { Text("D-Day 일정 이름 직접 입력") },
+                        placeholder = { Text("예: 💉 광견병 백신 2차, ✂️ 미용실 예약") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    val formattedTargetDate = if (selectedDDayMillis != null) {
+                        SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREA).format(Date(selectedDDayMillis!!))
+                    } else "날짜를 선택하세요"
+
+                    OutlinedButton(
+                        onClick = { showDDayDatePicker = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("📅 예정일: $formattedTargetDate", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 13.sp)
+                            Text("달력 변경 ➔", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    if (showDDayDatePicker) {
+                        val ddayPickerState = rememberDatePickerState(
+                            initialSelectedDateMillis = selectedDDayMillis ?: System.currentTimeMillis()
+                        )
+                        DatePickerDialog(
+                            onDismissRequest = { showDDayDatePicker = false },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        selectedDDayMillis = ddayPickerState.selectedDateMillis
+                                        showDDayDatePicker = false
+                                    }
+                                ) { Text("확인") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showDDayDatePicker = false }) { Text("취소") }
+                            }
+                        ) {
+                            DatePicker(state = ddayPickerState)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (newDDayTitle.isNotEmpty() && selectedDDayMillis != null) {
+                            val newItem = PetDDayItem(
+                                title = newDDayTitle,
+                                targetDateMillis = selectedDDayMillis!!
+                            )
+                            ddayList.add(0, newItem)
+                            Toast.makeText(context, "💉 D-Day 일정['$newDDayTitle']이 성공적으로 추가되었습니다!", Toast.LENGTH_SHORT).show()
+                            showAddDDayDialog = false
+                        } else {
+                            Toast.makeText(context, "일정 이름과 예정일을 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                ) {
+                    Text("일정 저장하기", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddDDayDialog = false }) { Text("취소") }
+            }
+        )
     }
 }
