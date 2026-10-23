@@ -1283,29 +1283,135 @@ fun fetchRealDeviceLocation(context: android.content.Context, onLocationResult: 
     }
 }
 
+// 💾 앱 재시작/종료 시에도 디스크 파일에 100% 영구 보존하는 SharedPreferences 관리자
+object PersistentStorageManager {
+    private const val PREF_NAME = "BaljagukAppDiskPrefs"
+
+    private fun getPrefs(context: android.content.Context) =
+        context.getSharedPreferences(PREF_NAME, android.content.Context.MODE_PRIVATE)
+
+    // 마이페이지 회원 정보 저장/로드
+    fun saveUserProfile(context: android.content.Context, nickname: String, phone: String, address: String, detailAddress: String, card: String?) {
+        getPrefs(context).edit()
+            .putString("user_nickname", nickname)
+            .putString("user_phone", phone)
+            .putString("user_address", address)
+            .putString("user_detail_address", detailAddress)
+            .putString("registered_card", card)
+            .apply()
+    }
+
+    fun loadUserNickname(context: android.content.Context, defaultVal: String) =
+        getPrefs(context).getString("user_nickname", defaultVal) ?: defaultVal
+
+    fun loadUserPhone(context: android.content.Context, defaultVal: String) =
+        getPrefs(context).getString("user_phone", defaultVal) ?: defaultVal
+
+    fun loadUserAddress(context: android.content.Context, defaultVal: String) =
+        getPrefs(context).getString("user_address", defaultVal) ?: defaultVal
+
+    fun loadUserDetailAddress(context: android.content.Context, defaultVal: String) =
+        getPrefs(context).getString("user_detail_address", defaultVal) ?: defaultVal
+
+    fun loadRegisteredCard(context: android.content.Context) =
+        getPrefs(context).getString("registered_card", null)
+
+    // 반려동물 프로필 정보 저장/로드
+    fun savePetProfile(
+        context: android.content.Context,
+        imageUriStr: String?,
+        species: String,
+        name: String,
+        owner: String,
+        type: String,
+        gender: String,
+        neutered: Boolean,
+        weight: String,
+        hospital: String,
+        symptoms: String,
+        birthMillis: Long?
+    ) {
+        getPrefs(context).edit()
+            .putString("pet_image_uri", imageUriStr)
+            .putString("pet_species", species)
+            .putString("pet_name", name)
+            .putString("owner_real_name", owner)
+            .putString("pet_type", type)
+            .putString("pet_gender", gender)
+            .putBoolean("pet_neutered", neutered)
+            .putString("pet_weight", weight)
+            .putString("pet_hospital", hospital)
+            .putString("pet_symptoms", symptoms)
+            .putLong("pet_birth_millis", birthMillis ?: -1L)
+            .apply()
+    }
+
+    fun loadPetImageUri(context: android.content.Context): String? =
+        getPrefs(context).getString("pet_image_uri", null)
+
+    fun loadPetSpecies(context: android.content.Context, defaultVal: String) =
+        getPrefs(context).getString("pet_species", defaultVal) ?: defaultVal
+
+    fun loadPetName(context: android.content.Context, defaultVal: String) =
+        getPrefs(context).getString("pet_name", defaultVal) ?: defaultVal
+
+    fun loadOwnerRealName(context: android.content.Context, defaultVal: String) =
+        getPrefs(context).getString("owner_real_name", defaultVal) ?: defaultVal
+
+    fun loadPetType(context: android.content.Context, defaultVal: String) =
+        getPrefs(context).getString("pet_type", defaultVal) ?: defaultVal
+
+    fun loadPetGender(context: android.content.Context, defaultVal: String) =
+        getPrefs(context).getString("pet_gender", defaultVal) ?: defaultVal
+
+    fun loadPetNeutered(context: android.content.Context, defaultVal: Boolean) =
+        getPrefs(context).getBoolean("pet_neutered", defaultVal)
+
+    fun loadPetWeight(context: android.content.Context, defaultVal: String) =
+        getPrefs(context).getString("pet_weight", defaultVal) ?: defaultVal
+
+    fun loadPetHospital(context: android.content.Context, defaultVal: String) =
+        getPrefs(context).getString("pet_hospital", defaultVal) ?: defaultVal
+
+    fun loadPetSymptoms(context: android.content.Context, defaultVal: String) =
+        getPrefs(context).getString("pet_symptoms", defaultVal) ?: defaultVal
+
+    fun loadPetBirthMillis(context: android.content.Context): Long? {
+        val valMillis = getPrefs(context).getLong("pet_birth_millis", -1L)
+        return if (valMillis == -1L) null else valMillis
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
     val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
     var userPoints by remember { mutableIntStateOf(3000) }
-    var userNickname by remember { mutableStateOf("발자국동행보호자") }
-    var userPhone by remember { mutableStateOf("010-1234-5678") }
-    var userAddress by remember { mutableStateOf("부산 강서구 명지국제8로 150") }
-    var userDetailAddress by remember { mutableStateOf("101동 1502호") }
-    
-    // 🐾 반려동물 프로필 정보 상위 호이스팅 (탭 이동 및 앱 재진입 시 100% 영구 상태 보존)
-    var savedPetImageUri by remember { mutableStateOf<Uri?>(null) }
-    var savedPetSpecies by remember { mutableStateOf("강아지") }
-    var savedPetName by remember { mutableStateOf("초코") }
-    var savedOwnerRealName by remember { mutableStateOf("홍길동") }
-    var savedPetType by remember { mutableStateOf("말티즈") }
-    var savedGender by remember { mutableStateOf("남아") }
-    var savedIsNeutered by remember { mutableStateOf(true) }
-    var savedPetWeight by remember { mutableStateOf("4.5") }
-    var savedPetHospital by remember { mutableStateOf("명지24시온누리메디컬센터") }
-    var savedPetSymptoms by remember { mutableStateOf("구토 및 식욕 부진, 슬개골 탈구 2기") }
-    var savedBirthMillis by remember { mutableStateOf<Long?>(null) }
+
+    // 디스크 파일(SharedPreferences)에서 영구 정보 초기화 로드
+    var userNickname by remember { mutableStateOf(PersistentStorageManager.loadUserNickname(context, "발자국동행보호자")) }
+    var userPhone by remember { mutableStateOf(PersistentStorageManager.loadUserPhone(context, "010-1234-5678")) }
+    var userAddress by remember { mutableStateOf(PersistentStorageManager.loadUserAddress(context, "부산 강서구 명지국제8로 150")) }
+    var userDetailAddress by remember { mutableStateOf(PersistentStorageManager.loadUserDetailAddress(context, "101동 1502호")) }
+    var savedRegisteredCard by remember { mutableStateOf(PersistentStorageManager.loadRegisteredCard(context)) }
+
+    // 반려동물 프로필 정보 디스크 파일 초기화 로드
+    var savedPetImageUri by remember {
+        mutableStateOf<Uri?>(
+            PersistentStorageManager.loadPetImageUri(context)?.let { try { Uri.parse(it) } catch (_: Exception) { null } }
+        )
+    }
+    var savedPetSpecies by remember { mutableStateOf(PersistentStorageManager.loadPetSpecies(context, "강아지")) }
+    var savedPetName by remember { mutableStateOf(PersistentStorageManager.loadPetName(context, "초코")) }
+    var savedOwnerRealName by remember { mutableStateOf(PersistentStorageManager.loadOwnerRealName(context, "홍길동")) }
+    var savedPetType by remember { mutableStateOf(PersistentStorageManager.loadPetType(context, "말티즈")) }
+    var savedGender by remember { mutableStateOf(PersistentStorageManager.loadPetGender(context, "남아")) }
+    var savedIsNeutered by remember { mutableStateOf(PersistentStorageManager.loadPetNeutered(context, true)) }
+    var savedPetWeight by remember { mutableStateOf(PersistentStorageManager.loadPetWeight(context, "4.5")) }
+    var savedPetHospital by remember { mutableStateOf(PersistentStorageManager.loadPetHospital(context, "명지24시온누리메디컬센터")) }
+    var savedPetSymptoms by remember { mutableStateOf(PersistentStorageManager.loadPetSymptoms(context, "구토 및 식욕 부진, 슬개골 탈구 2기")) }
+    var savedBirthMillis by remember { mutableStateOf<Long?>(PersistentStorageManager.loadPetBirthMillis(context)) }
     val userReferralCode = remember { "K7TB94" }
 
     val bookingList = remember {
@@ -1479,6 +1585,22 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                         savedPetHospital = hospital
                         savedPetSymptoms = symptoms
                         savedBirthMillis = birthMillis
+
+                        // 디스크 파일(SharedPreferences)에 영구 보존
+                        PersistentStorageManager.savePetProfile(
+                            context = context,
+                            imageUriStr = imageUri?.toString(),
+                            species = species,
+                            name = name,
+                            owner = owner,
+                            type = type,
+                            gender = gender,
+                            neutered = neutered,
+                            weight = weight,
+                            hospital = hospital,
+                            symptoms = symptoms,
+                            birthMillis = birthMillis
+                        )
                     }
                 )
                 3 -> MyPageScreen(
@@ -1488,11 +1610,19 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                     userPhone = userPhone,
                     userAddress = userAddress,
                     userDetailAddress = userDetailAddress,
+                    initialCard = savedRegisteredCard,
+                    onUpdateCard = { newCard ->
+                        savedRegisteredCard = newCard
+                        PersistentStorageManager.saveUserProfile(context, userNickname, userPhone, userAddress, userDetailAddress, newCard)
+                    },
                     onUpdateProfile = { newNick, newPhone, newAddress, newDetailAddress ->
                         userNickname = newNick
                         userPhone = newPhone
                         userAddress = newAddress
                         userDetailAddress = newDetailAddress
+
+                        // 디스크 파일(SharedPreferences)에 영구 보존
+                        PersistentStorageManager.saveUserProfile(context, newNick, newPhone, newAddress, newDetailAddress, savedRegisteredCard)
                     }
                 )
             }
