@@ -1920,7 +1920,10 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                     userPhone = userPhone,
                     initialAddress = userAddress,
                     initialDetailAddress = userDetailAddress,
-                    onAddBooking = { newBooking -> bookingList.add(0, newBooking) },
+                    onAddBooking = { newBooking ->
+                        bookingList.add(0, newBooking)
+                        PersistentStorageManager.saveBookingList(context, bookingList)
+                    },
                     onNavigateToBookingTab = { selectedTab = 1 }
                 )
                 1 -> BookingHistoryScreen(
