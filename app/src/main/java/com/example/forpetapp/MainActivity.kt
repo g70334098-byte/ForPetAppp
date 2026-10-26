@@ -5899,10 +5899,23 @@ fun HomeScreenContent(
                             ) {
                                 items(entryTypes.size) { index ->
                                     val entry = entryTypes[index]
+                                    val isEntrySelected = (homeEntryType == entry)
                                     FilterChip(
-                                        selected = (homeEntryType == entry),
+                                        selected = isEntrySelected,
                                         onClick = { homeEntryType = entry },
-                                        label = { Text(entry, fontSize = 11.sp, fontWeight = FontWeight.Medium) }
+                                        label = { Text(entry + if (isEntrySelected) " ✓" else "", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = Color(0xFF0284C7),
+                                            selectedLabelColor = Color.White
+                                        ),
+                                        border = FilterChipDefaults.filterChipBorder(
+                                            enabled = true,
+                                            selected = isEntrySelected,
+                                            borderColor = Color(0xFFCBD5E1),
+                                            selectedBorderColor = Color(0xFF0369A1),
+                                            borderWidth = 1.dp,
+                                            selectedBorderWidth = 2.dp
+                                        )
                                     )
                                 }
                             }
