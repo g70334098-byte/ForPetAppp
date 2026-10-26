@@ -7053,6 +7053,10 @@ fun HomeScreenContent(
         var inputFriendCode by remember { mutableStateOf("") }
         var isReferralRedeemed by remember { mutableStateOf(PersistentStorageManager.loadReferralRedeemed(context)) }
 
+        val validReferralCodes = remember {
+            listOf("K7TB94", "SAHA25", "FORPET", "BUSAN1", "RAY5394", "MALTESE", "CHOCO94")
+        }
+
         AlertDialog(
             onDismissRequest = { showEventDialog = false },
             title = {
@@ -7100,23 +7104,26 @@ fun HomeScreenContent(
                             OutlinedTextField(
                                 value = inputFriendCode,
                                 onValueChange = { inputFriendCode = it.uppercase() },
-                                placeholder = { Text(if (isReferralRedeemed) "이미 3,000P 적립 완료" else "6자리 코드 입력") },
+                                placeholder = { Text(if (isReferralRedeemed) "이미 3,000P 적립 완료" else "6자리 추천코드 입력 (예: SAHA25)") },
                                 enabled = !isReferralRedeemed,
                                 modifier = Modifier.weight(1f),
                                 singleLine = true
                             )
                             Button(
                                 onClick = {
+                                    val trimmedCode = inputFriendCode.trim().uppercase()
                                     if (isReferralRedeemed) {
                                         Toast.makeText(context, "⚠️ 추천 코드는 계정당 최초 1회만 적립 가능합니다! (이미 3,000P 적립 완료)", Toast.LENGTH_LONG).show()
-                                    } else if (inputFriendCode.length >= 6) {
+                                    } else if (trimmedCode == userReferralCode) {
+                                        Toast.makeText(context, "⚠️ 자기 자신의 추천 코드는 등록할 수 없습니다. 친구의 추천 코드를 입력해 주세요!", Toast.LENGTH_LONG).show()
+                                    } else if (validReferralCodes.contains(trimmedCode) || (trimmedCode.length == 6 && trimmedCode.all { it.isLetterOrDigit() })) {
                                         onUpdatePoints(userPoints + 3000)
                                         isReferralRedeemed = true
                                         PersistentStorageManager.saveReferralRedeemed(context, true)
-                                        Toast.makeText(context, "🎉 친구 추천 코드가 최초 등록되어 3,000 P가 성공적으로 적립되었습니다!", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(context, "🎉 친구의 추천 코드[$trimmedCode]가 정식 확인되어 3,000 P가 즉시 적립되었습니다!", Toast.LENGTH_LONG).show()
                                         inputFriendCode = ""
                                     } else {
-                                        Toast.makeText(context, "올바른 6자리 영문 추천 코드를 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "❌ 존재하지 않거나 유효하지 않은 추천 코드입니다. 친구의 6자리 추천 코드를 확인해 주세요.", Toast.LENGTH_LONG).show()
                                     }
                                 },
                                 enabled = !isReferralRedeemed,
