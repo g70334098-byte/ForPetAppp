@@ -98,24 +98,24 @@
         .btn-cta {
             background-color: var(--primary);
             color: #ffffff;
-            padding: 9px 18px;
+            padding: 8px 14px;
             border-radius: 20px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 800;
             text-decoration: none;
             transition: 0.2s;
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
             white-space: nowrap;
         }
 
-        .btn-cta:hover { background-color: var(--primary-hover); transform: translateY(-2px); }
+        .btn-cta:hover { transform: translateY(-2px); }
 
         /* 메인 히어로 섹션 */
         .hero-section {
-            padding: 70px 24px;
+            padding: 80px 24px;
             max-width: 1200px;
             margin: 0 auto;
             display: grid;
@@ -163,8 +163,8 @@
             flex-wrap: wrap;
         }
 
-        .btn-hero-orange {
-            background-color: var(--accent-orange);
+        .btn-hero-green {
+            background-color: var(--accent-green);
             color: #ffffff;
             padding: 14px 28px;
             border-radius: 12px;
@@ -174,11 +174,11 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
             transition: 0.2s;
         }
 
-        .btn-hero-orange:hover { transform: translateY(-3px); background-color: #ea580c; }
+        .btn-hero-green:hover { transform: translateY(-3px); background-color: #059669; }
 
         .btn-hero-outline {
             border: 2px solid var(--primary);
@@ -212,7 +212,7 @@
         /* 4대 서비스 특징 카드 */
         .features-section {
             background-color: #0b1120;
-            padding: 70px 24px;
+            padding: 80px 24px;
             border-top: 1px solid var(--border-color);
             border-bottom: 1px solid var(--border-color);
         }
@@ -267,61 +267,10 @@
             line-height: 1.5;
         }
 
-        /* 실시간 웹 예약 신청 서식 */
-        .booking-section {
-            padding: 70px 24px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .booking-box {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 24px;
-            padding: 36px;
-            box-shadow: 0 12px 36px rgba(0,0,0,0.5);
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            margin-top: 24px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .form-group.full { grid-column: span 2; }
-
-        .form-group label {
-            font-size: 13px;
-            color: var(--text-sub);
-            font-weight: 700;
-        }
-
-        input[type="text"], input[type="datetime-local"], select {
-            background-color: #0b1120;
-            border: 1px solid var(--border-color);
-            color: #ffffff;
-            padding: 12px 16px;
-            border-radius: 10px;
-            font-size: 14px;
-            outline: none;
-            transition: 0.2s;
-        }
-
-        input:focus, select:focus {
-            border-color: var(--primary);
-        }
-
         /* 제휴 병원 카드 */
         .hospital-section {
-            background-color: #0b1120;
-            padding: 70px 24px;
+            background-color: #0f172a;
+            padding: 80px 24px;
             border-top: 1px solid var(--border-color);
         }
 
@@ -365,32 +314,27 @@
             gap: 20px;
         }
 
-        /* 스마트폰 / 모바일 세로 레이아웃 반응형 최적화 */
+        /* 모바일 세로 레이아웃 반응형 최적화 */
         @media (max-width: 900px) {
             header { padding: 10px 16px; }
             .nav-container { flex-direction: column; gap: 10px; text-align: center; }
             .brand-box { justify-content: center; }
             .brand-text-title { font-size: 17px; }
             .brand-text-sub { font-size: 10px; }
-            .nav-links { display: none; } /* 모바일에서는 무거운 링크 숨김 */
+            .nav-links { display: none; }
 
             .hero-section { padding: 32px 16px; grid-template-columns: 1fr; text-align: center; gap: 24px; }
             .hero-title-badge { font-size: 11px; padding: 5px 12px; border-radius: 20px; justify-content: center; width: 100%; }
             .hero-title { font-size: 25px; font-weight: 900; line-height: 1.35; letter-spacing: -0.5px; margin-bottom: 12px; text-align: center; }
             .hero-desc { font-size: 13px; line-height: 1.6; margin: 0 auto 20px auto; text-align: center; }
             .hero-btn-group { justify-content: center; gap: 10px; flex-direction: column; width: 100%; }
-            .btn-hero-orange, .btn-hero-outline { width: 100%; justify-content: center; padding: 12px; font-size: 14px; }
+            .btn-hero-green, .btn-hero-outline { width: 100%; justify-content: center; padding: 12px; font-size: 14px; }
 
             .section-header h2 { font-size: 22px; }
             .section-header p { font-size: 12px; }
 
             .grid-cards { grid-template-columns: 1fr; gap: 14px; }
             .card-feature { padding: 20px 16px; }
-
-            .booking-section { padding: 36px 16px; }
-            .booking-box { padding: 24px 16px; }
-            .form-grid { grid-template-columns: 1fr; gap: 12px; }
-            .form-group.full { grid-column: span 1; }
 
             .hospital-section { padding: 36px 16px; }
             .hospital-grid { grid-template-columns: 1fr; gap: 14px; }
@@ -413,16 +357,21 @@
             </a>
 
             <ul class="nav-links">
-                <li><a href="#services">서비스 소개</a></li>
-                <li><a href="#booking">웹 실시간 예약</a></li>
+                <li><a href="#services">서비스 안내</a></li>
                 <li><a href="#hospitals">제휴 동물병원</a></li>
                 <li><a href="발자국동행_PC관리자포털.html" target="_blank" style="color:#f59e0b;">👑 관리자 관제 포털</a></li>
             </ul>
 
-            <a href="발자국동행_앱_설치파일.apk" class="btn-cta" download>
-                <span>📱</span>
-                <span>앱 다운로드 (.apk)</span>
-            </a>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <a href="발자국동행_앱_설치파일.apk" class="btn-cta" style="background: #10b981;" download>
+                    <span>▶</span>
+                    <span>Google Play</span>
+                </a>
+                <a href="javascript:void(0)" class="btn-cta" style="background: #334155; border: 1px solid #475569;" onclick="alert('🍎 iOS 앱스토어 어플은 현재 정식 출시 준비 중입니다. 출시 완료 시 바로 안내해 드리겠습니다!')">
+                    <span></span>
+                    <span>App Store</span>
+                </a>
+            </div>
         </div>
     </header>
 
@@ -446,13 +395,13 @@
             </p>
 
             <div class="hero-btn-group">
-                <a href="#booking" class="btn-hero-orange">
-                    <span>📅</span>
-                    <span>웹에서 바로 예약하기</span>
+                <a href="발자국동행_앱_설치파일.apk" class="btn-hero-green" download>
+                    <span>▶</span>
+                    <span>Google Play 앱 설치 (.apk)</span>
                 </a>
-                <a href="발자국동행_앱_설치파일.apk" class="btn-hero-outline" download>
-                    <span>📱</span>
-                    <span>안드로이드 전용 앱 설치</span>
+                <a href="javascript:void(0)" class="btn-hero-outline" onclick="alert('🍎 iOS 앱스토어 어플은 현재 정식 출시 준비 중입니다. 출시 완료 시 바로 안내해 드리겠습니다!')">
+                    <span></span>
+                    <span>App Store (출시 준비중)</span>
                 </a>
             </div>
         </div>
@@ -493,54 +442,6 @@
                 <h3 class="card-title">신규 3,000P 지급</h3>
                 <p class="card-desc">회원가입 즉시 현금처럼 사용할 수 있는 3,000 포인트가 자동 적립됩니다.</p>
             </div>
-        </div>
-    </section>
-
-    <!-- 실시간 웹 예약 신청 폼 -->
-    <section class="booking-section" id="booking">
-        <div class="booking-box">
-            <div class="section-header" style="margin-bottom: 24px;">
-                <h2>📅 웹 실시간 안심 서비스 예약 신청</h2>
-                <p>신청서를 제출하시면 담당 가드가 즉시 전화 연결 및 배차를 확인해 드립니다.</p>
-            </div>
-
-            <form onsubmit="submitWebBooking(event)">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="web-owner-name">보호자 성함</label>
-                        <input type="text" id="web-owner-name" placeholder="예: 최지훈 보호자님" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="web-phone">휴대폰 연락처</label>
-                        <input type="text" id="web-phone" placeholder="예: 010-3786-5394" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="web-pet-info">반려동물 이름 & 종류</label>
-                        <input type="text" id="web-pet-info" placeholder="예: 초코 (강아지 / 말티즈)" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="web-hospital">방문 희망 동물병원</label>
-                        <select id="web-hospital">
-                            <option value="명지24시온누리메디컬센터">🏥 명지24시온누리메디컬센터 (명지국제8로)</option>
-                            <option value="사상24시웰니스동물병원">🏥 사상24시웰니스동물병원 (사상 괘법동)</option>
-                            <option value="하단24시동물메디컬센터">🏥 하단24시동물메디컬센터 (사하 하단동)</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group full">
-                        <label for="web-booking-time">픽업 및 방문 희망 일시</label>
-                        <input type="datetime-local" id="web-booking-time" required>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-hero-orange" style="width: 100%; justify-content: center; margin-top: 24px; border: none; cursor: pointer;">
-                    <span>🚀</span>
-                    <span>실시간 안심 예약 신청 제출</span>
-                </button>
-            </form>
         </div>
     </section>
 
@@ -587,47 +488,5 @@
             </div>
         </div>
     </footer>
-
-    <script>
-        // 오늘 일시 기본값 세팅
-        const timeInput = document.getElementById('web-booking-time');
-        if (timeInput) {
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            timeInput.value = now.toISOString().slice(0, 16);
-        }
-
-        // 웹 실시간 예약 제출 -> LocalStorage 관제 포털 연동
-        function submitWebBooking(event) {
-            event.preventDefault();
-
-            const ownerName = document.getElementById('web-owner-name').value;
-            const phone = document.getElementById('web-phone').value;
-            const petInfo = document.getElementById('web-pet-info').value;
-            const hospital = document.getElementById('web-hospital').value;
-            const timeVal = document.getElementById('web-booking-time').value.replace('T', ' ');
-
-            const newOrder = {
-                id: "ORD-" + Date.now().toString().slice(-6),
-                type: petInfo.includes('고양이') ? "🐱 고양이" : "🐶 강아지",
-                pet: petInfo,
-                owner: `${ownerName} (${phone})`,
-                hospital: hospital,
-                time: timeVal,
-                status: "1. 배차 대기 중",
-                guard: "박찬헌 가드 (부산 38가 5394)",
-                price: "35,000원",
-                doctorNote: "",
-                prescription: ""
-            };
-
-            let ordersData = JSON.parse(localStorage.getItem('baljaguk_orders')) || [];
-            ordersData.unshift(newOrder);
-            localStorage.setItem('baljaguk_orders', JSON.stringify(ordersData));
-
-            alert(`🎉 [${ownerName}]님, [${petInfo}] 아이의 안심 케어카 예약 신청이 성공적으로 접수되었습니다!\n담당 가드가 확인 후 바로 연락드리겠습니다.`);
-            location.reload();
-        }
-    </script>
 </body>
 </html>
