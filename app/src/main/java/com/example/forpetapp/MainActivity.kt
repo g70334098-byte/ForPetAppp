@@ -5426,6 +5426,7 @@ fun HomeScreenContent(
         var selectedSpecies by remember { mutableStateOf("강아지") }
         var bookingPetName by remember { mutableStateOf("초코") }
         var bookingOwnerName by remember(userNickname) { mutableStateOf(userNickname) }
+        var usePointsAmount by remember { mutableIntStateOf(0) }
 
         // 1. 진료 목적 다중 선택 (중복 체크 가능)
         var isCareSelected by remember { mutableStateOf(true) }
@@ -5979,10 +5980,70 @@ fun HomeScreenContent(
                         }
                     }
 
+                    // 8-2. 🎁 보유 포인트 사용 (1회 결제 당 최대 3,000 P 제한)
+                    item {
+                        var isPointsApplied by remember { mutableStateOf(false) }
+                        val maxUsablePoints = kotlin.math.min(userPoints, 3000)
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)),
+                            border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("🎁", fontSize = 16.sp)
+                                        Text("포인트 할인 (보유: ${userPoints}P)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF92400E))
+                                    }
+
+                                    Button(
+                                        onClick = {
+                                            if (maxUsablePoints > 0) {
+                                                isPointsApplied = !isPointsApplied
+                                                if (isPointsApplied) {
+                                                    usePointsAmount = maxUsablePoints
+                                                    Toast.makeText(context, "🎉 ${maxUsablePoints}P 포인트 할인이 적용되었습니다! (1회 최대 3,000P)", Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    usePointsAmount = 0
+                                                    Toast.makeText(context, "포인트 할인 적용이 취소되었습니다.", Toast.LENGTH_SHORT).show()
+                                                }
+                                            } else {
+                                                Toast.makeText(context, "사용 가능한 포인트가 없습니다. (친구 추천 이벤트 참여 시 3,000P 증정)", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (isPointsApplied) Color(0xFF16A34A) else Color(0xFFD97706)
+                                        ),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            if (isPointsApplied) "${maxUsablePoints}P 적용 완료 ✓" else "3,000P 즉시 할인",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                }
+
+                                Text("※ 1회 결제 당 최대 3,000 P까지 할인 적용 가능합니다.", fontSize = 10.sp, color = Color(0xFFB45309))
+                            }
+                        }
+                    }
+
                     // 9. 가결제 예상 금액 및 환불 안내
                     item {
                         val calculatedPriceValue = 30000 + (if (isMedicineSelected) 5000 else 0) + (if (isSurgerySelected) 10000 else 0)
-                        val formattedPriceStr = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(calculatedPriceValue)
+                        val finalPrice = (calculatedPriceValue - usePointsAmount).coerceAtLeast(0)
+                        val formattedPriceStr = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(finalPrice)
 
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
@@ -6000,7 +6061,12 @@ fun HomeScreenContent(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text("💳 가결제 예정 금액", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E))
-                                    Text("${formattedPriceStr}원", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFD97706))
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        if (usePointsAmount > 0) {
+                                            Text("원래 금액: ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(calculatedPriceValue)}원 (-${usePointsAmount}P 할인)", fontSize = 10.sp, color = Color.Gray, textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough)
+                                        }
+                                        Text("${formattedPriceStr}원", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFD97706))
+                                    }
                                 }
                                 HorizontalDivider(color = Color(0xFFFDE68A))
                                 Text("• 등록 카드로 사전 가결제되며, 진료 완료 후 실제 시간·거리에 따라 자동 최종 정산(추가금 결제 / 차액 환불)됩니다.", fontSize = 11.sp, color = Color(0xFFB45309), lineHeight = 15.sp)
@@ -6071,6 +6137,9 @@ fun HomeScreenContent(
                             symptomNote = combinedNote,
                             estimatedPrice = "${formattedPriceStr}원 (가결제)"
                         )
+                        if (usePointsAmount > 0) {
+                            onUpdatePoints((userPoints - usePointsAmount).coerceAtLeast(0))
+                        }
                         onAddBooking(newBooking)
                         Toast.makeText(
                             context,
