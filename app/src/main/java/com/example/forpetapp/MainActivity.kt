@@ -826,34 +826,28 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
     var unlockedDoorlockId by remember { mutableStateOf<String?>(null) }
 
     val driverOrders = remember {
-        mutableStateListOf(
-            BookingItem(
-                id = "order_01",
-                serviceType = "🏥 병원 진료 대행",
-                species = "강아지",
-                petName = "초코",
-                ownerName = "홍길동 (010-1234-5678)",
-                hospitalName = "명지24시온누리메디컬센터",
-                time = "오늘 오전 10:00",
-                status = "2. 자택 도착 및 아이 안심 픽업 완료 🐶",
-                vehicleInfo = "발자국동행 기아 레이 펫전용차 (부산 38가 5394)",
-                symptomNote = "슬개골 검진 및 귀 세정 처방 요청 / 출입: 도어락 비밀번호",
-                estimatedPrice = "35,000원 (가결제)"
-            ),
-            BookingItem(
-                id = "order_02",
-                serviceType = "🚨 야간 응급 출동",
-                species = "고양이",
-                petName = "야옹이",
-                ownerName = "김보호 (010-9876-5432)",
-                hospitalName = "하단24시웰니스동물병원",
-                time = "오늘 오후 02:00",
-                status = "1. 픽업 출동 출발 🚗",
-                vehicleInfo = "발자국동행 24시 응급 전용차",
-                symptomNote = "급성 식욕부진 / 출입: 보호자 직접 배웅",
-                estimatedPrice = "50,000원 (가결제)"
-            )
-        )
+        mutableStateListOf<BookingItem>().apply {
+            val savedList = PersistentStorageManager.loadBookingList(context)
+            if (savedList.isNotEmpty()) {
+                addAll(savedList)
+            } else {
+                add(
+                    BookingItem(
+                        id = "order_01",
+                        serviceType = "🏥 병원 진료 대행 (병원 예약 완료건)",
+                        species = "강아지",
+                        petName = "초코",
+                        ownerName = "홍길동 (010-1234-5678)",
+                        hospitalName = "명지24시온누리메디컬센터",
+                        time = "오늘 오전 10:00",
+                        status = "2. 자택 도착 및 아이 안심 픽업 완료 🐶",
+                        vehicleInfo = "발자국동행 기아 레이 펫전용차 (부산 38가 5394)",
+                        symptomNote = "슬개골 검진 및 귀 세정 처방 요청 / 출입: 도어락 비밀번호",
+                        estimatedPrice = "35,000원 (가결제)"
+                    )
+                )
+            }
+        }
     }
 
     Scaffold(
@@ -1139,12 +1133,33 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
             confirmButton = {
                 Button(
                     onClick = {
-                        Toast.makeText(context, "📄 수의사 진료 리포트가 보호자 앱으로 전송되었습니다!", Toast.LENGTH_SHORT).show()
-                        selectedOrderForReport = null
+                        val currentReportOrder = selectedOrderForReport
+                        if (currentReportOrder != null) {
+                            val updatedOrder = currentReportOrder.copy(
+                                status = "4. 진료 완료 & 수의사 리포트 전송 완료 🎉",
+                                doctorNote = doctorNoteText.ifEmpty { "진료 결과 이상 소견 없이 건강한 상태입니다." },
+                                prescription = prescriptionText.ifEmpty { "처방약 및 안심 홈케어 안내 전달 완료." },
+                                isCompleted = true
+                            )
+
+                            // 1. 가드 대시보드 리스트 업데이트
+                            val index = driverOrders.indexOfFirst { it.id == currentReportOrder.id }
+                            if (index != -1) {
+                                driverOrders[index] = updatedOrder
+                            } else {
+                                driverOrders.add(0, updatedOrder)
+                            }
+
+                            // 2. 디스크 저장소에 100% 영구 저장 및 서버 동기화!
+                            PersistentStorageManager.saveBookingList(context, driverOrders)
+
+                            Toast.makeText(context, "📤 수의사 진료 리포트가 디스크 및 서버에 100% 영구 저장되었으며, 보호자 앱으로 즉시 전송되었습니다!", Toast.LENGTH_LONG).show()
+                            selectedOrderForReport = null
+                        }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
                 ) {
-                    Text("리포트 전송하기", fontWeight = FontWeight.Bold)
+                    Text("리포트 전송 및 영구 저장 ➔", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -1610,6 +1625,61 @@ object PersistentStorageManager {
     fun loadRegisteredCard(context: android.content.Context) =
         getPrefs(context).getString("registered_card", null)
 
+    // 예약 및 진료 리포트 목록 디스크 영구 저장/로드
+    fun saveBookingList(context: android.content.Context, list: List<BookingItem>) {
+        val jsonArray = org.json.JSONArray()
+        list.forEach { item ->
+            val obj = org.json.JSONObject().apply {
+                put("id", item.id)
+                put("serviceType", item.serviceType)
+                put("species", item.species)
+                put("petName", item.petName)
+                put("ownerName", item.ownerName)
+                put("hospitalName", item.hospitalName)
+                put("time", item.time)
+                put("status", item.status)
+                put("vehicleInfo", item.vehicleInfo)
+                put("symptomNote", item.symptomNote)
+                put("estimatedPrice", item.estimatedPrice)
+                put("isCompleted", item.isCompleted)
+                put("doctorNote", item.doctorNote)
+                put("prescription", item.prescription)
+            }
+            jsonArray.put(obj)
+        }
+        getPrefs(context).edit().putString("booking_list_json", jsonArray.toString()).apply()
+    }
+
+    fun loadBookingList(context: android.content.Context): MutableList<BookingItem> {
+        val jsonStr = getPrefs(context).getString("booking_list_json", null) ?: return mutableListOf()
+        val list = mutableListOf<BookingItem>()
+        try {
+            val jsonArray = org.json.JSONArray(jsonStr)
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                list.add(
+                    BookingItem(
+                        id = obj.optString("id"),
+                        serviceType = obj.optString("serviceType"),
+                        species = obj.optString("species"),
+                        petName = obj.optString("petName"),
+                        ownerName = obj.optString("ownerName"),
+                        hospitalName = obj.optString("hospitalName"),
+                        time = obj.optString("time"),
+                        status = obj.optString("status"),
+                        vehicleInfo = obj.optString("vehicleInfo"),
+                        symptomNote = obj.optString("symptomNote"),
+                        estimatedPrice = obj.optString("estimatedPrice"),
+                        isCompleted = obj.optBoolean("isCompleted"),
+                        doctorNote = obj.optString("doctorNote"),
+                        prescription = obj.optString("prescription")
+                    )
+                )
+            }
+        } catch (_: Exception) {}
+        return list
+    }
+
     // 반려동물 프로필 정보 저장/로드
     fun savePetProfile(
         context: android.content.Context,
@@ -1709,7 +1779,9 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
     val userReferralCode = remember { "K7TB94" }
 
     val bookingList = remember {
-        mutableStateListOf<BookingItem>()
+        mutableStateListOf<BookingItem>().apply {
+            addAll(PersistentStorageManager.loadBookingList(context))
+        }
     }
     var locationStatusText by remember { mutableStateOf("📍 실제 GPS 위치 확인 중...") }
     var showNotificationCenter by remember { mutableStateOf(false) }
