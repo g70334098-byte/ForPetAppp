@@ -1807,6 +1807,7 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
     }
 
     LaunchedEffect(Unit) {
+        Toast.makeText(context, "📍 [발자국동행] 어플 실행 - 필수 스마트폰 GPS 위치 권한 확인 중...", Toast.LENGTH_SHORT).show()
         locationPermissionLauncher.launch(
             arrayOf(
                 android.Manifest.permission.ACCESS_FINE_LOCATION,
