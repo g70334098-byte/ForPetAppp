@@ -1179,7 +1179,11 @@ fun AdminMainDashboardScreen(adminName: String = "최지훈 대표님", onLogout
     var selectedAdminTab by remember { mutableIntStateOf(0) }
 
     val adminMembersList = remember {
-        mutableStateListOf<Triple<String, String, String>>()
+        mutableStateListOf(
+            Triple("최지훈 대표님", "010-3786-5394", "🔴 Google 계정 (g70334098@gmail.com) | 초코 (말티즈) | 3,000P"),
+            Triple("이선하 대표님", "010-7521-7399", "🔐 ID/PW 계정 (seonha2525) | 해피 (푸들) | 6,000P"),
+            Triple("홍길동 보호자님", "010-1234-5678", "💛 카카오톡 계정 (kakao_hong_1004) | 몽이 (포메라니안) | 3,000P")
+        )
     }
 
     val adminBookingOrders = remember {
