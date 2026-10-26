@@ -5506,13 +5506,37 @@ fun HomeScreenContent(
                                 FilterChip(
                                     selected = (selectedSpecies == "강아지"),
                                     onClick = { selectedSpecies = "강아지" },
-                                    label = { Text("🐶 강아지", fontWeight = FontWeight.Bold, fontSize = 13.sp) },
+                                    label = { Text("🐶 강아지" + if (selectedSpecies == "강아지") " ✓" else "", fontWeight = FontWeight.Bold, fontSize = 13.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFF0284C7),
+                                        selectedLabelColor = Color.White
+                                    ),
+                                    border = FilterChipDefaults.filterChipBorder(
+                                        enabled = true,
+                                        selected = (selectedSpecies == "강아지"),
+                                        borderColor = Color(0xFFCBD5E1),
+                                        selectedBorderColor = Color(0xFF0369A1),
+                                        borderWidth = 1.dp,
+                                        selectedBorderWidth = 2.dp
+                                    ),
                                     modifier = Modifier.weight(1f)
                                 )
                                 FilterChip(
                                     selected = (selectedSpecies == "고양이"),
                                     onClick = { selectedSpecies = "고양이" },
-                                    label = { Text("🐱 고양이", fontWeight = FontWeight.Bold, fontSize = 13.sp) },
+                                    label = { Text("🐱 고양이" + if (selectedSpecies == "고양이") " ✓" else "", fontWeight = FontWeight.Bold, fontSize = 13.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFF0284C7),
+                                        selectedLabelColor = Color.White
+                                    ),
+                                    border = FilterChipDefaults.filterChipBorder(
+                                        enabled = true,
+                                        selected = (selectedSpecies == "고양이"),
+                                        borderColor = Color(0xFFCBD5E1),
+                                        selectedBorderColor = Color(0xFF0369A1),
+                                        borderWidth = 1.dp,
+                                        selectedBorderWidth = 2.dp
+                                    ),
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -5645,14 +5669,38 @@ fun HomeScreenContent(
                                 FilterChip(
                                     selected = isCareSelected,
                                     onClick = { isCareSelected = !isCareSelected },
-                                    label = { Text("🩺 병원 진찰", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                                    label = { Text("🩺 병원 진찰" + if (isCareSelected) " ✓" else "", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFF0284C7),
+                                        selectedLabelColor = Color.White
+                                    ),
+                                    border = FilterChipDefaults.filterChipBorder(
+                                        enabled = true,
+                                        selected = isCareSelected,
+                                        borderColor = Color(0xFFCBD5E1),
+                                        selectedBorderColor = Color(0xFF0369A1),
+                                        borderWidth = 1.dp,
+                                        selectedBorderWidth = 2.dp
+                                    ),
                                     modifier = Modifier.weight(1f)
                                 )
 
                                 FilterChip(
                                     selected = isMedicineSelected,
                                     onClick = { isMedicineSelected = !isMedicineSelected },
-                                    label = { Text("💊 처방약 수령", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                                    label = { Text("💊 처방약 수령" + if (isMedicineSelected) " ✓" else "", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFF0284C7),
+                                        selectedLabelColor = Color.White
+                                    ),
+                                    border = FilterChipDefaults.filterChipBorder(
+                                        enabled = true,
+                                        selected = isMedicineSelected,
+                                        borderColor = Color(0xFFCBD5E1),
+                                        selectedBorderColor = Color(0xFF0369A1),
+                                        borderWidth = 1.dp,
+                                        selectedBorderWidth = 2.dp
+                                    ),
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -5660,7 +5708,19 @@ fun HomeScreenContent(
                             FilterChip(
                                 selected = isSurgerySelected,
                                 onClick = { isSurgerySelected = !isSurgerySelected },
-                                label = { Text("💉 수술 및 마취 검사", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                                label = { Text("💉 수술 및 마취 검사" + if (isSurgerySelected) " ✓" else "", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFF0284C7),
+                                    selectedLabelColor = Color.White
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSurgerySelected,
+                                    borderColor = Color(0xFFCBD5E1),
+                                    selectedBorderColor = Color(0xFF0369A1),
+                                    borderWidth = 1.dp,
+                                    selectedBorderWidth = 2.dp
+                                ),
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -5676,13 +5736,26 @@ fun HomeScreenContent(
                             ) {
                                 items(departments.size) { index ->
                                     val dept = departments[index]
+                                    val isDeptSelected = (selectedDepartment == dept)
                                     FilterChip(
-                                        selected = (selectedDepartment == dept),
+                                        selected = isDeptSelected,
                                         onClick = {
                                             selectedDepartment = dept
                                             selectedSymptoms.clear()
                                         },
-                                        label = { Text(dept, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                                        label = { Text(dept + if (isDeptSelected) " ✓" else "", fontSize = 12.sp, fontWeight = FontWeight.Bold) },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = Color(0xFF0284C7),
+                                            selectedLabelColor = Color.White
+                                        ),
+                                        border = FilterChipDefaults.filterChipBorder(
+                                            enabled = true,
+                                            selected = isDeptSelected,
+                                            borderColor = Color(0xFFCBD5E1),
+                                            selectedBorderColor = Color(0xFF0369A1),
+                                            borderWidth = 1.dp,
+                                            selectedBorderWidth = 2.dp
+                                        )
                                     )
                                 }
                             }
@@ -5711,8 +5784,8 @@ fun HomeScreenContent(
                                                         else selectedSymptoms.add(symptom)
                                                     },
                                                 shape = RoundedCornerShape(8.dp),
-                                                color = if (isChecked) Color(0xFFFEF3C7) else Color(0xFFF8FAFC),
-                                                border = BorderStroke(1.dp, if (isChecked) Color(0xFFF59E0B) else Color(0xFFE2E8F0))
+                                                color = if (isChecked) Color(0xFFFEF08A) else Color(0xFFF8FAFC),
+                                                border = BorderStroke(if (isChecked) 2.dp else 1.dp, if (isChecked) Color(0xFFD97706) else Color(0xFFE2E8F0))
                                             ) {
                                                 Row(
                                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
@@ -5723,9 +5796,13 @@ fun HomeScreenContent(
                                                         onCheckedChange = { checked ->
                                                             if (checked) selectedSymptoms.add(symptom)
                                                             else selectedSymptoms.remove(symptom)
-                                                        }
+                                                        },
+                                                        colors = CheckboxDefaults.colors(
+                                                            checkedColor = Color(0xFFD97706),
+                                                            checkmarkColor = Color.White
+                                                        )
                                                     )
-                                                    Text(symptom, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                                                    Text(symptom, fontSize = 11.sp, fontWeight = if (isChecked) FontWeight.ExtraBold else FontWeight.Medium, color = if (isChecked) Color(0xFF78350F) else Color(0xFF334155))
                                                 }
                                             }
                                         }
