@@ -2235,7 +2235,7 @@ fun BodycamStreamDialog(
                     ) {
                         Text("LIVE 🔴", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                     }
-                    Text("레이 바디캠 라이브", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("레이 바디캠 HD 라이브", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             }
         },
@@ -2247,83 +2247,56 @@ fun BodycamStreamDialog(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp),
+                        .height(200.dp),
                     shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFF0F172A)
+                    color = Color(0xFF0F172A),
+                    border = BorderStroke(1.dp, Color(0xFF0284C7))
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("📹 🐶", fontSize = 36.sp)
-                            Text("'${booking.petName}' 아이 전용 시트 탑승 중", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
-                            Text("실시간 HD 안심 스트리밍 송출 중 (기아 레이 케어카)", fontSize = 11.sp, color = Color(0xFF38BDF8))
+                            Text("📹 🐶", fontSize = 40.sp)
+                            Text("'${booking.petName}' 아이 전용 펫시트 안심 탑승 중", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                            Text("실시간 HD 안심 바디캠 라이브 연동 완료 (기아 레이)", fontSize = 11.sp, color = Color(0xFF38BDF8))
                         }
 
-                        Text(
-                            "CAM-01 [FRONT_SEAT] 2026.10.18 14:22:05",
-                            color = Color.Green,
-                            fontSize = 9.sp,
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .padding(8.dp)
-                        )
+                        // 라이브 타임스탬프 오버레이
+                        Box(modifier = Modifier.fillMaxSize().padding(10.dp), contentAlignment = Alignment.TopStart) {
+                            Surface(shape = RoundedCornerShape(4.dp), color = Color.Black.copy(alpha = 0.6f)) {
+                                Text("REC 1080p | 60 FPS", fontSize = 9.sp, color = Color.Red, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                            }
+                        }
                     }
                 }
 
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFFF0F9FF),
-                    border = BorderStroke(1.dp, Color(0xFFBAE6FD))
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0))
                 ) {
                     Column(
                         modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text("📊 차량 실시간 안심 상태 모니터링", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0369A1))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("🌡️ 차내 온도", fontSize = 10.sp, color = Color.Gray)
-                                Text("22.5 ℃", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0284C7))
-                            }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("🫁 산소 농도", fontSize = 10.sp, color = Color.Gray)
-                                Text("21 % (정상)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF16A34A))
-                            }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("🚘 주행 속도", fontSize = 10.sp, color = Color.Gray)
-                                Text("38 km/h", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0284C7))
+                            Text("🔊 차내 오디오 라이브 음성", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                            TextButton(
+                                onClick = {
+                                    isMuted = !isMuted
+                                    Toast.makeText(context, if (isMuted) "🔇 음성이 소거되었습니다." else "🔊 차내 라이브 음성이 연결되었습니다.", Toast.LENGTH_SHORT).show()
+                                },
+                                contentPadding = PaddingValues(0.dp)
+                            ) {
+                                Text(if (isMuted) "🔇 음소거 해제" else "🔊 음소거", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                             }
                         }
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = {
-                            isMuted = !isMuted
-                            Toast.makeText(context, if (isMuted) "차량 음성이 소소 처리되었습니다." else "차량 오디오 음성이 켜졌습니다.", Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(if (isMuted) "🔇 음성 켜기" else "🔊 차량 오디오 ON", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            Toast.makeText(context, "🎙️ '아이 상태 확인 완료!' 보호자 음성이 차량으로 전송되었습니다.", Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("🎙️ 보호자 음성 전송", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                        HorizontalDivider()
+                        Text("• 이송 차량: 발자국동행 레이 펫케어카 (부산 38가 5394)", fontSize = 11.sp, color = Color.Gray)
+                        Text("• 담당 가드: 박찬헌 가드 (실시간 1:1 모니터링 중)", fontSize = 11.sp, color = Color.Gray)
                     }
                 }
             }
