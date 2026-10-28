@@ -4683,6 +4683,7 @@ fun HomeScreenContent(
     var showBookingDialog by remember { mutableStateOf(false) }
     var showBookingNoticeDialog by remember { mutableStateOf(false) }
     var isHospitalReserved by remember { mutableStateOf(true) }
+    var selectedTrimType by remember { mutableStateOf("📅 예약 진료 (예약 O)") }
     var showEmergencyDialog by remember { mutableStateOf(false) }
     var showFuneralBookingDialog by remember { mutableStateOf(false) }
     var showHospitalListDialog by remember { mutableStateOf(false) }
@@ -5457,51 +5458,88 @@ fun HomeScreenContent(
             onDismissRequest = { showBookingNoticeDialog = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("🏥", fontSize = 22.sp)
-                    Text("동물병원 예약 여부 선택", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    Text("🐾", fontSize = 22.sp)
+                    Text("서비스 트림 선택 (3가지 구분)", fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 }
             },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("보호자님, 진료받으실 동물병원에 예약을 이미 완료하셨습니까?", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                    Text("보호자님, 원하시는 서비스 유형(트림)을 선택해 주세요.", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
 
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFFF8FAFC),
-                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    // 1. 🚨 긴급 출동
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                isHospitalReserved = true
+                                selectedTrimType = "🚨 긴급 출동"
+                                showBookingNoticeDialog = false
+                                showBookingDialog = true
+                            },
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+                        border = BorderStroke(1.5.dp, Color(0xFFEF4444))
                     ) {
-                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("• ⭕ 예 (병원 예약 완료자): 예약하신 동물병원 명칭 기재 후 1:1 안심 진료 대행 접수", fontSize = 11.sp, color = Color(0xFF0F172A))
-                            Text("• ❌ 아니오 (병원 미예약자): 담당 가드가 현장에서 당일 진료 접수 및 동행 케어 진행", fontSize = 11.sp, color = Color(0xFF0284C7))
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("🚨", fontSize = 18.sp)
+                                Text("긴급 출동 (골든타임 응급 이송)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFDC2626))
+                            }
+                            Text("24시 응급실 산소 챔버 즉시 출동 및 최우선 배차", fontSize = 11.sp, color = Color(0xFF991B1B))
+                        }
+                    }
+
+                    // 2. 📅 예약 진료 (예약 O)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                isHospitalReserved = true
+                                selectedTrimType = "📅 예약 진료 (예약 O)"
+                                showBookingNoticeDialog = false
+                                showBookingDialog = true
+                            },
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F9FF)),
+                        border = BorderStroke(1.5.dp, Color(0xFF0284C7))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("📅", fontSize = 18.sp)
+                                Text("예약 진료 (병원 예약 완료자)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0284C7))
+                            }
+                            Text("지정 일시 자택 픽업 & 수석 가드 1:1 진료 대행 동행", fontSize = 11.sp, color = Color(0xFF0369A1))
+                        }
+                    }
+
+                    // 3. 🚗 미예약 이동 (당일)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                isHospitalReserved = false
+                                selectedTrimType = "🚗 미예약 이동 (당일)"
+                                showBookingNoticeDialog = false
+                                showBookingDialog = true
+                            },
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB)),
+                        border = BorderStroke(1.5.dp, Color(0xFFF59E0B))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("🚗", fontSize = 18.sp)
+                                Text("미예약 당일 이동 (당일 접수)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFD97706))
+                            }
+                            Text("당일 현장 접수, 인근 추천 병원 동행 및 이동 대행", fontSize = 11.sp, color = Color(0xFFB45309))
                         }
                     }
                 }
             },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        isHospitalReserved = true
-                        showBookingNoticeDialog = false
-                        showBookingDialog = true
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
-                ) {
-                    Text("⭕ 예 (병원 예약 완료자)", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                }
-            },
+            confirmButton = {},
             dismissButton = {
-                OutlinedButton(
-                    onClick = {
-                        isHospitalReserved = false
-                        showBookingNoticeDialog = false
-                        showBookingDialog = true
-                    }
-                ) {
-                    Text("❌ 아니오 (병원 미예약자)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0284C7))
+                TextButton(onClick = { showBookingNoticeDialog = false }) {
+                    Text("취소", color = Color.Gray)
                 }
             }
         )
@@ -5514,7 +5552,7 @@ fun HomeScreenContent(
         var usePointsAmount by remember { mutableIntStateOf(0) }
 
         // 0. 서비스 트림 선택 (3가지 트림: 🚨 긴급 출동 / 📅 예약 진료 / 🚗 미예약 이동)
-        var selectedServiceTrim by remember { mutableStateOf(if (isHospitalReserved) "📅 예약 진료 (예약 O)" else "🚗 미예약 이동 (당일)") }
+        var selectedServiceTrim by remember(selectedTrimType) { mutableStateOf(selectedTrimType) }
 
         // 1. 진료 목적 다중 선택 (중복 체크 가능)
         var isCareSelected by remember { mutableStateOf(true) }
