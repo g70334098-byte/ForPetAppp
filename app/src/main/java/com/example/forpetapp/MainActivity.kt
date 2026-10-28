@@ -1,5 +1,7 @@
 package com.example.forpetapp
 
+import com.example.forpetapp.ai.GeminiAiManager
+import kotlinx.coroutines.launch
 import com.example.forpetapp.security.AppSecurityManager
 import com.example.forpetapp.security.SecurityScanResult
 import android.content.Intent
@@ -3348,12 +3350,13 @@ fun AiHealthChatDialog(
     onDismiss: () -> Unit,
     onGoToBooking: () -> Unit
 ) {
+    val coroutineScope = rememberCoroutineScope()
     var inputQuery by remember { mutableStateOf("") }
     val chatListState = rememberLazyListState()
 
     val chatLogs = remember {
         mutableStateListOf(
-            Pair("AI 수의사 보조 🤖", "안녕하세요! 🐾 발자국동행 AI 반려동물 스마트 종합 상담원입니다.\n\n• 아픈 증상(구토, 다리 절뚝거림, 기침 등)\n• 내 근처 24시 제휴 동물병원 안내\n• 이용 요금, 펫보험 청구 서류 안내\n\n무엇이든 편하게 물어보시면 맞춤 답변을 드립니다!")
+            Pair("AI 수의사 보조 '보듬이' 🤖", "안녕하세요 보호자님! 🐾 발자국동행 구글 제미나이(Gemini AI) 기반 수의학 전문 AI 보조 '보듬이'입니다.\n\n• 아픈 증상 (구토, 다리 절뚝거림, 기침, 식욕부진)\n• 근처 24시 동물병원 추천 및 응급 수속 안내\n• 3가지 케어카 요금 및 펫보험 청구 가이드\n\n무엇이든 물어보시면 제미나이 AI가 전문적으로 답변해 드립니다!")
         )
     }
 
@@ -3368,7 +3371,7 @@ fun AiHealthChatDialog(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("🩺", fontSize = 22.sp)
-                Text("발자국동행 AI 스마트 종합 상담봇", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("발자국동행 Gemini AI 수의사 보듬이", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         },
         text = {
@@ -3417,71 +3420,28 @@ fun AiHealthChatDialog(
                     OutlinedTextField(
                         value = inputQuery,
                         onValueChange = { inputQuery = it },
-                        placeholder = { Text("질문 입력 (예: 근처 병원 있어? / 요금 얼마야?)", fontSize = 11.sp) },
+                        placeholder = { Text("증상이나 궁금한 점을 적어주세요.", fontSize = 11.sp) },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
                     Button(
                         onClick = {
                             if (inputQuery.isNotEmpty()) {
-                                chatLogs.add(Pair("보호자님", inputQuery))
                                 val userQ = inputQuery.trim()
+                                chatLogs.add(Pair("보호자님", userQ))
                                 inputQuery = ""
 
-                                val aiResponse = when {
-                                    // 1. 근처 병원 및 위치기반 문의
-                                    userQ.contains("병원") || userQ.contains("근처") || userQ.contains("어디") || userQ.contains("위치") || userQ.contains("24시") || userQ.contains("추천") ->
-                                        "📍 [위치기반 제휴 동물병원 추천]\n보호자님의 현재 수신 위치인 [$locationText] 인근 추천 24시 응급 & 제휴 병원입니다:\n\n" +
-                                        "• 명지24시온누리메디컬센터\n  - 주소: 부산 강서구 명지오션시티4로 80\n  - 📞 전화: 051-271-2475 (24시 응급 가능)\n\n" +
-                                        "• 하단24시웰니스동물병원\n  - 주소: 부산 사하구 낙동대로 550 (하단역 3번출구 앞)\n  - 📞 전화: 051-208-2400 (24시 응급 가능)\n\n" +
-                                        "• 사상24시응급메디컬센터\n  - 주소: 부산 사상구 괘법동 사상역 근처\n  - 📞 전화: 051-315-2475\n\n" +
-                                        "원하시는 병원으로 담당 가드가 안전하게 픽업 이송해 드립니다!"
+                                val aiPlaceholderIdx = chatLogs.size
+                                chatLogs.add(Pair("AI 수의사 보조 '보듬이' 🤖", "AI 수의사 보조 '보듬이'가 제미나이(Gemini) 수의학 AI 모델로 답변을 정밀 분석 중입니다... 🤖"))
 
-                                    // 2. 이용 요금 및 가격 문의
-                                    userQ.contains("요금") || userQ.contains("가격") || userQ.contains("얼마") || userQ.contains("비용") || userQ.contains("수수료") ->
-                                        "💰 [발자국동행 투명 정찰제 요금 안내]\n\n" +
-                                        "1. 🏥 병원 진료 대행 서비스:\n• 기본 이용료 (왕복 이동 + 동행 1시간 포함): 25,000원 ~ 35,000원\n• 진료 대기시간 추가 (30분당): 5,000원\n\n" +
-                                        "2. 🚨 24시 야간 응급 출동 서비스:\n• 응급 출동 기본료: 45,000원 ~ 55,000원\n• 야간 할증 (22:00 ~ 06:00): +10,000원\n\n" +
-                                        "※ 출발 전 취소 시 100% 즉시 환불됩니다!"
-
-                                    // 3. 펫보험 및 진단서 문의
-                                    userQ.contains("보험") || userQ.contains("펫보험") || userQ.contains("진단서") || userQ.contains("청구") || userQ.contains("영수증") ->
-                                        "🐾 [펫보험 청구 서류 수령 안내]\n네! 예약 접수 시 '펫보험 가입 유무'를 체크하시면 담당 가드가 진료 완료 후 수의사 정밀 진단서 및 치료비 상세 영수증을 청구용으로 리포트에 자동 첨부해 드립니다."
-
-                                    // 4. 가드 및 레이 전용차 / 바디캠 문의
-                                    userQ.contains("가드") || userQ.contains("기사") || userQ.contains("차") || userQ.contains("레이") || userQ.contains("바디캠") || userQ.contains("안전") ->
-                                        "🚙 [발자국동행 안심 가드 & 레이 전용차]\n모든 안심 이송에는 아이의 안전을 위해 펫 전용 안전시트와 실시간 바디캠 라이브 모니터링이 기본 무료 제공되며, 자격을 갖춘 담당 가드가 직접 1:1로 안심 동행합니다."
-
-                                    // 5. 무인 출입 & 도어락 & 부재 시 예약 문의
-                                    userQ.contains("예약") || userQ.contains("신청") || userQ.contains("도어락") || userQ.contains("비밀번호") || userQ.contains("부재") || userQ.contains("집에") || userQ.contains("없이") ->
-                                        "🔑 [안심 무인 출입 & 예약 가이드]\n보호자님이 부재 중이셔도 안심하세요!\n예약 신청 시 '도어락 비밀번호'나 '스마트키 연동'을 선택하시면 담당 가드가 시한부 보안 암호화로 안전하게 아이를 인계받아 병원에 다녀옵니다. 하단 버튼을 통해 즉시 예약하실 수 있습니다."
-
-                                    // 6. 예방접종 / 검진 / 중성화 / 치과 수술 문의
-                                    userQ.contains("백신") || userQ.contains("접종") || userQ.contains("사상충") || userQ.contains("검진") || userQ.contains("수술") || userQ.contains("중성화") || userQ.contains("스케일링") || userQ.contains("치과") ->
-                                        "💉 [정기 예방접종 및 수술/검진 안내]\n• 예방접종/심장사상충: '내 반려동물' 탭의 D-Day 수첩에서 차기 접종일을 관리를 할 수 있습니다.\n• 수술/중성화/스케일링: 예약 시 과목을 선택하시면 사전 마취 검사 및 안전 수칙을 담당 가드와 수의사가 꼼꼼히 체크합니다."
-
-                                    // 7. 포인트 & 쿠폰 & 이벤트 문의
-                                    userQ.contains("포인트") || userQ.contains("적립") || userQ.contains("쿠폰") || userQ.contains("이벤트") || userQ.contains("할인") || userQ.contains("코드") ->
-                                        "🎁 [포인트 & 프로모션 혜택 안내]\n• 친구 초대 이벤트: 내 추천 코드 공유 시 1명당 3,000 P 100% 적립!\n• 적립된 포인트는 예약 결제 시 1P = 1원 현금처럼 즉시 차감 사용 가능합니다."
-
-                                    // 8. 증상 분석 (구토, 다리, 피부 등)
-                                    userQ.contains("토") || userQ.contains("구토") ->
-                                        "🩺 [1차 증상 분석 완료]\n• 추천 진료 과목: 내과 / 24시 응급센터\n• 응급도: 보통 ~ 높음 (지속 구토 시 탈수 주의)\n• 행동 지침: 음식물 섭취 일시 중단 후 수의사 진료를 권장합니다."
-
-                                    userQ.contains("다리") || userQ.contains("절뚝") || userQ.contains("슬개골") ->
-                                        "🩺 [1차 증상 분석 완료]\n• 추천 진료 과목: 정형외과 / 외과\n• 응급도: 보통 (슬개골 탈구 또는 십자인대 파열 가능성)\n• 행동 지침: 뛰거나 계단 오르기를 금지하고 안심 이송으로 병원에 방문하세요."
-
-                                    userQ.contains("피부") || userQ.contains("긁") || userQ.contains("털") ->
-                                        "🩺 [1차 증상 분석 완료]\n• 추천 진료 과목: 피부과\n• 응급도: 낮음 ~ 보통\n• 행동 지침: 환부를 핥지 못하도록 넥카라 착용 후 피부과 진료를 추천해 드립니다."
-
-                                    // 9. 인사 및 감사 응답
-                                    userQ.contains("고마") || userQ.contains("감사") || userQ.contains("안녕") || userQ.contains("알겠") || userQ.contains("응") || userQ.contains("네") ->
-                                        "네 보호자님! 언제든 도움이 필요하시면 편하게 질문해 주세요. 아이의 안전과 빠른 회복을 위해 발자국동행이 항상 함께하겠습니다 🐾"
-
-                                    else ->
-                                        "🩺 [1차 스마트 종합 응답]\n입력해 주신 질문을 확인했습니다. 아이의 아픈 증상 관찰, 근처 24시 동물병원 추천, 요금 안내 또는 병원 이동이 필요하시면 언제든 질문해 주세요! 하단의 '🏥 바로 진료 대행 예약하기' 버튼을 누르시면 담당 가드가 즉시 안심 이송을 도와드립니다!"
+                                coroutineScope.launch {
+                                    val aiResponse = GeminiAiManager.fetchGeminiResponse(userQ, locationText)
+                                    if (aiPlaceholderIdx < chatLogs.size) {
+                                        chatLogs[aiPlaceholderIdx] = Pair("AI 수의사 보조 '보듬이' 🤖", aiResponse)
+                                    } else {
+                                        chatLogs.add(Pair("AI 수의사 보조 '보듬이' 🤖", aiResponse))
+                                    }
                                 }
-                                chatLogs.add(Pair("AI 수의사 보조 🤖", aiResponse))
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
