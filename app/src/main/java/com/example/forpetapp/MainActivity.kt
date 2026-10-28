@@ -4718,7 +4718,7 @@ fun HomeScreenContent(
                 petInfo = "포메라니안 (사랑이, 2살)",
                 rating = 5,
                 serviceType = "🚨 야간 응급 출동",
-                content = "새벽에 갑자기 호흡 곤란이 와서 당황했는데 24시 응급 출동차에 산소 챔버가 있어서 명지24시병원까지 무사히 이송되었습니다. 박찬헌 기사님 감사드립니다!",
+                content = "새벽에 갑자기 호흡 곤란이 와서 당황했는데 24시 응급 출동차에 1080p 바디캠과 쾌적 온습도 제어 시스템이 있어서 명지24시병원까지 무사히 이송되었습니다. 박찬헌 기사님 감사드립니다!",
                 dateText = "2026.10.15"
             )
         )
@@ -5489,7 +5489,7 @@ fun HomeScreenContent(
                                 Text("🚨", fontSize = 18.sp)
                                 Text("긴급 출동 (골든타임 응급 이송)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFDC2626))
                             }
-                            Text("24시 응급실 산소 챔버 즉시 출동 및 최우선 배차", fontSize = 11.sp, color = Color(0xFF991B1B))
+                            Text("24시 응급실 직통 수속 연결 및 최우선 케어카 즉시 배차", fontSize = 11.sp, color = Color(0xFF991B1B))
                         }
                     }
 
@@ -5610,7 +5610,7 @@ fun HomeScreenContent(
                         Text(selectedTrimType, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = if (selectedTrimType.contains("긴급")) Color(0xFFDC2626) else Color(0xFF0F172A))
                     }
                     Text(
-                        if (selectedTrimType.contains("긴급")) "24시 응급실 산소 챔버 탑재 케어카가 최우선 즉시 배차됩니다."
+                        if (selectedTrimType.contains("긴급")) "24시 응급실 직통 수속 연결 케어카가 최우선 즉시 배차됩니다."
                         else if (selectedTrimType.contains("예약 O")) "예약 완료하신 동물병원 명칭을 기재해 주시면 가드가 1:1 안심 케어합니다."
                         else "당일 미예약 건: 가드가 도착 후 인근 추천/희망 병원으로 현장 접수를 도와드립니다.",
                         fontSize = 11.sp,
@@ -6413,7 +6413,7 @@ fun HomeScreenContent(
         val insuranceCompanies = listOf("메리츠 펫퍼민트", "DB손해보험 펫", "KB손해보험 펫", "삼성화재 펫", "현대해상 펫", "기타 펫보험")
 
         val emergencySymptomsList = listOf(
-            "🚨 호흡곤란 / 산소부족",
+            "🚨 호흡곤란 / 응급상황",
             "🚨 심한 출혈 / 외상",
             "🚨 경련 / 발작 / 의식불명",
             "🚨 급성 복부팽만 / 구토",
@@ -6723,7 +6723,7 @@ fun HomeScreenContent(
                             OutlinedTextField(
                                 value = customEmergencyNote,
                                 onValueChange = { customEmergencyNote = it },
-                                placeholder = { Text("예: 아이가 호흡을 힘들어해서 산소마취 키트 준비 부탁드립니다.") },
+                                placeholder = { Text("예: 아이가 움직이기 힘들어해서 이동 바스켓 준비 부탁드립니다.") },
                                 modifier = Modifier.fillMaxWidth(),
                                 minLines = 2
                             )
