@@ -6,16 +6,16 @@
     <title>발자국동행 PC 관리자 통합 관제 포털</title>
     <style>
         :root {
-            --bg-dark: #0f172a;
-            --card-bg: #1e293b;
-            --border-color: #334155;
-            --primary: #0284c7;
+            --bg-dark: #f8f6f0;        /* 따뜻한 감성 베이지/크림 관제 메인 배경 */
+            --card-bg: #ffffff;        /* 깨끗하고 세련된 화이트 카드 */
+            --border-color: #e2dad0;    /* 리넨 원단 촉감의 은은한 베이지 테두리 */
+            --primary: #0284c7;        /* 시그니처 안심 블루 */
             --primary-hover: #0369a1;
-            --accent-gold: #f59e0b;
+            --accent-gold: #d97706;    /* 가죽 스트랩 감성 우드 브라운 */
             --accent-green: #10b981;
-            --accent-red: #ef4444;
-            --text-main: #f8fafc;
-            --text-sub: #94a3b8;
+            --accent-red: #dc2626;
+            --text-main: #0f172a;      /* 또렷한 슬레이트 네이비 메인 텍스트 */
+            --text-sub: #64748b;       /* 부드러운 서브 텍스트 */
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -28,11 +28,11 @@
             overflow: hidden;
         }
 
-        /* 사이드바 메인 메뉴 */
+        /* 사이드바 메인 메뉴 (다크 슬레이트 네이비 포인트) */
         sidebar {
             width: 260px;
-            background-color: #0b1120;
-            border-right: 1px solid var(--border-color);
+            background-color: #0f172a;
+            border-right: 1px solid #1e293b;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -42,7 +42,7 @@
         .brand-logo {
             text-align: center;
             padding-bottom: 16px;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid #1e293b;
         }
 
         .brand-title {
@@ -73,7 +73,7 @@
             border-radius: 10px;
             font-size: 13px;
             font-weight: 600;
-            color: var(--text-sub);
+            color: #94a3b8;
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -85,16 +85,17 @@
 
         .admin-profile {
             padding-top: 16px;
-            border-top: 1px solid var(--border-color);
+            border-top: 1px solid #1e293b;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            color: #fff;
         }
 
-        .profile-info h4 { font-size: 13px; font-weight: 700; }
-        .profile-info p { font-size: 11px; color: var(--accent-gold); }
+        .profile-info h4 { font-size: 13px; font-weight: 700; color: #fff; }
+        .profile-info p { font-size: 11px; color: #f59e0b; }
 
-        /* 메인 콘텐츠 영역 */
+        /* 메인 콘텐츠 영역 (따뜻한 베이지 톤) */
         main {
             flex: 1;
             display: flex;
@@ -110,11 +111,11 @@
             margin-bottom: 24px;
         }
 
-        .header-title h1 { font-size: 22px; font-weight: 800; }
+        .header-title h1 { font-size: 22px; font-weight: 800; color: #0f172a; }
         .header-title p { font-size: 13px; color: var(--text-sub); margin-top: 4px; }
 
         .live-clock {
-            background-color: var(--card-bg);
+            background-color: #ffffff;
             border: 1px solid var(--border-color);
             padding: 10px 18px;
             border-radius: 12px;
@@ -124,6 +125,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
         }
 
         /* KPI 현황 카드 4종 */
@@ -144,6 +146,7 @@
             gap: 6px;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
         }
 
         .kpi-card::before {
@@ -157,8 +160,8 @@
         }
 
         .kpi-title { font-size: 12px; color: var(--text-sub); font-weight: 600; }
-        .kpi-value { font-size: 24px; font-weight: 800; color: #ffffff; }
-        .kpi-sub { font-size: 11px; color: var(--accent-green); font-weight: 600; }
+        .kpi-value { font-size: 24px; font-weight: 800; color: #0f172a; }
+        .kpi-sub { font-size: 11px; color: #047857; font-weight: 700; }
 
         /* 테이블 및 상세 영역 */
         .content-panel {
@@ -167,6 +170,7 @@
             border-radius: 16px;
             padding: 20px;
             margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
         }
 
         .panel-header {
@@ -176,7 +180,7 @@
             margin-bottom: 16px;
         }
 
-        .panel-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .panel-title { font-size: 16px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; }
 
         .search-box {
             display: flex;
@@ -185,13 +189,14 @@
         }
 
         input[type="text"], input[type="number"], select {
-            background-color: #0b1120;
+            background-color: #f1ede4;
             border: 1px solid var(--border-color);
-            color: #ffffff;
+            color: #0f172a;
             padding: 8px 12px;
             border-radius: 8px;
             font-size: 13px;
             outline: none;
+            font-weight: 600;
         }
 
         input[type="text"]:focus, select:focus { border-color: var(--primary); }
@@ -219,7 +224,7 @@
         .btn-danger { background-color: #dc2626; }
         .btn-danger:hover { background-color: #b91c1c; }
 
-        /* 테이블 디자인 */
+        /* 테이블 디자인 (밝고 따뜻한 톤) */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -228,10 +233,10 @@
         }
 
         th {
-            background-color: #0b1120;
-            color: var(--text-sub);
+            background-color: #f1ede4;
+            color: #475569;
             padding: 12px 14px;
-            font-weight: 700;
+            font-weight: 800;
             border-bottom: 1px solid var(--border-color);
         }
 
@@ -239,9 +244,10 @@
             padding: 12px 14px;
             border-bottom: 1px solid var(--border-color);
             color: var(--text-main);
+            font-weight: 600;
         }
 
-        tr:hover { background-color: rgba(255, 255, 255, 0.03); }
+        tr:hover { background-color: rgba(2, 132, 199, 0.05); }
 
         .badge {
             display: inline-block;
@@ -251,11 +257,11 @@
             font-weight: 700;
         }
 
-        .badge-active { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
-        .badge-pending { background: rgba(245, 158, 11, 0.2); color: var(--accent-gold); border: 1px solid var(--accent-gold); }
-        .badge-blue { background: rgba(2, 132, 199, 0.2); color: #38bdf8; border: 1px solid #38bdf8; }
-        .badge-red { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #ef4444; }
-        .badge-yellow { background: rgba(254, 240, 138, 0.2); color: #fef08a; border: 1px solid #fde047; }
+        .badge-active { background: rgba(16, 185, 129, 0.15); color: #047857; border: 1px solid #10b981; }
+        .badge-pending { background: rgba(245, 158, 11, 0.15); color: #b45309; border: 1px solid #f59e0b; }
+        .badge-blue { background: rgba(2, 132, 199, 0.15); color: #0284c7; border: 1px solid #0284c7; }
+        .badge-red { background: rgba(239, 68, 68, 0.15); color: #dc2626; border: 1px solid #ef4444; }
+        .badge-yellow { background: rgba(254, 240, 138, 0.4); color: #854d0e; border: 1px solid #fde047; }
 
         /* 가드 관제 레이아웃 */
         .guard-layout {
@@ -266,7 +272,7 @@
 
         .map-container {
             flex: 1;
-            background-color: #0b1120;
+            background-color: #ffffff;
             border: 1px solid var(--border-color);
             border-radius: 12px;
             overflow: hidden;
@@ -280,13 +286,14 @@
 
         .guard-sidebar {
             width: 320px;
-            background-color: #0b1120;
+            background-color: #ffffff;
             border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 20px;
             display: flex;
             flex-direction: column;
             gap: 14px;
+            color: #0f172a;
         }
 
         .guard-avatar-box {
@@ -306,13 +313,14 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            color: #fff;
         }
 
         /* 팝업 모달 */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.75);
+            background: rgba(15, 23, 42, 0.6);
             display: none;
             justify-content: center;
             align-items: center;
@@ -321,7 +329,7 @@
         }
 
         .modal-box {
-            background: var(--card-bg);
+            background: #ffffff;
             border: 1px solid var(--border-color);
             border-radius: 16px;
             width: 540px;
@@ -331,19 +339,20 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            color: #0f172a;
         }
 
         .modal-header { display: flex; justify-content: space-between; align-items: center; }
-        .modal-header h3 { font-size: 18px; font-weight: 800; color: #fff; }
+        .modal-header h3 { font-size: 18px; font-weight: 800; color: #0f172a; }
         .modal-close { cursor: pointer; font-size: 20px; color: var(--text-sub); }
 
         .form-group { display: flex; flex-direction: column; gap: 6px; }
         .form-group label { font-size: 12px; color: var(--text-sub); font-weight: 700; }
         textarea {
-            background: #0b1120; border: 1px solid var(--border-color);
-            color: #fff; padding: 10px; border-radius: 8px; font-size: 13px;
-            resize: none; height: 90px; outline: none;
+            background: #f1ede4; border: 1px solid var(--border-color);
+            color: #0f172a; padding: 10px; border-radius: 8px; font-size: 13px;
+            resize: none; height: 90px; outline: none; font-weight: 600;
         }
 
         .btn-group { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
@@ -355,7 +364,7 @@
     <sidebar>
         <div>
             <div class="brand-logo">
-                <img id="main-brand-logo" src="official_logo.png" style="width: 180px; max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); display: block; margin: 0 auto 8px auto;" alt="발자국동행 로고">
+                <img id="main-brand-logo" src="hero_visual.jpg" style="width: 180px; max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); display: block; margin: 0 auto 8px auto;" alt="발자국동행 로고">
                 <div style="font-size: 11px; color: #f97316; font-weight: 700;">PC 공식 관제 포털</div>
             </div>
 
@@ -376,7 +385,7 @@
         </div>
     </sidebar>
 
-    <!-- 메인 콘텐츠 -->
+    <!-- 메인 콘텐츠 (따뜻한 베이지 감성) -->
     <main>
         <div class="header-bar">
             <div class="header-title">
@@ -445,7 +454,7 @@
             </table>
         </div>
 
-        <!-- Tab 2: 👨‍✈️ 가드 실시간 GPS 위치 관제 (Google Maps 기반 - 핸드폰 GPS 고정 마커 핀 연동) -->
+        <!-- Tab 2: 👨‍✈️ 가드 실시간 GPS 위치 관제 (Google Maps 기반) -->
         <div id="panel-guard" class="content-panel" style="display:none;">
             <div class="panel-header">
                 <div class="panel-title">👨‍✈️ 가드 핸드폰 GPS 실시간 연동 구글 지도 관제</div>
@@ -461,7 +470,7 @@
             </div>
 
             <div class="guard-layout">
-                <!-- 구글 맵 기반 위치 화면 (지도 중심 고정 레이 케어카 애니메이션 핀) -->
+                <!-- 구글 맵 기반 위치 화면 -->
                 <div class="map-container">
                     <!-- 지도 중앙 고정 레이 케어카 커스텀 핀 오버레이 -->
                     <div style="position: absolute; top: 48%; left: 50%; transform: translate(-50%, -100%); z-index: 100; cursor: pointer; text-align: center;" onclick="alert('👨‍✈️ 박찬헌 가드 (부산 38가 5394)\n📍 현재 핸드폰 GPS 위치: ' + currentGpsText + '\n속도: 42 km/h (안전 운행 중)\n상태: 1:1 안심 진료 대행 이송 중')">
@@ -469,7 +478,7 @@
                         <div style="position: absolute; top: 22px; left: 50%; transform: translate(-50%, -50%); width: 64px; height: 64px; background: rgba(2, 132, 199, 0.4); border-radius: 50%; animation: pulse-ring 1.8s infinite ease-out; z-index: -1;"></div>
 
                         <!-- 레이 차 핀 뱃지 -->
-                        <div style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 8px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 16px rgba(0,0,0,0.6); border: 2.5px solid #ffffff; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                        <div style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 8px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 16px rgba(0,0,0,0.3); border: 2.5px solid #ffffff; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
                             <span style="font-size: 18px;">🚙</span>
                             <span>레이 케어카 (38가 5394)</span>
                             <span style="background: #10b981; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">GPS LIVE</span>
@@ -495,17 +504,17 @@
                     <div class="guard-avatar-box">
                         <div class="guard-avatar">👨‍✈️</div>
                         <div>
-                            <h3 style="font-size:16px; color:#fff;">박찬헌 가드</h3>
-                            <p style="font-size:12px; color:#38bdf8;">수석 안심 케어 코디네이터</p>
+                            <h3 style="font-size:16px; color:#0f172a;">박찬헌 가드</h3>
+                            <p style="font-size:12px; color:#0284c7; font-weight:bold;">수석 안심 케어 코디네이터</p>
                         </div>
                     </div>
 
-                    <div style="display:flex; flex-direction:column; gap:8px; font-size:13px;">
+                    <div style="display:flex; flex-direction:column; gap:8px; font-size:13px; color:#0f172a;">
                         <div>🚘 <b>담당 차량</b>: 기아 레이 펫전용차 (부산 38가 5394)</div>
-                        <div>📞 <b>직통 연락처</b>: <span style="color:#38bdf8; font-weight:bold;">010-2654-5394</span></div>
-                        <div>📍 <b>핸드폰 실시간 GPS</b>: <b style="color:#f59e0b;" id="guard-gps-display">부산 강서구 작지마을 정류장 인근</b></div>
+                        <div>📞 <b>직통 연락처</b>: <span style="color:#0284c7; font-weight:bold;">010-2654-5394</span></div>
+                        <div>📍 <b>핸드폰 실시간 GPS</b>: <b style="color:#d97706;" id="guard-gps-display">부산 강서구 작지마을 정류장 인근</b></div>
                         <div>📹 <b>바디캠 송출</b>: <span class="badge badge-active">🔴 LIVE 1080p 송출 중</span></div>
-                        <div>🌡️ <b>차내 실내 온도</b>: <span style="color:#f59e0b; font-weight:bold;">22.5 ℃ (산소 챔버 가동 중)</span></div>
+                        <div>🌡️ <b>차내 실내 온도</b>: <span style="color:#d97706; font-weight:bold;">22.5 ℃ (산소 챔버 가동 중)</span></div>
                     </div>
 
                     <div style="margin-top:auto; display:flex; flex-direction:column; gap:8px;">
@@ -581,7 +590,7 @@
 
             <div class="form-group">
                 <label>오더 정보</label>
-                <input type="text" id="report-order-info" readonly style="background:#0b1120;">
+                <input type="text" id="report-order-info" readonly style="background:#f1ede4;">
             </div>
 
             <div class="form-group">
@@ -719,20 +728,6 @@
     </div>
 
     <script>
-        function uploadCustomLogo(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const customDataUrl = e.target.result;
-                    document.getElementById('main-brand-logo').src = customDataUrl;
-                    localStorage.setItem('baljaguk_custom_logo', customDataUrl);
-                    alert("✨ 원하시는 사진으로 로고가 실시간 변경 및 자동 저장되었습니다!");
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
         // 시계 가동
         function updateClock() {
             const now = new Date();
@@ -994,7 +989,7 @@
             document.getElementById('edit-order-id').value = "";
             document.getElementById('form-order-pet').value = "";
             document.getElementById('form-order-owner').value = "";
-            document.getElementById('form-order-hospital').value = "명지24시온누리메디컬센터";
+            document.getElementById('form-order-hospital').value = "명지24시온努리메디컬센터";
             document.getElementById('form-order-time').value = "오늘 오전 10:30";
             document.getElementById('form-order-guard').value = "박찬헌 가드 (부산 38가 5394)";
             document.getElementById('form-order-price').value = "35,000원";
