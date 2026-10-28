@@ -2048,22 +2048,15 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                         modifier = Modifier.clickable { selectedTab = 2 }.padding(4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("📸", fontSize = 18.sp)
-                        Text("안심갤러리", fontSize = 11.sp, color = if (selectedTab == 2) Color(0xFF0284C7) else Color.Gray, fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal)
+                        Text("🐾", fontSize = 18.sp)
+                        Text("내 반려동물", fontSize = 11.sp, color = if (selectedTab == 2) Color(0xFF0284C7) else Color.Gray, fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal)
                     }
                     Column(
                         modifier = Modifier.clickable { selectedTab = 3 }.padding(4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("🐾", fontSize = 18.sp)
-                        Text("내 반려동물", fontSize = 11.sp, color = if (selectedTab == 3) Color(0xFF0284C7) else Color.Gray, fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Normal)
-                    }
-                    Column(
-                        modifier = Modifier.clickable { selectedTab = 4 }.padding(4.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
                         Text("👤", fontSize = 18.sp)
-                        Text("마이페이지", fontSize = 11.sp, color = if (selectedTab == 4) Color(0xFF0284C7) else Color.Gray, fontWeight = if (selectedTab == 4) FontWeight.Bold else FontWeight.Normal)
+                        Text("마이페이지", fontSize = 11.sp, color = if (selectedTab == 3) Color(0xFF0284C7) else Color.Gray, fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Normal)
                     }
                 }
             }
@@ -2098,11 +2091,7 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                     bookingList = bookingList,
                     onNavigateToHome = { selectedTab = 0 }
                 )
-                2 -> PetSafetyGalleryScreen(
-                    petName = savedPetName,
-                    onNavigateToHome = { selectedTab = 0 }
-                )
-                3 -> MyPetDetailScreen(
+                2 -> MyPetDetailScreen(
                     savedImageUri = savedPetImageUri,
                     savedPetSpecies = savedPetSpecies,
                     savedPetName = savedPetName,
@@ -2144,7 +2133,7 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                         )
                     }
                 )
-                4 -> MyPageScreen(
+                3 -> MyPageScreen(
                     userPoints = userPoints,
                     userReferralCode = userReferralCode,
                     userNickname = userNickname,
