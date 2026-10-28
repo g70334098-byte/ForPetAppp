@@ -5513,6 +5513,9 @@ fun HomeScreenContent(
         var bookingOwnerName by remember(userNickname) { mutableStateOf(userNickname) }
         var usePointsAmount by remember { mutableIntStateOf(0) }
 
+        // 0. 서비스 트림 선택 (3가지 트림: 🚨 긴급 출동 / 📅 예약 진료 / 🚗 미예약 이동)
+        var selectedServiceTrim by remember { mutableStateOf(if (isHospitalReserved) "📅 예약 진료 (예약 O)" else "🚗 미예약 이동 (당일)") }
+
         // 1. 진료 목적 다중 선택 (중복 체크 가능)
         var isCareSelected by remember { mutableStateOf(true) }
         var isMedicineSelected by remember { mutableStateOf(false) }
@@ -5581,6 +5584,45 @@ fun HomeScreenContent(
                         .height(460.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
+                    // 0. 서비스 트림 선택 (🚨 긴급 출동 / 📅 예약 진료 / 🚗 미예약 이동)
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("0. 서비스 트림 선택 (3가지 구분) 🚨", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                FilterChip(
+                                    selected = (selectedServiceTrim == "🚨 긴급 출동"),
+                                    onClick = { selectedServiceTrim = "🚨 긴급 출동" },
+                                    label = { Text("🚨 긴급 출동 (골든타임 응급 산소챔버 즉시 배차)", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFFDC2626),
+                                        selectedLabelColor = Color.White
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                FilterChip(
+                                    selected = (selectedServiceTrim == "📅 예약 진료 (예약 O)"),
+                                    onClick = { selectedServiceTrim = "📅 예약 진료 (예약 O)" },
+                                    label = { Text("📅 예약 진료 (지정 일시 수석가드 1:1 안심 동행)", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFF0284C7),
+                                        selectedLabelColor = Color.White
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                FilterChip(
+                                    selected = (selectedServiceTrim == "🚗 미예약 이동 (당일)"),
+                                    onClick = { selectedServiceTrim = "🚗 미예약 이동 (당일)" },
+                                    label = { Text("🚗 미예약 당일 이동 (당일 즉시 픽업 및 현장 수속)", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFFD97706),
+                                        selectedLabelColor = Color.White
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+
                     // 1. 반려동물 구분 선택 (강아지 / 고양이)
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
