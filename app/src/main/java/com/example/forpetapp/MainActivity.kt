@@ -22,6 +22,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -2589,12 +2590,19 @@ fun DriverChatDialog(
 ) {
     val context = LocalContext.current
     var inputChatText by remember { mutableStateOf("") }
+    val chatListState = rememberLazyListState()
 
     val chatMessages = remember {
         mutableStateListOf(
             ChatMessage(senderName = "박찬헌 기사님", isDriver = true, messageText = "안녕하세요 보호자님! 발자국동행 박찬헌 기사입니다. '${booking.petName}' 아이 무사히 픽업 완료하였습니다. 레이 안심 시트에 탑승해 이동 중입니다 🐶", timestamp = "오후 02:08"),
             ChatMessage(senderName = "박찬헌 기사님", isDriver = true, messageText = "실시간 바디캠 모니터링 및 차내 온도는 22.5도로 쾌적하게 유지 중입니다!", timestamp = "오후 02:10")
         )
+    }
+
+    LaunchedEffect(chatMessages.size) {
+        if (chatMessages.isNotEmpty()) {
+            chatListState.animateScrollToItem(chatMessages.size - 1)
+        }
     }
 
     AlertDialog(
@@ -2623,6 +2631,7 @@ fun DriverChatDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 LazyColumn(
+                    state = chatListState,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(280.dp)
@@ -3351,10 +3360,18 @@ fun AiHealthChatDialog(
     onGoToBooking: () -> Unit
 ) {
     var inputQuery by remember { mutableStateOf("") }
+    val chatListState = rememberLazyListState()
+
     val chatLogs = remember {
         mutableStateListOf(
             Pair("AI 수의사 보조 🤖", "안녕하세요! 🐾 발자국동행 AI 반려동물 스마트 종합 상담원입니다.\n\n• 아픈 증상(구토, 다리 절뚝거림, 기침 등)\n• 내 근처 24시 제휴 동물병원 안내\n• 이용 요금, 펫보험 청구 서류 안내\n\n무엇이든 편하게 물어보시면 맞춤 답변을 드립니다!")
         )
+    }
+
+    LaunchedEffect(chatLogs.size) {
+        if (chatLogs.isNotEmpty()) {
+            chatListState.animateScrollToItem(chatLogs.size - 1)
+        }
     }
 
     AlertDialog(
@@ -3371,6 +3388,7 @@ fun AiHealthChatDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 LazyColumn(
+                    state = chatListState,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(280.dp)
