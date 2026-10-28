@@ -63,6 +63,13 @@ class MainActivity : ComponentActivity() {
             KakaoSdk.init(this, "a1f087e3d3c32d7724ebbcc750b89649")
         } catch (_: Exception) {}
 
+        // 안드로이드 13+ (API 33+) 시스템 푸시 알림 수신 권한 자동 요청
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
+
         setContent {
             ForPetApp()
         }
@@ -1597,6 +1604,22 @@ fun SignUpScreen(onSignUpSuccess: () -> Unit, onBackToLogin: () -> Unit) {
     }
 }
 
+// 🐾 다중 반려동물 프로필 정보 데이터 클래스 (다견/다묘 가정 100% 등록 지원)
+data class PetProfile(
+    val id: String = System.currentTimeMillis().toString(),
+    val imageUriStr: String? = null,
+    val species: String = "강아지",
+    val name: String = "초코",
+    val ownerRealName: String = "홍길동",
+    val type: String = "말티즈",
+    val gender: String = "남아",
+    val neutered: Boolean = true,
+    val weight: String = "4.5",
+    val hospital: String = "명지24시온누리메디컬센터",
+    val symptoms: String = "슬개골 탈구 2기, 정기 검진 권장",
+    val birthMillis: Long? = null
+)
+
 // 📅 예약 정보 데이터 클래스 (3가지 트림: 긴급 50,000원 / 당일미예약 35,000원 / 예약진료 30,000원)
 data class BookingItem(
     val id: String = System.currentTimeMillis().toString(),
@@ -1837,6 +1860,61 @@ object PersistentStorageManager {
             }
         } catch (_: Exception) {}
         return list
+    }
+
+    // 다중 반려동물 프로필 리스트 영구 디스크 저장/로드 (.commit() 보장)
+    fun saveMultiPetList(context: android.content.Context, pets: List<PetProfile>) {
+        val jsonArray = org.json.JSONArray()
+        pets.forEach { p ->
+            val obj = org.json.JSONObject().apply {
+                put("id", p.id)
+                put("imageUriStr", p.imageUriStr ?: "")
+                put("species", p.species)
+                put("name", p.name)
+                put("ownerRealName", p.ownerRealName)
+                put("type", p.type)
+                put("gender", p.gender)
+                put("neutered", p.neutered)
+                put("weight", p.weight)
+                put("hospital", p.hospital)
+                put("symptoms", p.symptoms)
+                put("birthMillis", p.birthMillis ?: -1L)
+            }
+            jsonArray.put(obj)
+        }
+        getPrefs(context).edit().putString("multi_pet_list_json", jsonArray.toString()).commit()
+    }
+
+    fun loadMultiPetList(context: android.content.Context): MutableList<PetProfile> {
+        val jsonStr = getPrefs(context).getString("multi_pet_list_json", null) ?: return mutableListOf(
+            PetProfile(id = "1", name = "초코", species = "강아지", type = "말티즈", weight = "4.5"),
+            PetProfile(id = "2", name = "해피", species = "고양이", type = "코리안숏헤어", weight = "3.8", gender = "여아")
+        )
+        val list = mutableListOf<PetProfile>()
+        try {
+            val jsonArray = org.json.JSONArray(jsonStr)
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                val bMillis = obj.optLong("birthMillis", -1L)
+                list.add(
+                    PetProfile(
+                        id = obj.optString("id"),
+                        imageUriStr = obj.optString("imageUriStr").ifEmpty { null },
+                        species = obj.optString("species", "강아지"),
+                        name = obj.optString("name", "초코"),
+                        ownerRealName = obj.optString("ownerRealName", "홍길동"),
+                        type = obj.optString("type", "말티즈"),
+                        gender = obj.optString("gender", "남아"),
+                        neutered = obj.optBoolean("neutered", true),
+                        weight = obj.optString("weight", "4.5"),
+                        hospital = obj.optString("hospital", "명지24시온누리메디컬센터"),
+                        symptoms = obj.optString("symptoms", ""),
+                        birthMillis = if (bMillis == -1L) null else bMillis
+                    )
+                )
+            }
+        } catch (_: Exception) {}
+        return if (list.isNotEmpty()) list else mutableListOf(PetProfile(id = "1", name = "초코"))
     }
 
     // 반려동물 프로필 정보 저장/로드 (.commit() 보장)
@@ -6295,6 +6373,45 @@ fun HomeScreenContent(
                                 modifier = Modifier.fillMaxWidth()
                             )
 
+                            // 🏥 실시간 병원 검색 자동완성 드롭다운 (터치 시 자동 채우기)
+                            if (customHospitalName.isNotEmpty()) {
+                                val searchMatches = hospitals.filter { h ->
+                                    h.name.contains(customHospitalName, ignoreCase = true) ||
+                                    h.region.contains(customHospitalName, ignoreCase = true)
+                                }.take(3)
+
+                                if (searchMatches.isNotEmpty()) {
+                                    Surface(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color(0xFFF1F5F9),
+                                        border = BorderStroke(1.dp, Color(0xFFCBD5E1))
+                                    ) {
+                                        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Text("🏥 부산 제휴 병원 자동완성 (터치 시 선택):", fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+                                            searchMatches.forEach { match ->
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clickable { customHospitalName = match.name }
+                                                        .padding(vertical = 4.dp),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text("• ${match.name} (${match.region})", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                                                    Surface(
+                                                        shape = RoundedCornerShape(4.dp),
+                                                        color = if (match.type == "24시 응급") Color(0xFFFEF2F2) else Color(0xFFF0F9FF)
+                                                    ) {
+                                                        Text(match.type, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (match.type == "24시 응급") Color(0xFFDC2626) else Color(0xFF0284C7), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
                             if (isHospitalReserved) {
                                 // 🏥 병원 사전 예약 시각 선택 버튼
                                 OutlinedButton(
@@ -7647,6 +7764,16 @@ fun MyPetDetailScreen(
         )
     }
 
+    val petProfileList = remember {
+        mutableStateListOf<PetProfile>().apply {
+            addAll(PersistentStorageManager.loadMultiPetList(context))
+        }
+    }
+    var selectedPetIndex by remember { mutableIntStateOf(0) }
+    var showAddPetModal by remember { mutableStateOf(false) }
+    var newPetNameInput by remember { mutableStateOf("") }
+    var newPetSpeciesInput by remember { mutableStateOf("강아지") }
+
     var isSaved by remember { mutableStateOf(false) }
 
     val birthDateText: String
@@ -7702,6 +7829,67 @@ fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): S
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // 0. 다중 반려동물 프로필 스위처 (다견/다묘 가정 100% 지원)
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🐾 내 반려동물 프로필 (${petProfileList.size}마리)", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0F172A))
+                        Button(
+                            onClick = { showAddPetModal = true },
+                            shape = RoundedCornerShape(20.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text("➕ 아이 추가", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    androidx.compose.foundation.lazy.LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(petProfileList.size) { idx ->
+                            val pet = petProfileList[idx]
+                            val isSelected = (selectedPetIndex == idx)
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    selectedPetIndex = idx
+                                    val targetPet = petProfileList[idx]
+                                    petName = targetPet.name
+                                    petSpecies = targetPet.species
+                                    petType = targetPet.type
+                                    petWeight = targetPet.weight
+                                    selectedGender = targetPet.gender
+                                    isNeutered = targetPet.neutered
+                                    petHospital = targetPet.hospital
+                                    petSymptoms = targetPet.symptoms
+                                    petImageUri = targetPet.imageUriStr?.let { try { Uri.parse(it) } catch(_: Exception) { null } }
+                                },
+                                label = { Text("${if (pet.species == "강아지") "🐶" else "🐱"} ${pet.name}", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFF0284C7),
+                                    selectedLabelColor = Color.White
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -8177,6 +8365,73 @@ fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): S
             },
             dismissButton = {
                 TextButton(onClick = { showAddDDayDialog = false }) { Text("취소") }
+            }
+        )
+    }
+
+    if (showAddPetModal) {
+        AlertDialog(
+            onDismissRequest = { showAddPetModal = false },
+            title = { Text("➕ 새 반려동물 프로필 추가", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = (newPetSpeciesInput == "강아지"),
+                            onClick = { newPetSpeciesInput = "강아지" },
+                            label = { Text("🐶 강아지", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        FilterChip(
+                            selected = (newPetSpeciesInput == "고양이"),
+                            onClick = { newPetSpeciesInput = "고양이" },
+                            label = { Text("🐱 고양이", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = newPetNameInput,
+                        onValueChange = { newPetNameInput = it },
+                        label = { Text("반려동물 이름") },
+                        placeholder = { Text("예: 해피") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (newPetNameInput.isNotEmpty()) {
+                            val newPet = PetProfile(
+                                name = newPetNameInput.trim(),
+                                species = newPetSpeciesInput,
+                                type = if (newPetSpeciesInput == "강아지") "푸들" else "코리안숏헤어"
+                            )
+                            petProfileList.add(newPet)
+                            PersistentStorageManager.saveMultiPetList(context, petProfileList)
+                            selectedPetIndex = petProfileList.size - 1
+                            petName = newPet.name
+                            petSpecies = newPet.species
+                            petType = newPet.type
+                            Toast.makeText(context, "🎉 [${newPet.name}] 아이 프로필이 추가되었습니다!", Toast.LENGTH_SHORT).show()
+                            newPetNameInput = ""
+                            showAddPetModal = false
+                        } else {
+                            Toast.makeText(context, "아이 이름을 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                ) {
+                    Text("추가 저장", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddPetModal = false }) { Text("취소") }
             }
         )
     }
