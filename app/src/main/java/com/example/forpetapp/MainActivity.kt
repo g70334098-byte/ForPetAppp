@@ -1,5 +1,7 @@
 package com.example.forpetapp
 
+import com.example.forpetapp.security.AppSecurityManager
+import com.example.forpetapp.security.SecurityScanResult
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -79,9 +81,40 @@ enum class ScreenState {
 
 @Composable
 fun ForPetApp() {
+    val context = LocalContext.current
     var currentScreen by remember { mutableStateOf(ScreenState.LOGIN) }
     var isAdminUser by remember { mutableStateOf(false) }
     var currentAdminName by remember { mutableStateOf("최지훈 대표님") }
+    var securityWarningMessage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        val scanResult = AppSecurityManager.performFullSecurityScan(context)
+        when (scanResult) {
+            SecurityScanResult.DETECTED_CHEAT_TOOL -> {
+                securityWarningMessage = "🚨 [보안 경고] 메모리 변조 해킹 도구(치트엔진/게임가디언/프리다 등)가 감지되었습니다.\n어플의 안전을 위해 앱을 종료합니다."
+            }
+            SecurityScanResult.DETECTED_DEBUGGER -> {
+                securityWarningMessage = "🚨 [보안 경고] 무단 안티 디버깅 후킹 시도가 감지되었습니다.\n어플의 안전을 위해 앱을 종료합니다."
+            }
+            else -> {}
+        }
+    }
+
+    if (securityWarningMessage != null) {
+        AlertDialog(
+            onDismissRequest = { AppSecurityManager.terminateAppSafely() },
+            title = { Text("🔒 발자국동행 보안 센서 가동", fontWeight = FontWeight.Bold) },
+            text = { Text(securityWarningMessage ?: "") },
+            confirmButton = {
+                Button(
+                    onClick = { AppSecurityManager.terminateAppSafely() },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                ) {
+                    Text("확인 및 앱 종료", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
 
     when (currentScreen) {
         ScreenState.LOGIN -> LoginScreen(
