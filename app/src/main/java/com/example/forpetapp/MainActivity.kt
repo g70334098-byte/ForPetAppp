@@ -5328,9 +5328,9 @@ fun HomeScreenContent(
                             .padding(12.dp),
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text("🏥 서부산 제휴병원", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                        Text("🏥 부산 동물병원 리스트", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
                         Spacer(modifier = Modifier.height(2.dp))
-                        Text("• 강서/사하/사상/북구", fontSize = 11.sp, color = Color.Gray)
+                        Text("• 부산 각 구별 / 24시 응급", fontSize = 11.sp, color = Color(0xFF0284C7))
                     }
                 }
 
