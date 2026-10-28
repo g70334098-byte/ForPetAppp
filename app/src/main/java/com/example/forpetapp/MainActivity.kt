@@ -1127,19 +1127,32 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
         DriverChatDialog(booking = order, onDismiss = { selectedOrderForChat = null })
     }
 
-    // 수의사 진료 소견 작성 팝업
+    // 수의사 진료 소견 및 정산 영수증/처방전 작성 팝업 (가드 전용)
     selectedOrderForReport?.let { order ->
-        var doctorNoteText by remember { mutableStateOf("") }
-        var prescriptionText by remember { mutableStateOf("") }
+        var doctorNoteText by remember { mutableStateOf(order.doctorNote) }
+        var prescriptionText by remember { mutableStateOf(order.prescription) }
+
+        var uploadedReceiptUri by remember { mutableStateOf<Uri?>(order.receiptImageUri?.let { try { Uri.parse(it) } catch(_: Exception) { null } }) }
+        var uploadedPrescriptionUri by remember { mutableStateOf<Uri?>(order.prescriptionImageUri?.let { try { Uri.parse(it) } catch(_: Exception) { null } }) }
+
+        val receiptPickerLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri -> if (uri != null) uploadedReceiptUri = uri }
+
+        val prescriptionPickerLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri -> if (uri != null) uploadedPrescriptionUri = uri }
 
         AlertDialog(
             onDismissRequest = { selectedOrderForReport = null },
             title = {
-                Text("📄 수의사 소견 및 처방 리포트 작성", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("📄 수의사 소견 및 영수증/처방전 업로드", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             },
             text = {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 420.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text("환묘/환견: ${order.petName} (${order.hospitalName})", fontSize = 12.sp, color = Color.Gray)
@@ -1161,6 +1174,48 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2
                     )
+
+                    HorizontalDivider()
+
+                    // 1. 동물병원 영수증 촬영/첨부 버튼
+                    Text("🧾 동물병원 정산 영수증 첨부 (보호자 펫보험 청구용)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Button(
+                            onClick = { receiptPickerLauncher.launch("image/*") },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("🧾 영수증 사진 촬영/선택", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        if (uploadedReceiptUri != null) {
+                            Text("✓ 영수증 첨부됨", fontSize = 11.sp, color = Color(0xFF16A34A), fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    // 2. 처방전 / 약 봉투 촬영/첨부 버튼
+                    Text("💊 처방전 / 약 사진 첨부", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Button(
+                            onClick = { prescriptionPickerLauncher.launch("image/*") },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("💊 처방전 사진 촬영/선택", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        if (uploadedPrescriptionUri != null) {
+                            Text("✓ 처방전 첨부됨", fontSize = 11.sp, color = Color(0xFF16A34A), fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -1172,6 +1227,8 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
                                 status = "4. 진료 완료 & 수의사 리포트 전송 완료 🎉",
                                 doctorNote = doctorNoteText.ifEmpty { "진료 결과 이상 소견 없이 건강한 상태입니다." },
                                 prescription = prescriptionText.ifEmpty { "처방약 및 안심 홈케어 안내 전달 완료." },
+                                receiptImageUri = uploadedReceiptUri?.toString() ?: currentReportOrder.receiptImageUri,
+                                prescriptionImageUri = uploadedPrescriptionUri?.toString() ?: currentReportOrder.prescriptionImageUri,
                                 isCompleted = true
                             )
 
@@ -1186,7 +1243,10 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
                             // 2. 디스크 저장소에 100% 영구 저장 및 서버 동기화!
                             PersistentStorageManager.saveBookingList(context, driverOrders)
 
-                            Toast.makeText(context, "📤 수의사 진료 리포트가 디스크 및 서버에 100% 영구 저장되었으며, 보호자 앱으로 즉시 전송되었습니다!", Toast.LENGTH_LONG).show()
+                            // 3. 실시간 푸시 알림 발송
+                            sendSystemPushNotification(context, "📄 [발자국동행] 수의사 진료 리포트 & 영수증 도착!", "[${currentReportOrder.petName}] 아이의 진료 리포트 및 정산 영수증/처방전 사진이 전송되었습니다.")
+
+                            Toast.makeText(context, "📤 수의사 진료 리포트 및 영수증/처방전 사진이 디스크에 영구 저장되었으며 보호자 앱으로 즉시 전송되었습니다!", Toast.LENGTH_LONG).show()
                             selectedOrderForReport = null
                         }
                     },
@@ -1550,7 +1610,9 @@ data class BookingItem(
     val estimatedPrice: String = "30,000원 (가결제)",
     val isCompleted: Boolean = false,
     val doctorNote: String = "",
-    val prescription: String = ""
+    val prescription: String = "",
+    val receiptImageUri: String? = null,
+    val prescriptionImageUri: String? = null
 )
 
 // 📍 실제 안드로이드 GPS 단말기 위치 및 주소 변환 함수
@@ -1669,6 +1731,7 @@ object PersistentStorageManager {
         list.forEach { item ->
             val obj = org.json.JSONObject().apply {
                 put("id", item.id)
+                put("serviceTrim", item.serviceTrim)
                 put("serviceType", item.serviceType)
                 put("species", item.species)
                 put("petName", item.petName)
@@ -1682,6 +1745,8 @@ object PersistentStorageManager {
                 put("isCompleted", item.isCompleted)
                 put("doctorNote", item.doctorNote)
                 put("prescription", item.prescription)
+                put("receiptImageUri", item.receiptImageUri ?: "")
+                put("prescriptionImageUri", item.prescriptionImageUri ?: "")
             }
             jsonArray.put(obj)
         }
@@ -1698,6 +1763,7 @@ object PersistentStorageManager {
                 list.add(
                     BookingItem(
                         id = obj.optString("id"),
+                        serviceTrim = obj.optString("serviceTrim", "📅 예약 진료 (예약 O)"),
                         serviceType = obj.optString("serviceType"),
                         species = obj.optString("species"),
                         petName = obj.optString("petName"),
@@ -1710,7 +1776,9 @@ object PersistentStorageManager {
                         estimatedPrice = obj.optString("estimatedPrice"),
                         isCompleted = obj.optBoolean("isCompleted"),
                         doctorNote = obj.optString("doctorNote"),
-                        prescription = obj.optString("prescription")
+                        prescription = obj.optString("prescription"),
+                        receiptImageUri = obj.optString("receiptImageUri").ifEmpty { null },
+                        prescriptionImageUri = obj.optString("prescriptionImageUri").ifEmpty { null }
                     )
                 )
             }
@@ -3417,6 +3485,7 @@ fun NotificationCenterDialog(onDismiss: () -> Unit) {
 }
 
 // 🔔 안드로이드 상단 시스템 푸시 알림 (FCM 시스템 연동)
+@android.annotation.SuppressLint("MissingPermission")
 fun sendSystemPushNotification(context: android.content.Context, title: String, message: String) {
     try {
         val channelId = "baljaguk_push_channel"
