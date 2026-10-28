@@ -4920,18 +4920,37 @@ fun HomeScreenContent(
     }
 
     val hospitals = listOf(
+        // 강서구
+        HospitalInfo("명지24시온누리메디컬센터", "부산 강서구", "24시 응급", "부산 강서구 명지오션시티4로 80", "051-271-2475"),
         HospitalInfo("명지온누리동물병원", "부산 강서구", "낮 운영", "부산 강서구 명지국제8로 230", "051-291-7582"),
         HospitalInfo("에코스카이동물의원", "부산 강서구", "낮 운영", "부산 강서구 에코델타시티중앙로 100", "051-987-6543"),
-        HospitalInfo("명지24시온누리메디컬센터", "부산 강서구", "24시 응급", "부산 강서구 명지오션시티4로 80", "051-271-2475"),
+        
+        // 사하구
+        HospitalInfo("하단24시웰니스동물병원", "부산 사하구", "24시 응급", "부산 사하구 하단역 3번출구 앞", "051-208-2400"),
         HospitalInfo("하단가람동물병원", "부산 사하구", "낮 운영", "부산 사하구 낙동대로 550", "051-201-1111"),
         HospitalInfo("다대푸른동물병원", "부산 사하구", "낮 운영", "부산 사하구 다대로 300", "051-262-2222"),
-        HospitalInfo("하단24시웰니스동물병원", "부산 사하구", "24시 응급", "부산 사하구 하단역 3번출구 앞", "051-208-2400"),
+        
+        // 사상구
+        HospitalInfo("사상24시응급메디컬센터", "부산 사상구", "24시 응급", "부산 사상구 괘법동 사상역 근처", "051-315-2475"),
         HospitalInfo("감전동물병원", "부산 사상구", "낮 운영", "부산 사상구 사상로 150", "051-311-3333"),
         HospitalInfo("주례참누리동물병원", "부산 사상구", "낮 운영", "부산 사상구 가야대로 280", "051-322-4444"),
-        HospitalInfo("사상24시응급메디컬센터", "부산 사상구", "24시 응급", "부산 사상구 괘법동 사상역 근처", "051-315-2475"),
+        
+        // 북구
+        HospitalInfo("화명24시나누리동물병원", "부산 북구", "24시 응급", "부산 북구 화명역 1번출구 인근", "051-363-2400"),
         HospitalInfo("화명동물병원", "부산 북구", "낮 운영", "부산 북구 화명대로 32", "051-361-5555"),
         HospitalInfo("덕천동물메디컬센터", "부산 북구", "낮 운영", "부산 북구 덕천로 12", "051-332-6666"),
-        HospitalInfo("화명24시나누리동물병원", "부산 북구", "24시 응급", "부산 북구 화명역 1번출구 인근", "051-363-2400")
+
+        // 부산진구 (서면)
+        HospitalInfo("서면24시아이엔동물메디컬센터", "부산진구", "24시 응급", "부산 부산진구 중앙대로 680 (서면)", "051-808-2475"),
+        HospitalInfo("양정동물병원", "부산진구", "낮 운영", "부산 부산진구 양정동 123", "051-852-1122"),
+
+        // 해운대구 / 수영구
+        HospitalInfo("해운대24시동물메디컬센터", "해운대/수영구", "24시 응급", "부산 해운대구 해운대로 620", "051-747-2475"),
+        HospitalInfo("센텀동물병원", "해운대/수영구", "낮 운영", "부산 해운대구 센텀중앙로 48", "051-744-3322"),
+
+        // 금정구 / 연제구
+        HospitalInfo("부산대24시동물병원", "금정/연제구", "24시 응급", "부산 금정구 중앙대로 1600", "051-518-2400"),
+        HospitalInfo("연산동물메디컬센터", "금정/연제구", "낮 운영", "부산 연제구 연산동 450", "051-866-9988")
     )
 
     LazyColumn(
@@ -5373,7 +5392,7 @@ fun HomeScreenContent(
         var selectedRegionFilter by remember { mutableStateOf("전체") }
         var selectedTypeFilter by remember { mutableStateOf("전체") }
 
-        val regions = listOf("전체", "강서구", "사하구", "사상구", "북구")
+        val regions = listOf("전체", "강서구", "사하구", "사상구", "북구", "부산진구", "해운대/수영구", "금정/연제구")
 
         val filteredHospitals = hospitals.filter { item ->
             val regionMatch = selectedRegionFilter == "전체" || item.region.contains(selectedRegionFilter)
@@ -5385,8 +5404,8 @@ fun HomeScreenContent(
             onDismissRequest = { showHospitalListDialog = false },
             title = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("🏥 서부산 제휴 병원 목록", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text("구 단위 및 운영시간별 필터를 선택하세요.", fontSize = 11.sp, color = Color.Gray)
+                    Text("🏥 부산 동물병원 스마트 리스트", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("부산 각 구별 및 24시 응급 / 낮 주간병원 구분을 확인하세요.", fontSize = 11.sp, color = Color(0xFF0284C7))
                 }
             },
             text = {
