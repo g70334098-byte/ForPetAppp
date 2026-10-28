@@ -5605,11 +5605,12 @@ fun HomeScreenContent(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text("🏥", fontSize = 20.sp)
-                        Text(if (isHospitalReserved) "병원 진료 대행 (병원 예약자 전용)" else "병원 동행 & 당일 접수 (병원 미예약자 전용)", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                        Text(selectedTrimType, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = if (selectedTrimType.contains("긴급")) Color(0xFFDC2626) else Color(0xFF0F172A))
                     }
                     Text(
-                        if (isHospitalReserved) "예약 완료하신 동물병원 명칭을 기재해 주시면 가드가 1:1 안심 케어합니다."
-                        else "병원 미예약 건: 가드가 도착 후 인근 추천/희망 병원으로 당일 현장 접수를 도와드립니다.",
+                        if (selectedTrimType.contains("긴급")) "24시 응급실 산소 챔버 탑재 케어카가 최우선 즉시 배차됩니다."
+                        else if (selectedTrimType.contains("예약 O")) "예약 완료하신 동물병원 명칭을 기재해 주시면 가드가 1:1 안심 케어합니다."
+                        else "당일 미예약 건: 가드가 도착 후 인근 추천/희망 병원으로 현장 접수를 도와드립니다.",
                         fontSize = 11.sp,
                         color = Color(0xFF0284C7)
                     )
@@ -5622,45 +5623,6 @@ fun HomeScreenContent(
                         .height(460.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    // 0. 서비스 트림 선택 (🚨 긴급 출동 / 📅 예약 진료 / 🚗 미예약 이동)
-                    item {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("0. 서비스 트림 선택 (3가지 구분) 🚨", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                FilterChip(
-                                    selected = (selectedServiceTrim == "🚨 긴급 출동"),
-                                    onClick = { selectedServiceTrim = "🚨 긴급 출동" },
-                                    label = { Text("🚨 긴급 출동 (골든타임 응급 산소챔버 즉시 배차)", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = Color(0xFFDC2626),
-                                        selectedLabelColor = Color.White
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                FilterChip(
-                                    selected = (selectedServiceTrim == "📅 예약 진료 (예약 O)"),
-                                    onClick = { selectedServiceTrim = "📅 예약 진료 (예약 O)" },
-                                    label = { Text("📅 예약 진료 (지정 일시 수석가드 1:1 안심 동행)", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = Color(0xFF0284C7),
-                                        selectedLabelColor = Color.White
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                FilterChip(
-                                    selected = (selectedServiceTrim == "🚗 미예약 이동 (당일)"),
-                                    onClick = { selectedServiceTrim = "🚗 미예약 이동 (당일)" },
-                                    label = { Text("🚗 미예약 당일 이동 (당일 즉시 픽업 및 현장 수속)", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = Color(0xFFD97706),
-                                        selectedLabelColor = Color.White
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-                    }
-
                     // 1. 반려동물 구분 선택 (강아지 / 고양이)
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
