@@ -3356,7 +3356,7 @@ fun AiHealthChatDialog(
 
     val chatLogs = remember {
         mutableStateListOf(
-            Pair("AI 수의사 보조 '보듬이' 🤖", "안녕하세요 보호자님! 🐾 발자국동행 구글 제미나이(Gemini AI) 기반 수의학 전문 AI 보조 '보듬이'입니다.\n\n• 아픈 증상 (구토, 다리 절뚝거림, 기침, 식욕부진)\n• 근처 24시 동물병원 추천 및 응급 수속 안내\n• 3가지 케어카 요금 및 펫보험 청구 가이드\n\n무엇이든 물어보시면 제미나이 AI가 전문적으로 답변해 드립니다!")
+            Pair("AI 수의사 보조 '보듬이' 🤖", "안녕하세요 보호자님! 🐾 발자국동행 수의학 전문 AI 보조 '보듬이'입니다.\n\n• 아픈 증상 (눈 아픔, 충혈/눈곱, 구토, 다리 절뚝거림, 기침)\n• 근처 24시 동물병원 추천 및 응급 수속 안내\n• 3가지 케어카 요금 및 펫보험 청구 가이드\n\n무엇이든 물어보시면 전문 수의학 지식으로 답변해 드립니다!")
         )
     }
 
@@ -3371,7 +3371,7 @@ fun AiHealthChatDialog(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("🩺", fontSize = 22.sp)
-                Text("발자국동행 Gemini AI 수의사 보듬이", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("발자국동행 AI 수의사 보듬이", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         },
         text = {
@@ -3432,7 +3432,7 @@ fun AiHealthChatDialog(
                                 inputQuery = ""
 
                                 val aiPlaceholderIdx = chatLogs.size
-                                chatLogs.add(Pair("AI 수의사 보조 '보듬이' 🤖", "AI 수의사 보조 '보듬이'가 제미나이(Gemini) 수의학 AI 모델로 답변을 정밀 분석 중입니다... 🤖"))
+                                chatLogs.add(Pair("AI 수의사 보조 '보듬이' 🤖", "AI 수의사 보조 '보듬이'가 수의학 AI 모델로 답변을 정밀 분석 중입니다... 🤖"))
 
                                 coroutineScope.launch {
                                     val aiResponse = GeminiAiManager.fetchGeminiResponse(userQ, locationText)
