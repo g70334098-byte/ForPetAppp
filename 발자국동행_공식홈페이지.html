@@ -269,7 +269,7 @@
             line-height: 1.5;
         }
 
-        /* 제휴 병원 카드 */
+        /* 요금 안내 카드 */
         .hospital-section {
             background-color: var(--bg-dark);
             padding: 80px 24px;
@@ -288,15 +288,20 @@
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 16px;
-            padding: 20px;
+            padding: 24px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.04);
         }
 
         .hospital-card h3 { font-size: 16px; color: #0f172a; font-weight: 800; }
         .hospital-card p { font-size: 13px; color: var(--text-sub); }
+
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; }
+        .badge-red { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
+        .badge-yellow { background: #fffbeb; color: #d97706; border: 1px solid #fde047; }
+        .badge-blue { background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; }
 
         /* 하단 푸터 (다크 네이비 포인트) */
         footer {
@@ -361,7 +366,7 @@
 
             <ul class="nav-links">
                 <li><a href="#services">서비스 안내</a></li>
-                <li><a href="#hospitals">제휴 동물병원</a></li>
+                <li><a href="#pricing">투명 정찰 요금안내</a></li>
                 <li><a href="발자국동행_PC관리자포털.html" target="_blank" style="color:#d97706;">👑 관리자 관제 포털</a></li>
             </ul>
 
@@ -383,7 +388,7 @@
         <div>
             <div class="hero-title-badge">
                 <span>🟢</span>
-                <span>부산 명지 / 사하 / 사상 실시간 레이 케어카 배차 가동 중</span>
+                <span>부산 전 지역 1:1 레이 케어카 실시간 배차 가동 중</span>
             </div>
 
             <h1 class="hero-title">
@@ -394,7 +399,7 @@
 
             <p class="hero-desc">
                 보호자님의 바쁜 일상 속, 소중한 반려동물의 병원 이송부터 진료 수속,
-                담당 수의사의 진료 리포트 전송까지 전 과정을 1:1 맞춤 안심 케어해 드립니다.
+                담당 수의사의 진료 리포트 전송까지 전 과정을 부산 전 지역 1:1 맞춤 안심 케어해 드립니다.
             </p>
 
             <div class="hero-btn-group">
@@ -448,72 +453,42 @@
         </div>
     </section>
 
-    <!-- 부산 각 구별 동물병원 스마트 리스트 (24시 응급 vs 주간 구분) -->
-    <section class="hospital-section" id="hospitals">
+    <!-- 투명 정찰 요금표 안내 섹션 -->
+    <section class="hospital-section" id="pricing">
         <div class="section-header">
-            <h2>🏥 부산 주요 동물병원 스마트 리스트</h2>
-            <p>부산 각 구별 및 🚨 24시 응급 메디컬 센터 / ☀️ 낮 주간 진료 전문 병원 구분 안내</p>
+            <h2>💰 발자국동행 3가지 서비스 트림 투명 정찰 요금표</h2>
+            <p>부산 전 지역 미터기 기준 정찰제 적용, 이용 후 투명하게 자동 결제됩니다.</p>
         </div>
 
         <div class="hospital-grid">
-            <div class="hospital-card">
+            <div class="hospital-card" style="border: 2px solid #ef4444; background: #fff5f5;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span class="badge badge-red">🚨 24시 응급</span>
-                    <span style="font-size:12px; color:#64748b; font-weight:bold;">부산 강서구</span>
+                    <span class="badge badge-red">🚨 1. 긴급 응급 출동</span>
+                    <span style="font-size:12px; color:#dc2626; font-weight:bold;">골든타임 응급</span>
                 </div>
-                <h3>명지24시온누리메디컬센터</h3>
-                <p>📍 부산 강서구 명지오션시티4로 80</p>
-                <p>📞 051-271-2475</p>
+                <h3 style="font-size:24px; color:#dc2626; margin-top:6px;">50,000 원</h3>
+                <p style="color:#1e293b; font-weight:bold;">📍 24시 응급실 직통 수속 연결 & 케어카 최우선 즉시 배차 출동</p>
+                <p style="font-size:12px;">✨ 22.5℃ 쾌적 실내온도 자동 유지, 1080p 바디캠 라이브 송출</p>
             </div>
 
-            <div class="hospital-card">
+            <div class="hospital-card" style="border: 2px solid #d97706; background: #fffbeb;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span class="badge badge-blue">☀️ 낮 주간진료</span>
-                    <span style="font-size:12px; color:#64748b; font-weight:bold;">부산 강서구</span>
+                    <span class="badge badge-yellow">🚗 2. 미예약 당일 이동</span>
+                    <span style="font-size:12px; color:#b45309; font-weight:bold;">당일 현장 접수</span>
                 </div>
-                <h3>명지온누리동물병원</h3>
-                <p>📍 부산 강서구 명지국제8로 230</p>
-                <p>📞 051-291-7582</p>
+                <h3 style="font-size:24px; color:#d97706; margin-top:6px;">35,000 원</h3>
+                <p style="color:#1e293b; font-weight:bold;">📍 당일 급한 스케줄 및 당일 현장 동물병원 수속 이동 대행</p>
+                <p style="font-size:12px;">✨ 수석 가드 자택 픽업, 왕복 이동 및 현장 수속 케어 포함</p>
             </div>
 
-            <div class="hospital-card">
+            <div class="hospital-card" style="border: 2px solid #0284c7; background: #f0f9ff;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span class="badge badge-red">🚨 24시 응급</span>
-                    <span style="font-size:12px; color:#64748b; font-weight:bold;">부산 사하구</span>
+                    <span class="badge badge-blue">📅 3. 예약 진료 (예약 O)</span>
+                    <span style="font-size:12px; color:#0369a1; font-weight:bold;">미리 지정 예약</span>
                 </div>
-                <h3>하단24시웰니스동물병원</h3>
-                <p>📍 부산 사하구 하단역 3번출구 앞</p>
-                <p>📞 051-208-2400</p>
-            </div>
-
-            <div class="hospital-card">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span class="badge badge-red">🚨 24시 응급</span>
-                    <span style="font-size:12px; color:#64748b; font-weight:bold;">부산 사상구</span>
-                </div>
-                <h3>사상24시응급메디컬센터</h3>
-                <p>📍 부산 사상구 괘법동 사상역 근처</p>
-                <p>📞 051-315-2475</p>
-            </div>
-
-            <div class="hospital-card">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span class="badge badge-red">🚨 24시 응급</span>
-                    <span style="font-size:12px; color:#64748b; font-weight:bold;">부산진구 (서면)</span>
-                </div>
-                <h3>서면24시아이엔동물메디컬센터</h3>
-                <p>📍 부산 부산진구 중앙대로 680</p>
-                <p>📞 051-808-2475</p>
-            </div>
-
-            <div class="hospital-card">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span class="badge badge-red">🚨 24시 응급</span>
-                    <span style="font-size:12px; color:#64748b; font-weight:bold;">해운대구/수영구</span>
-                </div>
-                <h3>해운대24시동물메디컬센터</h3>
-                <p>📍 부산 해운대구 해운대로 620</p>
-                <p>📞 051-747-2475</p>
+                <h3 style="font-size:24px; color:#0284c7; margin-top:6px;">30,000 원</h3>
+                <p style="color:#1e293b; font-weight:bold;">📍 지정 일시 미리 예약 완료된 동물병원 1:1 수석 가드 안심 동행</p>
+                <p style="font-size:12px;">✨ 담당 수의사 정밀 진료 소견 및 복용 지침 모바일 전송</p>
             </div>
         </div>
     </section>
