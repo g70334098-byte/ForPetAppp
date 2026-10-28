@@ -7,16 +7,16 @@
     <meta name="description" content="1:1 수의사 안심 동행 레이 케어카 서비스. 병원 이송부터 진료 수속, 진료 리포트 전송까지 반려동물을 위한 최고의 이동 서비스">
     <style>
         :root {
-            --bg-dark: #0f172a;
-            --card-bg: #1e293b;
-            --border-color: #334155;
-            --primary: #0284c7;
+            --bg-dark: #f8f6f0;        /* 따뜻한 감성 베이지/크림 배경 */
+            --card-bg: #ffffff;        /* 세련된 화이트 카드 */
+            --border-color: #e2dad0;    /* 리넨 원단 촉감의 은은한 베이지 테두리 */
+            --primary: #0284c7;        /* 시그니처 안심 블루 */
             --primary-hover: #0369a1;
-            --accent-orange: #f97316;
-            --accent-gold: #f59e0b;
+            --accent-orange: #d97706;   /* 가죽 스트랩 포인트 우드 오렌지 */
+            --accent-gold: #b45309;
             --accent-green: #10b981;
-            --text-main: #f8fafc;
-            --text-sub: #94a3b8;
+            --text-main: #1e293b;      /* 또렷한 다크 슬레이트 메인 텍스트 */
+            --text-sub: #64748b;       /* 부드러운 다크 베이지 서브 텍스트 */
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; word-break: keep-all; }
@@ -28,11 +28,11 @@
             overflow-x: hidden;
         }
 
-        /* 상단 네비게이션 헤더 */
+        /* 상단 네비게이션 헤더 (베이지 톤) */
         header {
             position: sticky;
             top: 0;
-            background: rgba(15, 23, 42, 0.95);
+            background: rgba(248, 246, 240, 0.95);
             backdrop-filter: blur(8px);
             border-bottom: 1px solid var(--border-color);
             z-index: 1000;
@@ -52,7 +52,7 @@
             align-items: center;
             gap: 12px;
             text-decoration: none;
-            color: #fff;
+            color: var(--text-main);
         }
 
         .brand-logo-img {
@@ -61,7 +61,7 @@
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid var(--primary);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
         .brand-text-title {
@@ -69,6 +69,7 @@
             font-weight: 800;
             letter-spacing: -0.5px;
             white-space: nowrap;
+            color: var(--text-main);
         }
 
         .brand-text-sub {
@@ -93,7 +94,7 @@
             transition: color 0.2s;
         }
 
-        .nav-links a:hover { color: #fff; }
+        .nav-links a:hover { color: var(--primary); }
 
         .btn-cta {
             background-color: var(--primary);
@@ -107,7 +108,7 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
             white-space: nowrap;
         }
 
@@ -128,9 +129,9 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: rgba(16, 185, 129, 0.15);
+            background: rgba(16, 185, 129, 0.12);
             border: 1px solid var(--accent-green);
-            color: var(--accent-green);
+            color: #047857;
             padding: 6px 14px;
             border-radius: 20px;
             font-size: 12px;
@@ -144,9 +145,7 @@
             line-height: 1.3;
             letter-spacing: -0.5px;
             margin-bottom: 20px;
-            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #0f172a;
         }
 
         .hero-desc {
@@ -174,7 +173,7 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
             transition: 0.2s;
         }
 
@@ -182,7 +181,8 @@
 
         .btn-hero-outline {
             border: 2px solid var(--primary);
-            color: #ffffff;
+            color: var(--primary);
+            background: #ffffff;
             padding: 12px 26px;
             border-radius: 12px;
             font-size: 15px;
@@ -192,9 +192,10 @@
             align-items: center;
             gap: 8px;
             transition: 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
 
-        .btn-hero-outline:hover { background: rgba(2, 132, 199, 0.15); }
+        .btn-hero-outline:hover { background: rgba(2, 132, 199, 0.08); }
 
         .hero-image-box {
             text-align: center;
@@ -205,13 +206,13 @@
             width: 100%;
             max-width: 440px;
             border-radius: 24px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-            border: 3px solid var(--border-color);
+            box-shadow: 0 16px 36px rgba(0,0,0,0.12);
+            border: 4px solid #ffffff;
         }
 
         /* 4대 서비스 특징 카드 */
         .features-section {
-            background-color: #0b1120;
+            background-color: #f1ede4;
             padding: 80px 24px;
             border-top: 1px solid var(--border-color);
             border-bottom: 1px solid var(--border-color);
@@ -222,7 +223,7 @@
             margin-bottom: 40px;
         }
 
-        .section-header h2 { font-size: 28px; font-weight: 900; margin-bottom: 10px; }
+        .section-header h2 { font-size: 28px; font-weight: 900; margin-bottom: 10px; color: #0f172a; }
         .section-header p { font-size: 14px; color: var(--text-sub); }
 
         .grid-cards {
@@ -240,12 +241,13 @@
             padding: 26px 18px;
             text-align: center;
             transition: 0.3s;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.04);
         }
 
         .card-feature:hover {
             transform: translateY(-8px);
             border-color: var(--primary);
-            box-shadow: 0 12px 30px rgba(2, 132, 199, 0.25);
+            box-shadow: 0 12px 30px rgba(2, 132, 199, 0.15);
         }
 
         .card-icon {
@@ -258,7 +260,7 @@
             font-size: 17px;
             font-weight: 800;
             margin-bottom: 8px;
-            color: #fff;
+            color: #0f172a;
         }
 
         .card-desc {
@@ -269,7 +271,7 @@
 
         /* 제휴 병원 카드 */
         .hospital-section {
-            background-color: #0f172a;
+            background-color: var(--bg-dark);
             padding: 80px 24px;
             border-top: 1px solid var(--border-color);
         }
@@ -290,17 +292,18 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
         }
 
-        .hospital-card h3 { font-size: 16px; color: #fff; font-weight: 800; }
+        .hospital-card h3 { font-size: 16px; color: #0f172a; font-weight: 800; }
         .hospital-card p { font-size: 13px; color: var(--text-sub); }
 
-        /* 하단 푸터 */
+        /* 하단 푸터 (다크 네이비 포인트) */
         footer {
-            background-color: #070a12;
+            background-color: #0f172a;
             border-top: 1px solid var(--border-color);
             padding: 40px 24px;
-            color: var(--text-sub);
+            color: #94a3b8;
             font-size: 13px;
         }
 
@@ -349,7 +352,7 @@
     <header>
         <div class="nav-container">
             <a href="#" class="brand-box">
-                <img src="official_logo.png" class="brand-logo-img" alt="발자국동행 로고">
+                <img src="hero_visual.jpg" class="brand-logo-img" alt="발자국동행 로고">
                 <div>
                     <div class="brand-text-title">발자국동행</div>
                     <div class="brand-text-sub">반려동물과 함께 걷는 따뜻한 길</div>
@@ -359,7 +362,7 @@
             <ul class="nav-links">
                 <li><a href="#services">서비스 안내</a></li>
                 <li><a href="#hospitals">제휴 동물병원</a></li>
-                <li><a href="발자국동행_PC관리자포털.html" target="_blank" style="color:#f59e0b;">👑 관리자 관제 포털</a></li>
+                <li><a href="발자국동행_PC관리자포털.html" target="_blank" style="color:#d97706;">👑 관리자 관제 포털</a></li>
             </ul>
 
             <div style="display: flex; gap: 8px; align-items: center;">
@@ -367,7 +370,7 @@
                     <span>▶</span>
                     <span>Google Play</span>
                 </a>
-                <a href="javascript:void(0)" class="btn-cta" style="background: #334155; border: 1px solid #475569;" onclick="alert('🍎 iOS 앱스토어 어플은 현재 정식 출시 준비 중입니다. 출시 완료 시 바로 안내해 드리겠습니다!')">
+                <a href="javascript:void(0)" class="btn-cta" style="background: #475569; border: 1px solid #64748b;" onclick="alert('🍎 iOS 앱스토어 어플은 현재 정식 출시 준비 중입니다. 출시 완료 시 바로 안내해 드리겠습니다!')">
                     <span></span>
                     <span>App Store</span>
                 </a>
@@ -375,7 +378,7 @@
         </div>
     </header>
 
-    <!-- 메인 히어로 비주얼 -->
+    <!-- 메인 히어로 비주얼 (따뜻한 베이지 감성) -->
     <section class="hero-section">
         <div>
             <div class="hero-title-badge">
@@ -407,7 +410,7 @@
         </div>
 
         <div class="hero-image-box">
-            <img src="official_logo.png" class="hero-main-img" alt="발자국동행 메인 비주얼">
+            <img src="hero_visual.jpg" class="hero-main-img" alt="발자국동행 메인 비주얼">
         </div>
     </section>
 
