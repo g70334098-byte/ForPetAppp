@@ -1929,15 +1929,22 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                         modifier = Modifier.clickable { selectedTab = 2 }.padding(4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("🐾", fontSize = 18.sp)
-                        Text("내 반려동물", fontSize = 11.sp, color = if (selectedTab == 2) Color(0xFF0284C7) else Color.Gray, fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal)
+                        Text("📸", fontSize = 18.sp)
+                        Text("안심갤러리", fontSize = 11.sp, color = if (selectedTab == 2) Color(0xFF0284C7) else Color.Gray, fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal)
                     }
                     Column(
                         modifier = Modifier.clickable { selectedTab = 3 }.padding(4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        Text("🐾", fontSize = 18.sp)
+                        Text("내 반려동물", fontSize = 11.sp, color = if (selectedTab == 3) Color(0xFF0284C7) else Color.Gray, fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Normal)
+                    }
+                    Column(
+                        modifier = Modifier.clickable { selectedTab = 4 }.padding(4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text("👤", fontSize = 18.sp)
-                        Text("마이페이지", fontSize = 11.sp, color = if (selectedTab == 3) Color(0xFF0284C7) else Color.Gray, fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Normal)
+                        Text("마이페이지", fontSize = 11.sp, color = if (selectedTab == 4) Color(0xFF0284C7) else Color.Gray, fontWeight = if (selectedTab == 4) FontWeight.Bold else FontWeight.Normal)
                     }
                 }
             }
@@ -1969,7 +1976,11 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                     bookingList = bookingList,
                     onNavigateToHome = { selectedTab = 0 }
                 )
-                2 -> MyPetDetailScreen(
+                2 -> PetSafetyGalleryScreen(
+                    petName = savedPetName,
+                    onNavigateToHome = { selectedTab = 0 }
+                )
+                3 -> MyPetDetailScreen(
                     savedImageUri = savedPetImageUri,
                     savedPetSpecies = savedPetSpecies,
                     savedPetName = savedPetName,
@@ -2011,7 +2022,7 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                         )
                     }
                 )
-                3 -> MyPageScreen(
+                4 -> MyPageScreen(
                     userPoints = userPoints,
                     userReferralCode = userReferralCode,
                     userNickname = userNickname,
@@ -3405,7 +3416,191 @@ fun NotificationCenterDialog(onDismiss: () -> Unit) {
     )
 }
 
-// 4번: 🧾 보듬펫 전자 영수증 & 진료비 세부 정산서 보관함 다이얼로그
+// 🔔 안드로이드 상단 시스템 푸시 알림 (FCM 시스템 연동)
+fun sendSystemPushNotification(context: android.content.Context, title: String, message: String) {
+    try {
+        val channelId = "baljaguk_push_channel"
+        val notificationManager = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
+        if (notificationManager != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val channel = android.app.NotificationChannel(
+                channelId,
+                "발자국동행 안심 실시간 알림",
+                android.app.NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "가드 배차, 픽업 상태, 수의사 진료 리포트 전송 알림"
+                enableVibration(true)
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val builder = androidx.core.app.NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(androidx.core.app.NotificationCompat.DEFAULT_ALL)
+            .setAutoCancel(true)
+
+        notificationManager?.notify((System.currentTimeMillis() % 10000).toInt(), builder.build())
+    } catch (_: Exception) {}
+}
+
+// 📸 실시간 아이 안심 사진/영상 갤러리 화면 컴포저블
+@Composable
+fun PetSafetyGalleryScreen(
+    petName: String = "초코",
+    onNavigateToHome: () -> Unit
+) {
+    val context = LocalContext.current
+    val sampleGalleryItems = remember {
+        mutableStateListOf(
+            Triple("📸 [케어카 탑승 현장]", "22.5℃ 쾌적한 레이 전용 수송 공간에서 $petName 아이가 편안하게 안정을 취하고 있습니다.", "오늘 오전 10:35 (가드 촬영)"),
+            Triple("📸 [명지24시병원 대기실]", "명지24시온누리메디컬센터 접수처 도착 후 수석 가드가 1:1 수속 케어 중입니다.", "오늘 오전 11:10 (가드 촬영)"),
+            Triple("📸 [귀가 이송 완료]", "진료 및 영양제 처방 수령 후 자택 안심 귀가가 안전하게 완료되었습니다.", "오늘 오후 01:20 (가드 촬영)")
+        )
+    }
+
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var inputCaption by remember { mutableStateOf("") }
+    var showAddPhotoDialog by remember { mutableStateOf(false) }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            selectedImageUri = uri
+            showAddPhotoDialog = true
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White,
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+            shadowElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("📸 [$petName] 아이 안심 갤러리", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color(0xFF0F172A))
+                    Text("가드가 실시간 촬영한 현장 사진 & 바디캠 컷을 확인할 수 있습니다.", fontSize = 11.sp, color = Color(0xFF0284C7))
+                }
+
+                Button(
+                    onClick = { photoPickerLauncher.launch("image/*") },
+                    shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                ) {
+                    Text("📷 사진 추가", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            items(sampleGalleryItems.size) { index ->
+                val (title, desc, time) = sampleGalleryItems[index]
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0284C7))
+                            Text(time, fontSize = 10.sp, color = Color.Gray)
+                        }
+
+                        // 로고/갤러리 비주얼 화보 이미지
+                        Image(
+                            painter = painterResource(id = R.drawable.official_logo),
+                            contentDescription = "안심 갤러리 현장 사진",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                                .clip(RoundedCornerShape(12.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+
+                        Text(desc, fontSize = 12.sp, color = Color(0xFF1E293B), lineHeight = 16.sp, fontWeight = FontWeight.Medium)
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    Toast.makeText(context, "📥 [$title] 원본 고화질 사진이 갤러리에 저장되었습니다!", Toast.LENGTH_SHORT).show()
+                                },
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("📥 고화질 다운로드", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showAddPhotoDialog && selectedImageUri != null) {
+        AlertDialog(
+            onDismissRequest = { showAddPhotoDialog = false },
+            title = { Text("📷 안심 현장 사진 등록", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("선택한 현장 사진에 짧은 안심 멘트를 적어주세요.", fontSize = 12.sp, color = Color.Gray)
+
+                    OutlinedTextField(
+                        value = inputCaption,
+                        onValueChange = { inputCaption = it },
+                        label = { Text("안심 현장 설명 문구") },
+                        placeholder = { Text("예: 차내 온도 22.5℃ 쾌적 유지 중입니다.") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val captionStr = inputCaption.ifEmpty { "가드 안심 현장 사진이 정상 등록되었습니다." }
+                        sampleGalleryItems.add(0, Triple("📸 [실시간 안심 현장 컷]", captionStr, "방금 전 (가드/보호자 등록)"))
+                        Toast.makeText(context, "🎉 안심 현장 사진이 성공적으로 갤러리에 추가되었습니다!", Toast.LENGTH_SHORT).show()
+                        showAddPhotoDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                ) {
+                    Text("등록 완료", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddPhotoDialog = false }) { Text("취소") }
+            }
+        )
+    }
+}
 @Composable
 fun DigitalReceiptDialog(
     booking: BookingItem,
