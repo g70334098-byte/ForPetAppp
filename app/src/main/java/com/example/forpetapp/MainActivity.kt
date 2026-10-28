@@ -2299,7 +2299,7 @@ fun LiveGpsMapDialog(
                 ) {
                     Column(
                         modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -2311,6 +2311,21 @@ fun LiveGpsMapDialog(
                         }
                         HorizontalDivider()
                         Text("• 이송 담당: 박찬헌 가드 (안전속도 준수 및 차내 실시간 소독 완료)", fontSize = 11.sp, color = Color.Gray)
+
+                        Button(
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:01026545394"))
+                                context.startActivity(intent)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("📞", fontSize = 16.sp)
+                                Text("담당 박찬헌 가드 직통 안심 통화 연결", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
                     }
                 }
             }
@@ -5083,6 +5098,111 @@ fun HomeScreenContent(
                         Text("발자국동행 1:1 병원 진료 대행 및 안심 이동 케어 서비스 정식 안내", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFF0F172A), maxLines = 1)
                     }
                     Text("더보기 ➔", fontSize = 11.sp, color = Color.Gray)
+                }
+            }
+        }
+
+        // 1-2A. 🚨 24시 비상 SOS 관제 센터 직통 전화 카드
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:01037865394"))
+                        context.startActivity(intent)
+                    },
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+                border = BorderStroke(1.5.dp, Color(0xFFEF4444))
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text("🚨", fontSize = 22.sp)
+                        Column {
+                            Text("24시 비상 SOS 관제센터 직통 전화", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFDC2626))
+                            Text("이동 중 위급 상황 발생 시 원클릭 24시 직통 연결", fontSize = 10.sp, color = Color(0xFF991B1B))
+                        }
+                    }
+                    Text("📞 SOS 연결 ➔", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFDC2626))
+                }
+            }
+        }
+
+        // 1-2B. 📅 반려동물 예방접종 / 건강검진 D-Day 카운트다운 카드
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showBookingNoticeDialog = true },
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F9FF)),
+                border = BorderStroke(1.5.dp, Color(0xFF0284C7))
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("📅", fontSize = 18.sp)
+                            Text("내 아이 예방접종 & 검진 D-Day 알림", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                        }
+                        Surface(shape = RoundedCornerShape(20.dp), color = Color(0xFFE0F2FE)) {
+                            Text("D-Day 알림 🔔", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7), modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFFEF3C7),
+                            border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("💉 광견병 예방접종", fontSize = 10.sp, color = Color(0xFF92400E), fontWeight = FontWeight.Bold)
+                                Text("D - 18 일", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                            }
+                        }
+
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFE0F2FE),
+                            border = BorderStroke(1.dp, Color(0xFFBAE6FD))
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("🩺 정밀 종합검진", fontSize = 10.sp, color = Color(0xFF0369A1), fontWeight = FontWeight.Bold)
+                                Text("D - 34 일", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                            }
+                        }
+
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFDCFCE7),
+                            border = BorderStroke(1.dp, Color(0xFF86EFAC))
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("🐛 심장사상충 투약", fontSize = 10.sp, color = Color(0xFF15803D), fontWeight = FontWeight.Bold)
+                                Text("D - 3 일", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A))
+                            }
+                        }
+                    }
                 }
             }
         }
