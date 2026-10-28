@@ -1886,10 +1886,8 @@ object PersistentStorageManager {
     }
 
     fun loadMultiPetList(context: android.content.Context): MutableList<PetProfile> {
-        val jsonStr = getPrefs(context).getString("multi_pet_list_json", null) ?: return mutableListOf(
-            PetProfile(id = "1", name = "초코", species = "강아지", type = "말티즈", weight = "4.5"),
-            PetProfile(id = "2", name = "해피", species = "고양이", type = "코리안숏헤어", weight = "3.8", gender = "여아")
-        )
+        val jsonStr = getPrefs(context).getString("multi_pet_list_json", null)
+            ?: return mutableListOf(PetProfile(id = "1", name = "행복이", species = "강아지", type = "말티즈"))
         val list = mutableListOf<PetProfile>()
         try {
             val jsonArray = org.json.JSONArray(jsonStr)
@@ -1901,7 +1899,7 @@ object PersistentStorageManager {
                         id = obj.optString("id"),
                         imageUriStr = obj.optString("imageUriStr").ifEmpty { null },
                         species = obj.optString("species", "강아지"),
-                        name = obj.optString("name", "초코"),
+                        name = obj.optString("name", "행복이"),
                         ownerRealName = obj.optString("ownerRealName", "홍길동"),
                         type = obj.optString("type", "말티즈"),
                         gender = obj.optString("gender", "남아"),
@@ -1914,7 +1912,7 @@ object PersistentStorageManager {
                 )
             }
         } catch (_: Exception) {}
-        return if (list.isNotEmpty()) list else mutableListOf(PetProfile(id = "1", name = "초코"))
+        return list
     }
 
     // 반려동물 프로필 정보 저장/로드 (.commit() 보장)
@@ -7846,13 +7844,40 @@ fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): S
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("🐾 내 반려동물 프로필 (${petProfileList.size}마리)", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0F172A))
-                        Button(
-                            onClick = { showAddPetModal = true },
-                            shape = RoundedCornerShape(20.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Text("➕ 아이 추가", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (petProfileList.size > 1) {
+                                TextButton(
+                                    onClick = {
+                                        if (selectedPetIndex < petProfileList.size) {
+                                            val removedName = petProfileList[selectedPetIndex].name
+                                            petProfileList.removeAt(selectedPetIndex)
+                                            if (selectedPetIndex >= petProfileList.size) {
+                                                selectedPetIndex = (petProfileList.size - 1).coerceAtLeast(0)
+                                            }
+                                            if (petProfileList.isNotEmpty()) {
+                                                val nextPet = petProfileList[selectedPetIndex]
+                                                petName = nextPet.name
+                                                petSpecies = nextPet.species
+                                                petType = nextPet.type
+                                            }
+                                            PersistentStorageManager.saveMultiPetList(context, petProfileList)
+                                            Toast.makeText(context, "🗑️ [${removedName}] 프로필이 삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text("🗑️ 삭제", fontSize = 11.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            Button(
+                                onClick = { showAddPetModal = true },
+                                shape = RoundedCornerShape(20.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text("➕ 아이 추가", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
 
