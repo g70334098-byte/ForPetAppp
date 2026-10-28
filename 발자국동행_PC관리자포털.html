@@ -727,6 +727,24 @@
         </div>
     </div>
 
+    <!-- 4. 회원 정밀 프로필 & 오더 내역 모달 -->
+    <div class="modal-overlay" id="user-detail-modal">
+        <div class="modal-box" style="width: 720px; max-width: 95vw;">
+            <div class="modal-header">
+                <h3 id="user-detail-title">🔍 회원 정밀 프로필 & 이용 내역</h3>
+                <span class="modal-close" onclick="closeModal('user-detail-modal')">✕</span>
+            </div>
+
+            <div id="user-detail-content" style="display:flex; flex-direction:column; gap:16px;">
+                <!-- Dynamically populated -->
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-action btn-green" style="padding:10px 18px;" onclick="closeModal('user-detail-modal')">닫기</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // 시계 가동
         function updateClock() {
@@ -917,18 +935,19 @@
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><b>${user.name}</b></td>
+                    <td><b style="color:#0284c7; cursor:pointer;" onclick="openUserDetailModal(${index})">${user.name} 🔍</b></td>
                     <td><span class="badge ${badgeClass}">${providerStr}</span></td>
-                    <td><b style="color:#38bdf8;">${user.phone}</b></td>
+                    <td><b style="color:#0284c7;">${user.phone}</b></td>
                     <td style="font-size:12px;">${user.address}</td>
-                    <td>${user.pet}</td>
-                    <td><b style="color:#f59e0b;">${user.points.toLocaleString()} P</b></td>
+                    <td><b style="color:#d97706; cursor:pointer;" onclick="openUserDetailModal(${index})">${user.pet} 🐾</b></td>
+                    <td><b style="color:#d97706;">${user.points.toLocaleString()} P</b></td>
                     <td>
                         <button class="btn-action btn-gold" style="padding:4px 8px; font-size:11px;" onclick="addPoints(${index}, 3000)">🎁 +3,000P</button>
                     </td>
                     <td>
                         <div style="display:flex; gap:4px;">
-                            <button class="btn-action" style="padding:4px 8px; font-size:11px;" onclick="openEditUserModal(${index})">✏️ 수정</button>
+                            <button class="btn-action" style="padding:4px 8px; font-size:11px; background:#0284c7;" onclick="openUserDetailModal(${index})">🔍 상세조회</button>
+                            <button class="btn-action btn-gold" style="padding:4px 8px; font-size:11px;" onclick="openEditUserModal(${index})">✏️ 수정</button>
                             <button class="btn-action btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteUser(${index})">🗑️ 삭제</button>
                         </div>
                     </td>
@@ -937,6 +956,91 @@
             });
 
             document.getElementById('kpi-member-count').innerText = usersData.length.toLocaleString() + " 명";
+        }
+
+        // 회원 정밀 프로필 및 전체 이용 오더 이력 모달
+        function openUserDetailModal(index) {
+            const user = usersData[index];
+            const modal = document.getElementById('user-detail-modal');
+            const title = document.getElementById('user-detail-title');
+            const content = document.getElementById('user-detail-content');
+
+            title.innerText = `🔍 [${user.name}] 회원 정밀 프로필 & 이용 내역`;
+
+            const cleanName = user.name.replace(" 대표님", "").replace(" 보호자님", "");
+            const userOrders = ordersData.filter(o =>
+                o.owner.includes(cleanName) ||
+                o.owner.includes(user.phone)
+            );
+
+            let ordersHtml = '';
+            if (userOrders.length === 0) {
+                ordersHtml = `<div style="padding:16px; background:#f1ede4; border-radius:8px; color:#64748b; font-size:12px; text-align:center;">📋 아직 접수된 이용 오더 내역이 없습니다.</div>`;
+            } else {
+                ordersHtml = `
+                    <table style="width:100%; border-collapse:collapse; font-size:12px; margin-top:8px;">
+                        <thead>
+                            <tr style="background:#f1ede4; color:#475569;">
+                                <th style="padding:8px;">오더ID</th>
+                                <th style="padding:8px;">트림 구분</th>
+                                <th style="padding:8px;">반려동물</th>
+                                <th style="padding:8px;">목적지 병원</th>
+                                <th style="padding:8px;">예약시각</th>
+                                <th style="padding:8px;">진행 상태</th>
+                                <th style="padding:8px;">결제금액</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                userOrders.forEach(o => {
+                    let trimClass = "badge-blue";
+                    if ((o.trim || '').includes("긴급")) trimClass = "badge-red";
+                    else if ((o.trim || '').includes("미예약")) trimClass = "badge-yellow";
+
+                    ordersHtml += `
+                        <tr style="border-bottom:1px solid #e2dad0;">
+                            <td style="padding:8px;"><b>${o.id}</b></td>
+                            <td style="padding:8px;"><span class="badge ${trimClass}">${o.trim || '📅 예약 진료'}</span></td>
+                            <td style="padding:8px;"><b>${o.pet}</b></td>
+                            <td style="padding:8px;">${o.hospital}</td>
+                            <td style="padding:8px;">${o.time}</td>
+                            <td style="padding:8px;"><span class="badge ${o.status.includes('완료') ? 'badge-active' : 'badge-pending'}">${o.status}</span></td>
+                            <td style="padding:8px;"><b style="color:#d97706;">${o.price}</b></td>
+                        </tr>
+                    `;
+                });
+                ordersHtml += `</tbody></table>`;
+            }
+
+            content.innerHTML = `
+                <div style="background:#f8f6f0; border:1px solid #e2dad0; padding:16px; border-radius:12px;">
+                    <h4 style="font-size:14px; color:#0f172a; margin-bottom:10px;">👤 회원 기본 인적사항</h4>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px; color:#1e293b;">
+                        <div><b>성명</b>: ${user.name}</div>
+                        <div><b>연계 계정</b>: ${user.provider || '🔴 Google 계정'}</div>
+                        <div><b>연락처</b>: <span style="color:#0284c7; font-weight:bold;">${user.phone}</span></div>
+                        <div><b>보유 포인트</b>: <b style="color:#d97706;">${user.points.toLocaleString()} P</b></div>
+                        <div style="grid-column:span 2;"><b>자택 도로명 주소</b>: ${user.address}</div>
+                    </div>
+                </div>
+
+                <div style="background:#f0f9ff; border:1px solid #bae6fd; padding:16px; border-radius:12px;">
+                    <h4 style="font-size:14px; color:#0369a1; margin-bottom:10px;">🐶 등록 반려동물 정밀 프로필</h4>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px; color:#0f172a;">
+                        <div><b>아이 이름</b>: <b style="color:#0284c7;">${user.pet}</b></div>
+                        <div><b>품종 및 체중</b>: 말티즈 (4.5 kg / 남아 중성화 O)</div>
+                        <div><b>주 이용 병원</b>: 명지24시온누리메디컬센터</div>
+                        <div><b>특이사항 / 기저질환</b>: 슬개골 탈구 2기, 정기 안심 케어</div>
+                    </div>
+                </div>
+
+                <div style="background:#ffffff; border:1px solid #e2dad0; padding:16px; border-radius:12px;">
+                    <h4 style="font-size:14px; color:#0f172a; margin-bottom:6px;">📋 이 회원의 전체 오더 이용 내역 (${userOrders.length}건)</h4>
+                    ${ordersHtml}
+                </div>
+            `;
+
+            modal.style.display = 'flex';
         }
 
         // 포인트 지급
