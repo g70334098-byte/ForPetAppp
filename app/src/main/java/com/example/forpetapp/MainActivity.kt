@@ -2083,6 +2083,7 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                     userPhone = userPhone,
                     initialAddress = userAddress,
                     initialDetailAddress = userDetailAddress,
+                    currentGpsLocation = locationStatusText,
                     onAddBooking = { newBooking ->
                         bookingList.add(0, newBooking)
                         PersistentStorageManager.saveBookingList(context, bookingList)
@@ -4976,6 +4977,7 @@ fun HomeScreenContent(
     userPhone: String = "010-1234-5678",
     initialAddress: String = "부산 강서구 명지국제8로 150",
     initialDetailAddress: String = "101동 1502호",
+    currentGpsLocation: String = "부산 전 지역",
     onAddBooking: (BookingItem) -> Unit = {},
     onNavigateToBookingTab: () -> Unit = {}
 ) {
@@ -5753,7 +5755,7 @@ fun HomeScreenContent(
 
     if (showAiChatDialog) {
         AiHealthChatDialog(
-            locationText = "부산 강서구 명지동",
+            locationText = currentGpsLocation.replace("📍", "").trim().ifEmpty { userAddress },
             onDismiss = { showAiChatDialog = false },
             onGoToBooking = { showBookingDialog = true }
         )
