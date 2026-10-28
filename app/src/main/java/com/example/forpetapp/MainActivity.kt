@@ -1679,7 +1679,7 @@ fun fetchRealDeviceLocation(context: android.content.Context, onLocationResult: 
     }
 }
 
-// 💾 앱 재시작/종료 시에도 디스크 파일에 100% 영구 보존하는 SharedPreferences 관리자
+// 💾 앱 재시작/종료 시에도 디스크 파일에 100% 동기화(.commit())로 영구 보존하는 SharedPreferences 관리자
 object PersistentStorageManager {
     private const val PREF_NAME = "BaljagukAppDiskPrefs"
 
@@ -1687,10 +1687,18 @@ object PersistentStorageManager {
         context.getSharedPreferences(PREF_NAME, android.content.Context.MODE_PRIVATE)
 
     fun clearAllData(context: android.content.Context) {
-        getPrefs(context).edit().clear().apply()
+        getPrefs(context).edit().clear().commit()
     }
 
-    // 마이페이지 회원 정보 저장/로드
+    // 보유 포인트 영구 저장/로드 (.commit()으로 100% 동기 디스크 쓰기 보장)
+    fun saveUserPoints(context: android.content.Context, points: Int) {
+        getPrefs(context).edit().putInt("user_points", points).commit()
+    }
+
+    fun loadUserPoints(context: android.content.Context, defaultVal: Int = 3000): Int =
+        getPrefs(context).getInt("user_points", defaultVal)
+
+    // 마이페이지 회원 정보 저장/로드 (.commit() 보장)
     fun saveUserProfile(context: android.content.Context, nickname: String, phone: String, address: String, detailAddress: String, card: String?) {
         getPrefs(context).edit()
             .putString("user_nickname", nickname)
@@ -1698,11 +1706,11 @@ object PersistentStorageManager {
             .putString("user_address", address)
             .putString("user_detail_address", detailAddress)
             .putString("registered_card", card)
-            .apply()
+            .commit()
     }
 
     fun saveReferralRedeemed(context: android.content.Context, redeemed: Boolean) {
-        getPrefs(context).edit().putBoolean("referral_redeemed", redeemed).apply()
+        getPrefs(context).edit().putBoolean("referral_redeemed", redeemed).commit()
     }
 
     fun loadReferralRedeemed(context: android.content.Context): Boolean =
@@ -1725,7 +1733,7 @@ object PersistentStorageManager {
     fun loadRegisteredCard(context: android.content.Context) =
         getPrefs(context).getString("registered_card", null)
 
-    // 예약 및 진료 리포트 목록 디스크 영구 저장/로드
+    // 예약 및 진료 리포트 목록 디스크 영구 저장/로드 (.commit() 보장)
     fun saveBookingList(context: android.content.Context, list: List<BookingItem>) {
         val jsonArray = org.json.JSONArray()
         list.forEach { item ->
@@ -1750,7 +1758,7 @@ object PersistentStorageManager {
             }
             jsonArray.put(obj)
         }
-        getPrefs(context).edit().putString("booking_list_json", jsonArray.toString()).apply()
+        getPrefs(context).edit().putString("booking_list_json", jsonArray.toString()).commit()
     }
 
     fun loadBookingList(context: android.content.Context): MutableList<BookingItem> {
@@ -1786,7 +1794,49 @@ object PersistentStorageManager {
         return list
     }
 
-    // 반려동물 프로필 정보 저장/로드
+    // 이용 후기 영구 디스크 저장/로드 (.commit() 보장)
+    fun saveReviewsList(context: android.content.Context, reviews: List<ReviewItem>) {
+        val jsonArray = org.json.JSONArray()
+        reviews.forEach { r ->
+            val obj = org.json.JSONObject().apply {
+                put("authorName", r.authorName)
+                put("petInfo", r.petInfo)
+                put("rating", r.rating)
+                put("serviceType", r.serviceType)
+                put("content", r.content)
+                put("dateText", r.dateText)
+                put("imageUri", r.imageUri?.toString() ?: "")
+            }
+            jsonArray.put(obj)
+        }
+        getPrefs(context).edit().putString("reviews_list_json", jsonArray.toString()).commit()
+    }
+
+    fun loadReviewsList(context: android.content.Context): MutableList<ReviewItem> {
+        val jsonStr = getPrefs(context).getString("reviews_list_json", null) ?: return mutableListOf()
+        val list = mutableListOf<ReviewItem>()
+        try {
+            val jsonArray = org.json.JSONArray(jsonStr)
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                val uriStr = obj.optString("imageUri")
+                list.add(
+                    ReviewItem(
+                        authorName = obj.optString("authorName"),
+                        petInfo = obj.optString("petInfo"),
+                        rating = obj.optInt("rating", 5),
+                        serviceType = obj.optString("serviceType"),
+                        content = obj.optString("content"),
+                        dateText = obj.optString("dateText"),
+                        imageUri = if (uriStr.isNotEmpty()) try { android.net.Uri.parse(uriStr) } catch(_: Exception) { null } else null
+                    )
+                )
+            }
+        } catch (_: Exception) {}
+        return list
+    }
+
+    // 반려동물 프로필 정보 저장/로드 (.commit() 보장)
     fun savePetProfile(
         context: android.content.Context,
         imageUriStr: String?,
@@ -1813,7 +1863,7 @@ object PersistentStorageManager {
             .putString("pet_hospital", hospital)
             .putString("pet_symptoms", symptoms)
             .putLong("pet_birth_millis", birthMillis ?: -1L)
-            .apply()
+            .commit()
     }
 
     fun loadPetImageUri(context: android.content.Context): String? =
@@ -1857,7 +1907,7 @@ object PersistentStorageManager {
 fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
     val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
-    var userPoints by remember { mutableIntStateOf(3000) }
+    var userPoints by remember { mutableIntStateOf(PersistentStorageManager.loadUserPoints(context, 3000)) }
 
     // 디스크 파일(SharedPreferences)에서 영구 정보 초기화 로드
     var userNickname by remember { mutableStateOf(PersistentStorageManager.loadUserNickname(context, "발자국동행보호자")) }
@@ -2028,7 +2078,10 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                 0 -> HomeScreenContent(
                     isAdminUser = isAdminUser,
                     userPoints = userPoints,
-                    onUpdatePoints = { userPoints = it },
+                    onUpdatePoints = {
+                        userPoints = it
+                        PersistentStorageManager.saveUserPoints(context, it)
+                    },
                     userReferralCode = userReferralCode,
                     userNickname = userNickname,
                     userPhone = userPhone,
