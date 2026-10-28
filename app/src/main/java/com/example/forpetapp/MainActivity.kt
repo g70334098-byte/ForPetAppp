@@ -5155,39 +5155,6 @@ fun HomeScreenContent(
             }
         }
 
-        // 1-2A. 🚨 24시 비상 SOS 관제 센터 직통 전화 카드
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:01037865394"))
-                        context.startActivity(intent)
-                    },
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
-                border = BorderStroke(1.5.dp, Color(0xFFEF4444))
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Text("🚨", fontSize = 22.sp)
-                        Column {
-                            Text("24시 비상 SOS 관제센터 직통 전화", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFDC2626))
-                            Text("이동 중 위급 상황 발생 시 원클릭 24시 직통 연결", fontSize = 10.sp, color = Color(0xFF991B1B))
-                        }
-                    }
-                    Text("📞 SOS 연결 ➔", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFDC2626))
-                }
-            }
-        }
-
         // 1-2B. 📅 반려동물 예방접종 / 건강검진 D-Day 카운트다운 카드
         item {
             Card(
