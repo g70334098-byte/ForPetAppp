@@ -514,7 +514,7 @@
                         <div>📞 <b>직통 연락처</b>: <span style="color:#0284c7; font-weight:bold;">010-2654-5394</span></div>
                         <div>📍 <b>핸드폰 실시간 GPS</b>: <b style="color:#d97706;" id="guard-gps-display">부산 강서구 작지마을 정류장 인근</b></div>
                         <div>📹 <b>바디캠 송출</b>: <span class="badge badge-active">🔴 LIVE 1080p 송출 중</span></div>
-                        <div>🌡️ <b>차내 실내 온도</b>: <span style="color:#d97706; font-weight:bold;">22.5 ℃ (산소 챔버 가동 중)</span></div>
+                        <div>🌡️ <b>차내 실내 온도</b>: <span style="color:#d97706; font-weight:bold;">22.5 ℃ (쾌적 자동 유지 중)</span></div>
                     </div>
 
                     <div style="margin-top:auto; display:flex; flex-direction:column; gap:8px;">
@@ -777,11 +777,11 @@
             alert(`📡 박찬헌 가드의 스마트폰 GPS 위치가 [${currentGpsText}]로 실시간 100% 동기화되었습니다!`);
         }
 
-        // 초기 기본 샘플 데이터 (3가지 서비스 트림 구분: 긴급출동 / 예약진료 / 미예약이동)
+        // 초기 기본 샘플 데이터 (3가지 서비스 트림 구분: 긴급 50,000원 / 당일미예약 35,000원 / 예약진료 30,000원)
         const defaultOrders = [
-            { id: "ORD-01", trim: "🚨 긴급 출동", type: "🐶 강아지", pet: "초코", owner: "최지훈 (010-3786-5394)", hospital: "명지24시온누리메디컬센터 (응급실)", time: "오늘 오전 10:30", status: "2. 픽업 출발 및 완료 🐶", guard: "박찬헌 가드 (부산 38가 5394)", price: "35,000원", doctorNote: "슬개골 2기 관절 검진 진행하였으며 관절 영양제 복용 권장.", prescription: "하루 2회 식후 영양제 복용" },
-            { id: "ORD-02", trim: "📅 예약 진료 (예약 O)", type: "🐱 고양이", pet: "해피", owner: "이선하 (010-7521-7399)", hospital: "사상24시웰니스동물병원", time: "오늘 오후 02:00", status: "4. 진료 완료 & 리포트 전송 🎉", guard: "이가드 가드 (부산 60수 8888)", price: "30,000원", doctorNote: "소화불량 증상 완화 위장약 3일분 처방 완료.", prescription: "식후 30분 위장약 복용" },
-            { id: "ORD-03", trim: "🚗 미예약 이동 (당일)", type: "🐶 강아지", pet: "몽이", owner: "홍길동 (010-1234-5678)", hospital: "하단24시동물메디컬센터", time: "오늘 오후 04:30", status: "1. 배차 대기 중", guard: "박찬헌 가드 (부산 38가 5394)", price: "30,000원", doctorNote: "", prescription: "" }
+            { id: "ORD-01", trim: "🚨 긴급 출동", type: "🐶 강아지", pet: "초코", owner: "최지훈 (010-3786-5394)", hospital: "명지24시온누리메디컬센터 (응급실)", time: "오늘 오전 10:30", status: "2. 픽업 출발 및 완료 🐶", guard: "박찬헌 가드 (부산 38가 5394)", price: "50,000원", doctorNote: "슬개골 2기 관절 검진 진행하였으며 관절 영양제 복용 권장.", prescription: "하루 2회 식후 영양제 복용" },
+            { id: "ORD-02", trim: "🚗 미예약 이동 (당일)", type: "🐱 고양이", pet: "해피", owner: "이선하 (010-7521-7399)", hospital: "사상24시웰니스동물병원", time: "오늘 오후 02:00", status: "4. 진료 완료 & 리포트 전송 🎉", guard: "이가드 가드 (부산 60수 8888)", price: "35,000원", doctorNote: "소화불량 증상 완화 위장약 3일분 처방 완료.", prescription: "식후 30분 위장약 복용" },
+            { id: "ORD-03", trim: "📅 예약 진료 (예약 O)", type: "🐶 강아지", pet: "몽이", owner: "홍길동 (010-1234-5678)", hospital: "하단24시동물메디컬센터", time: "오늘 오후 04:30", status: "1. 배차 대기 중", guard: "박찬헌 가드 (부산 38가 5394)", price: "30,000원", doctorNote: "", prescription: "" }
         ];
 
         const defaultUsers = [

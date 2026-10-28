@@ -1534,9 +1534,10 @@ fun SignUpScreen(onSignUpSuccess: () -> Unit, onBackToLogin: () -> Unit) {
     }
 }
 
-// 📅 예약 정보 데이터 클래스
+// 📅 예약 정보 데이터 클래스 (3가지 트림: 긴급 50,000원 / 당일미예약 35,000원 / 예약진료 30,000원)
 data class BookingItem(
     val id: String = System.currentTimeMillis().toString(),
+    val serviceTrim: String = "📅 예약 진료 (예약 O)",
     val serviceType: String = "병원 진료 대행",
     val species: String,
     val petName: String,
@@ -5348,9 +5349,10 @@ fun HomeScreenContent(
                                 Text("💰 발자국동행 투명 요금 안내 (서부산 기본 기준)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0369A1))
                                 HorizontalDivider()
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text("🏥 병원 진료 대행 서비스 요금", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
-                                    Text("• 기본 이용료 (왕복 이동 + 동행 1시간 포함): 25,000원 ~ 35,000원", fontSize = 11.sp, color = Color(0xFF334155))
-                                    Text("• 진료 대기시간 추가 (30분당): 5,000원", fontSize = 11.sp, color = Color.Gray)
+                                    Text("🏥 발자국동행 3가지 서비스 트림 정찰 요금", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                                    Text("• 🚨 긴급 응급 출동: 50,000원 (24시 응급실 연결 & 최우선 즉시 배차)", fontSize = 11.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)
+                                    Text("• 🚗 미예약 당일 이동: 35,000원 (당일 즉시 픽업 & 현장 수속)", fontSize = 11.sp, color = Color(0xFFD97706), fontWeight = FontWeight.Bold)
+                                    Text("• 📅 예약 진료 (예약 O): 30,000원 (지정 일시 1:1 수석가드 안심 동행)", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
                                 }
                                 HorizontalDivider()
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -6249,11 +6251,17 @@ fun HomeScreenContent(
                         val finalHospital = customHospitalName.trim().ifEmpty { if (isHospitalReserved) "명지24시온누리메디컬센터" else "명지 인근 24시 추천 병원" }
                         val reservationTag = if (isHospitalReserved) "(병원 예약 완료건)" else "(병원 미예약 당일 접수건)"
 
-                        val calculatedPriceValue = 30000 + (if (isMedicineSelected) 5000 else 0) + (if (isSurgerySelected) 10000 else 0)
+                        val basePrice = when {
+                            selectedServiceTrim.contains("긴급") -> 50000
+                            selectedServiceTrim.contains("미예약") -> 35000
+                            else -> 30000
+                        }
+                        val calculatedPriceValue = basePrice + (if (isMedicineSelected) 5000 else 0) + (if (isSurgerySelected) 10000 else 0)
                         val formattedPriceStr = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(calculatedPriceValue)
 
                         val newBooking = BookingItem(
-                            serviceType = "병원 진료 대행 $reservationTag",
+                            serviceTrim = selectedServiceTrim,
+                            serviceType = if (selectedServiceTrim.contains("긴급")) "🚨 긴급 응급 출동" else if (selectedServiceTrim.contains("미예약")) "🚗 당일 미예약 이동" else "📅 병원 예약 진료 대행",
                             species = selectedSpecies,
                             petName = bookingPetName,
                             ownerName = bookingOwnerName,
