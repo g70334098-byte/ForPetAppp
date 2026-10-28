@@ -8240,8 +8240,25 @@ fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): S
                     Button(
                         onClick = {
                             isSaved = true
+                            if (selectedPetIndex < petProfileList.size) {
+                                val currentPet = petProfileList[selectedPetIndex]
+                                val updatedPet = currentPet.copy(
+                                    name = petName,
+                                    species = petSpecies,
+                                    ownerRealName = ownerRealName,
+                                    type = petType,
+                                    gender = selectedGender,
+                                    neutered = isNeutered,
+                                    weight = petWeight,
+                                    hospital = petHospital,
+                                    symptoms = petSymptoms,
+                                    imageUriStr = petImageUri?.toString()
+                                )
+                                petProfileList[selectedPetIndex] = updatedPet
+                                PersistentStorageManager.saveMultiPetList(context, petProfileList)
+                            }
                             onSavePetProfile(petImageUri, petSpecies, petName, ownerRealName, petType, selectedGender, isNeutered, petWeight, petHospital, petSymptoms, selectedBirthMillis)
-                            Toast.makeText(context, "💾 반려동물('$petName') 프로필 사진과 데이터가 계정에 안전하게 저장되었습니다!", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, "💾 반려동물('$petName') 프로필 데이터가 상단 탭 및 디스크 파일에 영구 저장되었습니다!", Toast.LENGTH_LONG).show()
                         },
                         modifier = Modifier
                             .fillMaxWidth()
