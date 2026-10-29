@@ -76,13 +76,16 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// 🏥 병원 정보 데이터 클래스
+// 🏥 병원 정보 데이터 클래스 (부산 구별 수동 등록 & 진료 과목/부가 서비스 지원)
 data class HospitalInfo(
     val name: String,
     val region: String,
     val type: String,
     val address: String,
-    val phone: String
+    val phone: String,
+    val targetSpecies: List<String> = listOf("개", "고양이"),
+    val departments: List<String> = emptyList(),
+    val additionalServices: List<String> = emptyList()
 )
 
 enum class ScreenState {
@@ -1900,6 +1903,81 @@ object PersistentStorageManager {
             }
         } catch (_: Exception) {}
         return list
+    }
+
+    // 부산 동물병원 리스트 디스크 영구 저장/로드 (.commit() 보장)
+    fun saveHospitalList(context: android.content.Context, list: List<HospitalInfo>) {
+        val jsonArray = org.json.JSONArray()
+        list.forEach { h ->
+            val obj = org.json.JSONObject().apply {
+                put("name", h.name)
+                put("region", h.region)
+                put("type", h.type)
+                put("address", h.address)
+                put("phone", h.phone)
+                put("targetSpecies", org.json.JSONArray(h.targetSpecies))
+                put("departments", org.json.JSONArray(h.departments))
+                put("additionalServices", org.json.JSONArray(h.additionalServices))
+            }
+            jsonArray.put(obj)
+        }
+        getPrefs(context).edit().putString("busan_hospitals_json", jsonArray.toString()).commit()
+    }
+
+    fun loadHospitalList(context: android.content.Context): MutableList<HospitalInfo> {
+        val jsonStr = getPrefs(context).getString("busan_hospitals_json", null)
+        val defaultList = mutableListOf(
+            HospitalInfo(
+                name = "부산 24시 동행동물의료센터",
+                region = "부산 북구",
+                type = "24시 응급",
+                address = "부산 북구 금곡대로 126 채움센트럴 1동 3층",
+                phone = "0507-1481-7599",
+                targetSpecies = listOf("개", "고양이"),
+                departments = listOf("피부과", "예방의학과", "내과", "이비인후과", "안과", "비뇨기과", "치과", "외과", "임상병리학과", "영상의학과", "정형외과", "산과"),
+                additionalServices = listOf("입원", "미용")
+            )
+        )
+        if (jsonStr == null) return defaultList
+
+        val list = mutableListOf<HospitalInfo>()
+        try {
+            val jsonArray = org.json.JSONArray(jsonStr)
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                val speciesArr = obj.optJSONArray("targetSpecies")
+                val speciesList = mutableListOf<String>()
+                if (speciesArr != null) {
+                    for (j in 0 until speciesArr.length()) speciesList.add(speciesArr.getString(j))
+                }
+
+                val deptArr = obj.optJSONArray("departments")
+                val deptList = mutableListOf<String>()
+                if (deptArr != null) {
+                    for (j in 0 until deptArr.length()) deptList.add(deptArr.getString(j))
+                }
+
+                val svcArr = obj.optJSONArray("additionalServices")
+                val svcList = mutableListOf<String>()
+                if (svcArr != null) {
+                    for (j in 0 until svcArr.length()) svcList.add(svcArr.getString(j))
+                }
+
+                list.add(
+                    HospitalInfo(
+                        name = obj.optString("name"),
+                        region = obj.optString("region"),
+                        type = obj.optString("type"),
+                        address = obj.optString("address"),
+                        phone = obj.optString("phone"),
+                        targetSpecies = if (speciesList.isNotEmpty()) speciesList else listOf("개", "고양이"),
+                        departments = deptList,
+                        additionalServices = svcList
+                    )
+                )
+            }
+        } catch (_: Exception) {}
+        return if (list.isNotEmpty()) list else defaultList
     }
 
     // 다중 반려동물 프로필 리스트 영구 디스크 저장/로드 (.commit() 보장)
@@ -5158,39 +5236,11 @@ fun HomeScreenContent(
         )
     }
 
-    val hospitals = listOf(
-        // 강서구
-        HospitalInfo("명지24시온누리메디컬센터", "부산 강서구", "24시 응급", "부산 강서구 명지오션시티4로 80", "051-271-2475"),
-        HospitalInfo("명지온누리동물병원", "부산 강서구", "낮 운영", "부산 강서구 명지국제8로 230", "051-291-7582"),
-        HospitalInfo("에코스카이동물의원", "부산 강서구", "낮 운영", "부산 강서구 에코델타시티중앙로 100", "051-987-6543"),
-        
-        // 사하구
-        HospitalInfo("하단24시웰니스동물병원", "부산 사하구", "24시 응급", "부산 사하구 하단역 3번출구 앞", "051-208-2400"),
-        HospitalInfo("하단가람동물병원", "부산 사하구", "낮 운영", "부산 사하구 낙동대로 550", "051-201-1111"),
-        HospitalInfo("다대푸른동물병원", "부산 사하구", "낮 운영", "부산 사하구 다대로 300", "051-262-2222"),
-        
-        // 사상구
-        HospitalInfo("사상24시응급메디컬센터", "부산 사상구", "24시 응급", "부산 사상구 괘법동 사상역 근처", "051-315-2475"),
-        HospitalInfo("감전동물병원", "부산 사상구", "낮 운영", "부산 사상구 사상로 150", "051-311-3333"),
-        HospitalInfo("주례참누리동물병원", "부산 사상구", "낮 운영", "부산 사상구 가야대로 280", "051-322-4444"),
-        
-        // 북구
-        HospitalInfo("화명24시나누리동물병원", "부산 북구", "24시 응급", "부산 북구 화명역 1번출구 인근", "051-363-2400"),
-        HospitalInfo("화명동물병원", "부산 북구", "낮 운영", "부산 북구 화명대로 32", "051-361-5555"),
-        HospitalInfo("덕천동물메디컬센터", "부산 북구", "낮 운영", "부산 북구 덕천로 12", "051-332-6666"),
-
-        // 부산진구 (서면)
-        HospitalInfo("서면24시아이엔동물메디컬센터", "부산진구", "24시 응급", "부산 부산진구 중앙대로 680 (서면)", "051-808-2475"),
-        HospitalInfo("양정동물병원", "부산진구", "낮 운영", "부산 부산진구 양정동 123", "051-852-1122"),
-
-        // 해운대구 / 수영구
-        HospitalInfo("해운대24시동물메디컬센터", "해운대/수영구", "24시 응급", "부산 해운대구 해운대로 620", "051-747-2475"),
-        HospitalInfo("센텀동물병원", "해운대/수영구", "낮 운영", "부산 해운대구 센텀중앙로 48", "051-744-3322"),
-
-        // 금정구 / 연제구
-        HospitalInfo("부산대24시동물병원", "금정/연제구", "24시 응급", "부산 금정구 중앙대로 1600", "051-518-2400"),
-        HospitalInfo("연산동물메디컬센터", "금정/연제구", "낮 운영", "부산 연제구 연산동 450", "051-866-9988")
-    )
+    val hospitals = remember {
+        mutableStateListOf<HospitalInfo>().apply {
+            addAll(PersistentStorageManager.loadHospitalList(context))
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -5588,8 +5638,17 @@ fun HomeScreenContent(
     if (showHospitalListDialog) {
         var selectedRegionFilter by remember { mutableStateOf("전체") }
         var selectedTypeFilter by remember { mutableStateOf("전체") }
+        var showAddHospitalModal by remember { mutableStateOf(false) }
 
-        val regions = listOf("전체", "강서구", "사하구", "사상구", "북구", "부산진구", "해운대/수영구", "금정/연제구")
+        var newHospName by remember { mutableStateOf("") }
+        var newHospRegion by remember { mutableStateOf("부산 북구") }
+        var newHospType by remember { mutableStateOf("24시 응급") }
+        var newHospAddr by remember { mutableStateOf("") }
+        var newHospPhone by remember { mutableStateOf("051-") }
+        var newHospDepts by remember { mutableStateOf("피부과, 예방의학과, 내과, 이비인후과, 안과, 비뇨기과, 치과, 외과, 임상병리학과, 영상의학과, 정형외과, 산과") }
+        var newHospSvcs by remember { mutableStateOf("입원, 미용") }
+
+        val regions = listOf("전체", "부산 북구", "부산 강서구", "부산 사하구", "부산 사상구", "부산진구", "해운대/수영구", "금정/연제구")
 
         val filteredHospitals = hospitals.filter { item ->
             val regionMatch = selectedRegionFilter == "전체" || item.region.contains(selectedRegionFilter)
@@ -5600,16 +5659,31 @@ fun HomeScreenContent(
         AlertDialog(
             onDismissRequest = { showHospitalListDialog = false },
             title = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("🏥 부산 동물병원 스마트 리스트", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text("부산 각 구별 및 24시 응급 / 낮 주간병원 구분을 확인하세요.", fontSize = 11.sp, color = Color(0xFF0284C7))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("🏥 부산 동물병원 스마트 리스트", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                        Text("부산 각 구별 및 24시 응급 / 낮 주간병원 목록", fontSize = 11.sp, color = Color(0xFF0284C7))
+                    }
+
+                    Button(
+                        onClick = { showAddHospitalModal = true },
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text("➕ 병원 등록", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             },
             text = {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(420.dp),
+                        .height(440.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     // 1. 구 단위 필터 (Region Filter)
@@ -5668,14 +5742,14 @@ fun HomeScreenContent(
                                 .weight(1f),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("해당 조건의 제휴 병원이 없습니다.", fontSize = 13.sp, color = Color.Gray)
+                            Text("해당 조건의 등록된 동물병원이 없습니다.", fontSize = 13.sp, color = Color.Gray)
                         }
                     } else {
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             items(filteredHospitals.size) { index ->
                                 val item = filteredHospitals[index]
@@ -5685,19 +5759,22 @@ fun HomeScreenContent(
                                         .clickable { selectedHospital = item },
                                     colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9))
                                 ) {
-                                    Row(
+                                    Column(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(12.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                                             ) {
-                                                Text(item.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                                Text(item.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0F172A))
                                                 Surface(
                                                     shape = RoundedCornerShape(4.dp),
                                                     color = if (item.type == "24시 응급") Color(0xFFFFE4E6) else Color(0xFFE0F2FE)
@@ -5711,9 +5788,19 @@ fun HomeScreenContent(
                                                     )
                                                 }
                                             }
-                                            Text("${item.region} • ${item.address}", fontSize = 11.sp, color = Color.Gray)
+                                            Text("상세보기 ➔", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
                                         }
-                                        Text("상세보기 ➔", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+
+                                        Text("📍 ${item.address}", fontSize = 11.sp, color = Color(0xFF334155))
+                                        Text("📞 ${item.phone} | 🐾 대상: ${item.targetSpecies.joinToString(", ")}", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Medium)
+
+                                        if (item.departments.isNotEmpty()) {
+                                            Text("🩺 진료 과목: ${item.departments.joinToString(", ")}", fontSize = 10.sp, color = Color.Gray, lineHeight = 14.sp)
+                                        }
+
+                                        if (item.additionalServices.isNotEmpty()) {
+                                            Text("✨ 부가 서비스: ${item.additionalServices.joinToString(", ")}", fontSize = 10.sp, color = Color(0xFFD97706), fontWeight = FontWeight.Medium)
+                                        }
                                     }
                                 }
                             }
@@ -5725,6 +5812,105 @@ fun HomeScreenContent(
                 TextButton(onClick = { showHospitalListDialog = false }) { Text("닫기", fontWeight = FontWeight.Bold) }
             }
         )
+
+        if (showAddHospitalModal) {
+            AlertDialog(
+                onDismissRequest = { showAddHospitalModal = false },
+                title = { Text("➕ 실시간 부산 동물병원 수동 등록", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 380.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = newHospName,
+                            onValueChange = { newHospName = it },
+                            label = { Text("동물병원 명칭") },
+                            placeholder = { Text("예: 부산 24시 동행동물의료센터") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = newHospRegion,
+                            onValueChange = { newHospRegion = it },
+                            label = { Text("부산 지역(구)") },
+                            placeholder = { Text("예: 부산 북구") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = newHospAddr,
+                            onValueChange = { newHospAddr = it },
+                            label = { Text("도로명 상세 주소") },
+                            placeholder = { Text("예: 부산 북구 금곡대로 126 채움센트럴 1동 3층") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = newHospPhone,
+                            onValueChange = { newHospPhone = it },
+                            label = { Text("전화번호") },
+                            placeholder = { Text("예: 0507-1481-7599") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = newHospDepts,
+                            onValueChange = { newHospDepts = it },
+                            label = { Text("진료 과목 (쉼표 구분)") },
+                            placeholder = { Text("예: 피부과, 내과, 외과, 안과, 정형외과") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = newHospSvcs,
+                            onValueChange = { newHospSvcs = it },
+                            label = { Text("부가 서비스 (쉼표 구분)") },
+                            placeholder = { Text("예: 입원, 미용") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (newHospName.isNotEmpty() && newHospAddr.isNotEmpty()) {
+                                val newInfo = HospitalInfo(
+                                    name = newHospName.trim(),
+                                    region = newHospRegion.trim().ifEmpty { "부산 북구" },
+                                    type = newHospType,
+                                    address = newHospAddr.trim(),
+                                    phone = newHospPhone.trim(),
+                                    targetSpecies = listOf("개", "고양이"),
+                                    departments = newHospDepts.split(",").map { it.trim() }.filter { it.isNotEmpty() },
+                                    additionalServices = newHospSvcs.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                                )
+                                hospitals.add(0, newInfo)
+                                PersistentStorageManager.saveHospitalList(context, hospitals)
+                                Toast.makeText(context, "🎉 [${newInfo.name}] 병원이 수동 등록 완료되어 영구 보존되었습니다!", Toast.LENGTH_SHORT).show()
+                                showAddHospitalModal = false
+                                newHospName = ""
+                                newHospAddr = ""
+                            } else {
+                                Toast.makeText(context, "병원 명칭과 주소를 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                    ) {
+                        Text("등록 저장", fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showAddHospitalModal = false }) { Text("취소") }
+                }
+            )
+        }
     }
 
     if (showFaqDialog) {
