@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>발자국동행 PC 관리자 통합 관제 포털</title>
+    <!-- 카카오맵 (Kakao Maps) 공식 Web SDK 엔진 (대한민국 선명한 지도 & 24시 마커 연동) -->
+    <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=39403e65f13edad5eef7edaf361bcc36"></script>
     <style>
         :root {
             --bg-dark: #f8f6f0;        /* 따뜻한 감성 베이지/크림 관제 메인 배경 */
@@ -1169,7 +1171,7 @@
             if (order) {
                 document.getElementById('report-order-info').value = `[${order.id}] ${order.pet} (${order.owner})`;
                 document.getElementById('report-doctor-note').value = order.doctorNote || "슬개골 2기 관절 검진 진행하였으며 관절 영양제 복용 권장.";
-                document.getElementById('report-prescription').value = order.prescription || "관절 영양제 하루 2회 복용.";
+                document.getElementById('report-prescription').value = order.prescription || "하루 2회 식후 영양제 복용.";
                 document.getElementById('report-final-price').value = order.price || "35,000원";
                 document.getElementById('report-modal').style.display = 'flex';
             }
