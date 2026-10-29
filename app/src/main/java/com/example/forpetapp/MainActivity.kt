@@ -5660,24 +5660,9 @@ fun HomeScreenContent(
         AlertDialog(
             onDismissRequest = { showHospitalListDialog = false },
             title = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("🏥 부산 동물병원 스마트 리스트", fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                        Text("부산 각 구별 및 24시 응급 / 낮 주간병원 목록", fontSize = 11.sp, color = Color(0xFF0284C7))
-                    }
-
-                    Button(
-                        onClick = { showAddHospitalModal = true },
-                        shape = RoundedCornerShape(20.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Text("➕ 병원 등록", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("🏥 부산 동물병원 스마트 리스트", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    Text("부산 각 구별 및 24시 응급 / 낮 주간병원 목록", fontSize = 11.sp, color = Color(0xFF0284C7))
                 }
             },
             text = {
@@ -5778,7 +5763,8 @@ fun HomeScreenContent(
                                                 fontSize = 14.sp,
                                                 color = Color(0xFF0F172A),
                                                 maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
+                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f, fill = false)
                                             )
                                             Surface(
                                                 shape = RoundedCornerShape(4.dp),
@@ -5789,7 +5775,9 @@ fun HomeScreenContent(
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.Bold,
                                                     color = if (item.type == "24시 응급") Color(0xFFE11D48) else Color(0xFF0284C7),
-                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                    softWrap = false,
+                                                    maxLines = 1
                                                 )
                                             }
                                         }
