@@ -480,6 +480,17 @@ fun LoginScreen(
     var userPw by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
 
+    val guardPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val cameraGranted = permissions[android.Manifest.permission.CAMERA] ?: false
+        val audioGranted = permissions[android.Manifest.permission.RECORD_AUDIO] ?: false
+        if (cameraGranted || audioGranted) {
+            Toast.makeText(context, "📹 [가드 안심 바디캠 가동 권한 동의 완료] 1080p 바디캠 가동 준비 완료!", Toast.LENGTH_SHORT).show()
+        }
+        onDriverLoginSuccess()
+    }
+
     fun processLoginWithPhoneCheck(isAdmin: Boolean, isDedicatedAdminWorkspace: Boolean, displayName: String) {
         val savedPhone = PersistentStorageManager.loadUserPhone(context, "")
         if (savedPhone.length >= 10) {
@@ -728,11 +739,24 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // 4. 담당 가드 모드 로그인 전용 간편 버튼
+        // 4. 담당 가드 모드 로그인 전용 간편 버튼 (가드 전용 카메라/마이크 권한 지연 동의)
         OutlinedButton(
             onClick = {
-                Toast.makeText(context, "👨‍✈️ 담당 가드(박찬헌 가드) 모드로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                onDriverLoginSuccess()
+                val hasCamera = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                val hasAudio = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+                if (!hasCamera || !hasAudio) {
+                    Toast.makeText(context, "📹 [가드 안심 바디캠 권한] 바디캠 1080p 생중계를 위해 카메라/오디오 권한을 허용해 주세요.", Toast.LENGTH_SHORT).show()
+                    guardPermissionLauncher.launch(
+                        arrayOf(
+                            android.Manifest.permission.CAMERA,
+                            android.Manifest.permission.RECORD_AUDIO
+                        )
+                    )
+                } else {
+                    Toast.makeText(context, "👨‍✈️ 담당 가드(박찬헌 가드) 모드로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
+                    onDriverLoginSuccess()
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()
