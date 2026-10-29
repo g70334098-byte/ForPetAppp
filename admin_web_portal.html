@@ -830,6 +830,87 @@
             }
         }
 
+        // 패널 스위칭
+        function switchPanel(panelName) {
+            document.getElementById('panel-orders').style.display = (panelName === 'orders') ? 'block' : 'none';
+            document.getElementById('panel-guard').style.display = (panelName === 'guard') ? 'block' : 'none';
+            document.getElementById('panel-users').style.display = (panelName === 'users') ? 'block' : 'none';
+            document.getElementById('panel-sales').style.display = (panelName === 'sales') ? 'block' : 'none';
+
+            document.getElementById('menu-orders').classList.toggle('active', panelName === 'orders');
+            document.getElementById('menu-guard').classList.toggle('active', panelName === 'guard');
+            document.getElementById('menu-users').classList.toggle('active', panelName === 'users');
+            document.getElementById('menu-sales').classList.toggle('active', panelName === 'sales');
+
+            // ⚡ 탭 전환 시 지도 크기 재계산 및 가동
+            if (panelName === 'guard') {
+                setTimeout(function() {
+                    if (kakaoMap) {
+                        try {
+                            kakaoMap.relayout();
+                            kakaoMap.setCenter(new kakao.maps.LatLng(35.1795583, 129.0756416));
+                        } catch(e) {
+                            renderFallbackVectorMap();
+                        }
+                    } else {
+                        initOfficialKakaoMap();
+                    }
+                }, 100);
+            }
+        }
+
+        // 카카오맵 SDK 로컬 차단 시 100% 영구 가동되는 관제 지적도
+        function renderFallbackVectorMap() {
+            var mapBox = document.getElementById('kakao-map');
+            if (!mapBox) return;
+
+            mapBox.innerHTML = `
+                <div style="position: relative; width: 100%; height: 100%; background: #e0f2fe; border-radius: 12px; overflow: hidden; border: 1px solid #bae6fd;">
+                    <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0;">
+                        <!-- 강서구/사하구/사상구/북구 낙동강 수로 -->
+                        <path d="M 280,0 Q 310,200 290,380 T 260,520" fill="none" stroke="#93c5fd" stroke-width="64" opacity="0.6"/>
+                        <path d="M 280,0 Q 310,200 290,380 T 260,520" fill="none" stroke="#60a5fa" stroke-width="28" opacity="0.8"/>
+
+                        <!-- 주요 도로망 -->
+                        <line x1="0" y1="280" x2="800" y2="280" stroke="#fcd34d" stroke-width="12"/>
+                        <line x1="120" y1="0" x2="680" y2="520" stroke="#ffffff" stroke-width="10"/>
+                        <line x1="290" y1="0" x2="290" y2="520" stroke="#f87171" stroke-width="8" stroke-dasharray="8,6"/>
+
+                        <!-- 주요 지역 및 지명 라벨 -->
+                        <text x="360" y="70" fill="#0f172a" font-size="14" font-weight="bold">📍 부산 북구 (금곡동 / 화명동)</text>
+                        <text x="360" y="240" fill="#0f172a" font-size="14" font-weight="bold">📍 부산 사상구 (괘법동 / 감전동)</text>
+                        <text x="360" y="440" fill="#0f172a" font-size="14" font-weight="bold">📍 부산 사하구 (하단동 / 다대포)</text>
+                        <text x="80" y="320" fill="#0369a1" font-size="14" font-weight="bold">📍 부산 강서구 (명지오션시티)</text>
+                    </svg>
+
+                    <!-- 동적 마커 1: 🚙 레이 케어카 차 마커 핀 -->
+                    <div id="vector-car-pin" style="position: absolute; top: 62%; left: 18%; transform: translate(-50%, -100%); z-index: 100; cursor: pointer; text-align: center; transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);" onclick="alert('👨‍✈️ 박찬헌 가드 (부산 38가 5394)\\n📍 현재 GPS 위치: ' + currentGpsText + '\\n속도: 42 km/h (안전 운행 중)\\n상태: 1:1 안심 진료 대행 이송 중')">
+                        <div style="position: absolute; top: 18px; left: 50%; transform: translate(-50%, -50%); width: 56px; height: 56px; background: rgba(2, 132, 199, 0.4); border-radius: 50%; animation: pulse-ring 1.8s infinite ease-out; z-index: -1;"></div>
+                        <div style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 16px rgba(0,0,0,0.3); border: 2.5px solid #ffffff; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                            <span style="font-size: 18px;">🚙</span>
+                            <span>레이 케어카 (38가 5394)</span>
+                            <span style="background: #10b981; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">GPS LIVE</span>
+                        </div>
+                        <div style="width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 10px solid #0369a1; margin: 0 auto;"></div>
+                    </div>
+
+                    <!-- 동적 마커 2: 🏥 부산 24시 동행동물의료센터 마커 핀 -->
+                    <div style="position: absolute; top: 12%; left: 45%; transform: translate(-50%, -100%); z-index: 100; cursor: pointer; text-align: center;" onclick="alert('🏥 부산 24시 동행동물의료센터 (24시 응급)\\n📍 주소: 부산 북구 금곡대로 126 채움센트럴 1동 3층\\n📞 직통: 0507-1481-7599\\n🩺 진료 과목: 피부과, 내과, 외과, 정형외과, 안과 등 12개 전문 과목\\n✨ 부가 서비스: 입원, 미용')">
+                        <div style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(220,38,38,0.4); border: 2.5px solid #ffffff; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                            <span style="font-size: 18px;">🏥</span>
+                            <span>부산 24시 동행동물의료센터</span>
+                            <span style="background: #ffffff; color: #dc2626; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">24시 응급</span>
+                        </div>
+                        <div style="width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 10px solid #dc2626; margin: 0 auto;"></div>
+                    </div>
+
+                    <div style="position: absolute; top: 12px; right: 12px; z-index: 120;">
+                        <span class="badge badge-active" style="background:#0f172a; color:#fff; padding:6px 12px; font-size:11px;">🗺️ 부산 관제 지적도</span>
+                    </div>
+                </div>
+            `;
+        }
+
         // 공식 카카오맵(Kakao Maps) SDK 실시간 라이브 연동
         var mapContainer = document.getElementById('kakao-map');
         var currentGpsText = "부산 강서구 작지마을 정류장 인근";
@@ -837,69 +918,79 @@
 
         function initOfficialKakaoMap() {
             if (typeof kakao !== 'undefined' && kakao.maps) {
-                var mapOption = {
-                    center: new kakao.maps.LatLng(35.1795583, 129.0756416), // 부산광역시 대표 중앙 위치
-                    level: 6 // 카카오맵 최적 줌 레벨
-                };
-                kakaoMap = new kakao.maps.Map(mapContainer, mapOption);
+                try {
+                    kakao.maps.load(function() {
+                        var mapOption = {
+                            center: new kakao.maps.LatLng(35.1795583, 129.0756416), // 부산광역시 대표 중앙 위치
+                            level: 6
+                        };
+                        kakaoMap = new kakao.maps.Map(mapContainer, mapOption);
 
-                // 지도/스카이뷰(위성사진) 스위칭 컨트롤 & 줌 컨트롤 연동
-                var mapTypeControl = new kakao.maps.MapTypeControl();
-                kakaoMap.addControl(mapTypeControl, kakao.maps.ControlPosition.TOPRIGHT);
-                var zoomControl = new kakao.maps.ZoomControl();
-                kakaoMap.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
+                        var mapTypeControl = new kakao.maps.MapTypeControl();
+                        kakaoMap.addControl(mapTypeControl, kakao.maps.ControlPosition.TOPRIGHT);
+                        var zoomControl = new kakao.maps.ZoomControl();
+                        kakaoMap.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
 
-                // 1. 레이 케어카 차 커스텀 오버레이 마커 핀
-                var carContent = `
-                    <div style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 16px rgba(0,0,0,0.35); border: 2.5px solid #ffffff; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('👨‍✈️ 박찬헌 가드 (부산 38가 5394)\\n📍 현재 위치: ' + currentGpsText + '\\n속도: 42 km/h (안전 운행 중)\\n상태: 1:1 안심 진료 대행 이송 중')">
-                        <span style="font-size: 18px;">🚙</span>
-                        <span>레이 케어카 (38가 5394)</span>
-                        <span style="background: #10b981; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">GPS LIVE</span>
-                    </div>
-                `;
-                carOverlay = new kakao.maps.CustomOverlay({
-                    position: new kakao.maps.LatLng(35.0830000, 128.8950000),
-                    content: carContent,
-                    yAnchor: 1.3
-                });
-                carOverlay.setMap(kakaoMap);
+                        var carContent = `
+                            <div style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 16px rgba(0,0,0,0.35); border: 2.5px solid #ffffff; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('👨‍✈️ 박찬헌 가드 (부산 38가 5394)\\n📍 현재 위치: ' + currentGpsText + '\\n속도: 42 km/h (안전 운행 중)\\n상태: 1:1 안심 진료 대행 이송 중')">
+                                <span style="font-size: 18px;">🚙</span>
+                                <span>레이 케어카 (38가 5394)</span>
+                                <span style="background: #10b981; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">GPS LIVE</span>
+                            </div>
+                        `;
+                        carOverlay = new kakao.maps.CustomOverlay({
+                            position: new kakao.maps.LatLng(35.0830000, 128.8950000),
+                            content: carContent,
+                            yAnchor: 1.3
+                        });
+                        carOverlay.setMap(kakaoMap);
 
-                // 2. 부산 24시 동행동물의료센터 커스텀 오버레이 마커 핀
-                var hospContent = `
-                    <div style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(220,38,38,0.4); border: 2.5px solid #ffffff; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 부산 24시 동행동물의료센터 (24시 응급)\\n📍 주소: 부산 북구 금곡대로 126 채움센트럴 1동 3층\\n📞 직통: 0507-1481-7599\\n🩺 진료 과목: 피부과, 내과, 외과, 정형외과, 안과 등 12개 전문 과목\\n✨ 부가 서비스: 입원, 미용')">
-                        <span style="font-size: 18px;">🏥</span>
-                        <span>부산 24시 동행동물의료센터</span>
-                        <span style="background: #ffffff; color: #dc2626; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">24시 응급</span>
-                    </div>
-                `;
-                hospOverlay = new kakao.maps.CustomOverlay({
-                    position: new kakao.maps.LatLng(35.2475000, 129.0112000), // 부산 북구 금곡대로 126
-                    content: hospContent,
-                    yAnchor: 1.3
-                });
-                hospOverlay.setMap(kakaoMap);
+                        var hospContent = `
+                            <div style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(220,38,38,0.4); border: 2.5px solid #ffffff; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 부산 24시 동행동물의료센터 (24시 응급)\\n📍 주소: 부산 북구 금곡대로 126 채움센트럴 1동 3층\\n📞 직통: 0507-1481-7599\\n🩺 진료 과목: 피부과, 내과, 외과, 정형외과, 안과 등 12개 전문 과목\\n✨ 부가 서비스: 입원, 미용')">
+                                <span style="font-size: 18px;">🏥</span>
+                                <span>부산 24시 동행동물의료센터</span>
+                                <span style="background: #ffffff; color: #dc2626; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">24시 응급</span>
+                            </div>
+                        `;
+                        hospOverlay = new kakao.maps.CustomOverlay({
+                            position: new kakao.maps.LatLng(35.2475000, 129.0112000),
+                            content: hospContent,
+                            yAnchor: 1.3
+                        });
+                        hospOverlay.setMap(kakaoMap);
+                    });
+                } catch(e) {
+                    renderFallbackVectorMap();
+                }
+            } else {
+                renderFallbackVectorMap();
             }
         }
 
         window.onload = function() {
-            try { initOfficialKakaoMap(); } catch(_){}
+            try { initOfficialKakaoMap(); } catch(_){ renderFallbackVectorMap(); }
         };
 
         function changeGuardGpsLocation(locKey) {
             const display = document.getElementById('guard-gps-display');
+            const carPin = document.getElementById('vector-car-pin');
             var lat = 35.0830000, lng = 128.8950000;
 
             if (locKey === 'jakji') {
                 lat = 35.0830000; lng = 128.8950000;
+                if (carPin) { carPin.style.top = '62%'; carPin.style.left = '18%'; }
                 currentGpsText = "부산 강서구 작지마을 정류장 인근";
             } else if (locKey === 'myeongji') {
                 lat = 35.0934000; lng = 128.9105000;
+                if (carPin) { carPin.style.top = '52%'; carPin.style.left = '24%'; }
                 currentGpsText = "부산 강서구 명지국제8로 150 삼정그린코아";
             } else if (locKey === 'hadan') {
                 lat = 35.1064000; lng = 128.9605000;
+                if (carPin) { carPin.style.top = '78%'; carPin.style.left = '52%'; }
                 currentGpsText = "부산 사하구 낙동대로 550 하단역 자이";
             } else if (locKey === 'sasang') {
                 lat = 35.1564000; lng = 128.9805000;
+                if (carPin) { carPin.style.top = '42%'; carPin.style.left = '58%'; }
                 currentGpsText = "부산 사상구 괘법동 사상역 센트럴";
             }
 
@@ -910,7 +1001,7 @@
             }
 
             display.innerText = currentGpsText;
-            alert(`📡 박찬헌 가드의 스마트폰 GPS 위치가 카카오맵 상에 [${currentGpsText}]로 실시간 100% 동기화되었습니다!`);
+            alert(`📡 박찬헌 가드의 스마트폰 GPS 위치가 관제 지도상에 [${currentGpsText}]로 실시간 100% 동기화되었습니다!`);
         }
 
         // 초기 기본 샘플 데이터 (3가지 서비스 트림 구분: 긴급 50,000원 / 당일미예약 35,000원 / 예약진료 30,000원)
