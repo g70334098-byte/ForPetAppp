@@ -486,7 +486,7 @@ fun LoginScreen(
         val cameraGranted = permissions[android.Manifest.permission.CAMERA] ?: false
         val audioGranted = permissions[android.Manifest.permission.RECORD_AUDIO] ?: false
         if (cameraGranted || audioGranted) {
-            Toast.makeText(context, "📹 [가드 안심 바디캠 가동 권한 동의 완료] 1080p 바디캠 가동 준비 완료!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "📹 [가드 안심 바디캠 가동 권한 동의 완료] 실시간 바디캠 가동 준비 완료!", Toast.LENGTH_SHORT).show()
         }
         try {
             val serviceIntent = Intent(context, com.example.forpetapp.service.GuardGpsForegroundService::class.java)
@@ -754,7 +754,7 @@ fun LoginScreen(
                 val hasAudio = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
                 if (!hasCamera || !hasAudio) {
-                    Toast.makeText(context, "📹 [가드 안심 바디캠 권한] 바디캠 1080p 생중계를 위해 카메라/오디오 권한을 허용해 주세요.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "📹 [가드 안심 바디캠 권한] 바디캠 라이브 생중계를 위해 카메라/오디오 권한을 허용해 주세요.", Toast.LENGTH_SHORT).show()
                     guardPermissionLauncher.launch(
                         arrayOf(
                             android.Manifest.permission.CAMERA,
@@ -1119,8 +1119,8 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
                                                 sendSystemPushNotification(context, "🎉 [발자국동행] 안전 귀가 완료 & 콜 마감", "[${order.petName}] 아이의 안심 이송이 완료되었습니다. 가드 바디캠이 자동 종료(OFF) 처리되었습니다.")
                                                 Toast.makeText(context, "🔒 오더 마감: 가드 바디캠 및 카메라/마이크가 자동 OFF 종료되었습니다. (사생활 보호)", Toast.LENGTH_LONG).show()
                                             } else {
-                                                sendSystemPushNotification(context, "📹 [발자국동행] 바디캠 자동 가동 ON", "[${order.petName}] 아이 이송 중: 가드 바디캠 1080p 라이브 송출 가동 ON")
-                                                Toast.makeText(context, "📹 오더 수행 중: 바디캠 1080p 라이브 송출 가동 ON", Toast.LENGTH_SHORT).show()
+                                                sendSystemPushNotification(context, "📹 [발자국동행] 바디캠 자동 가동 ON", "[${order.petName}] 아이 이송 중: 가드 바디캠 라이브 송출 가동 ON")
+                                                Toast.makeText(context, "📹 오더 수행 중: 바디캠 라이브 송출 가동 ON", Toast.LENGTH_SHORT).show()
                                             }
                                         },
                                         label = { Text(statusStep, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
@@ -2557,7 +2557,7 @@ fun BodycamStreamDialog(
                         // 라이브 타임스탬프 오버레이
                         Box(modifier = Modifier.fillMaxSize().padding(10.dp), contentAlignment = Alignment.TopStart) {
                             Surface(shape = RoundedCornerShape(4.dp), color = Color.Black.copy(alpha = 0.6f)) {
-                                Text("REC 1080p | 60 FPS", fontSize = 9.sp, color = Color.Red, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                Text("🔴 REC LIVE STREAM", fontSize = 9.sp, color = Color.Red, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                             }
                         }
                     }
@@ -5152,7 +5152,7 @@ fun HomeScreenContent(
                 petInfo = "포메라니안 (사랑이, 2살)",
                 rating = 5,
                 serviceType = "🚨 야간 응급 출동",
-                content = "새벽에 갑자기 호흡 곤란이 와서 당황했는데 24시 응급 출동차에 1080p 바디캠과 쾌적 온습도 제어 시스템이 있어서 명지24시병원까지 무사히 이송되었습니다. 박찬헌 기사님 감사드립니다!",
+                content = "새벽에 갑자기 호흡 곤란이 와서 당황했는데 24시 응급 출동차에 실시간 안심 바디캠과 쾌적 온습도 제어 시스템이 있어서 명지24시병원까지 무사히 이송되었습니다. 박찬헌 기사님 감사드립니다!",
                 dateText = "2026.10.15"
             )
         )
