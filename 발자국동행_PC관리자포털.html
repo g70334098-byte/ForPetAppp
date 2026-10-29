@@ -828,8 +828,8 @@
             if (typeof L !== 'undefined') {
                 leafletMap = L.map('map-canvas').setView([35.150, 128.980], 12); // 부산 시내 중심
 
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; 발자국동행 &copy; OpenStreetMap contributors',
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: '&copy; 발자국동행 &copy; Esri World Street Map',
                     maxZoom: 19
                 }).addTo(leafletMap);
 
