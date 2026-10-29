@@ -5356,7 +5356,7 @@ fun HomeScreenContent(
                     title = "반려동물 장례식장 연계",
                     carModelText = "",
                     features = listOf(
-                        "• 서부산/경남 장례식장 연계",
+                        "• 부산 전 지역/경남 장례식장 연계",
                         "• 안심 전용 추모 운구 차량",
                         "• 보호자 동승/무인 운구대행",
                         "• 단독 개별 화장 & 스톤 연계"
@@ -5373,7 +5373,7 @@ fun HomeScreenContent(
             }
         }
 
-        // 3. 서부산 제휴병원 & 자주묻는질문 (컴팩트 높이 84dp 보정)
+        // 3. 부산 제휴병원 & 자주묻는질문 (컴팩트 높이 84dp 보정)
         item {
             Row(
                 modifier = Modifier
@@ -5782,7 +5782,7 @@ fun HomeScreenContent(
                                 modifier = Modifier.padding(14.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text("💰 발자국동행 투명 요금 안내 (서부산 기본 기준)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0369A1))
+                                Text("💰 발자국동행 투명 정찰 요금 안내 (부산 전 지역 기준)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0369A1))
                                 HorizontalDivider()
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text("🏥 발자국동행 3가지 서비스 트림 정찰 요금", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
@@ -5795,7 +5795,7 @@ fun HomeScreenContent(
                                     Text("🕊️ 반려동물 장례식장 연계 서비스", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF475569))
                                     Text("• 현재 정식 오픈 준비 중입니다. (추후 서비스 개시 예정)", fontSize = 11.sp, color = Color.Gray)
                                 }
-                                Text("※ 이동 거리(km) 및 서부산 구 단위에 따라 예상 금액이 산정되며, 미터기 기준 투명 정찰제로 안전하게 운용됩니다.", fontSize = 10.sp, color = Color(0xFF0284C7), lineHeight = 14.sp)
+                                Text("※ 이동 거리(km) 및 부산 전 지역 구 단위에 따라 예상 금액이 산정되며, 미터기 기준 투명 정찰제로 안전하게 운용됩니다.", fontSize = 10.sp, color = Color(0xFF0284C7), lineHeight = 14.sp)
                             }
                         }
                     }
@@ -7588,7 +7588,7 @@ fun HomeScreenContent(
                                 Text("📢 발자국동행 1:1 병원 진료 대행 서비스 정식 운영 안내", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
                                 Text("2026.10.18", fontSize = 10.sp, color = Color.Gray)
                                 HorizontalDivider()
-                                Text("강서구, 사하구, 사상구, 북구 서부산 전 지역에 보호자 맞춤형 1:1 병원 진료 대행 및 안심 이동 케어 서비스가 정식 운영 중입니다.", fontSize = 11.sp, color = Color(0xFF334155), lineHeight = 15.sp)
+                                Text("부산 전 지역 (강서, 사하, 사상, 진구, 해운대 등)에 보호자 맞춤형 1:1 병원 진료 대행 및 안심 이동 케어 서비스가 정식 운영 중입니다.", fontSize = 11.sp, color = Color(0xFF334155), lineHeight = 15.sp)
                             }
                         }
                     }
