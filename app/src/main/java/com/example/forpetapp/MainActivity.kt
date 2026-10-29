@@ -488,6 +488,14 @@ fun LoginScreen(
         if (cameraGranted || audioGranted) {
             Toast.makeText(context, "📹 [가드 안심 바디캠 가동 권한 동의 완료] 1080p 바디캠 가동 준비 완료!", Toast.LENGTH_SHORT).show()
         }
+        try {
+            val serviceIntent = Intent(context, com.example.forpetapp.service.GuardGpsForegroundService::class.java)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent)
+            } else {
+                context.startService(serviceIntent)
+            }
+        } catch (_: Exception) {}
         onDriverLoginSuccess()
     }
 
