@@ -46,6 +46,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.sp
@@ -5759,48 +5760,40 @@ fun HomeScreenContent(
                                         .clickable { selectedHospital = item },
                                     colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9))
                                 ) {
-                                    Column(
+                                    Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(12.dp),
-                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            modifier = Modifier.weight(1f)
                                         ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            Text(
+                                                text = item.name,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 14.sp,
+                                                color = Color(0xFF0F172A),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = if (item.type == "24시 응급") Color(0xFFFFE4E6) else Color(0xFFE0F2FE)
                                             ) {
-                                                Text(item.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0F172A))
-                                                Surface(
-                                                    shape = RoundedCornerShape(4.dp),
-                                                    color = if (item.type == "24시 응급") Color(0xFFFFE4E6) else Color(0xFFE0F2FE)
-                                                ) {
-                                                    Text(
-                                                        text = item.type,
-                                                        fontSize = 10.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = if (item.type == "24시 응급") Color(0xFFE11D48) else Color(0xFF0284C7),
-                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                    )
-                                                }
+                                                Text(
+                                                    text = item.type,
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (item.type == "24시 응급") Color(0xFFE11D48) else Color(0xFF0284C7),
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
                                             }
-                                            Text("상세보기 ➔", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
                                         }
-
-                                        Text("📍 ${item.address}", fontSize = 11.sp, color = Color(0xFF334155))
-                                        Text("📞 ${item.phone} | 🐾 대상: ${item.targetSpecies.joinToString(", ")}", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Medium)
-
-                                        if (item.departments.isNotEmpty()) {
-                                            Text("🩺 진료 과목: ${item.departments.joinToString(", ")}", fontSize = 10.sp, color = Color.Gray, lineHeight = 14.sp)
-                                        }
-
-                                        if (item.additionalServices.isNotEmpty()) {
-                                            Text("✨ 부가 서비스: ${item.additionalServices.joinToString(", ")}", fontSize = 10.sp, color = Color(0xFFD97706), fontWeight = FontWeight.Medium)
-                                        }
+                                        Text("상세보기 ➔", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -6004,19 +5997,57 @@ fun HomeScreenContent(
     selectedHospital?.let { hospital ->
         AlertDialog(
             onDismissRequest = { selectedHospital = null },
-            title = { Text("🏥 ${hospital.name}", fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("🏥 ${hospital.name}", fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.weight(1f))
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = if (hospital.type == "24시 응급") Color(0xFFFFE4E6) else Color(0xFFE0F2FE)
+                    ) {
+                        Text(
+                            text = hospital.type,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (hospital.type == "24시 응급") Color(0xFFE11D48) else Color(0xFF0284C7),
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("운영 타입: ${hospital.type}", fontWeight = FontWeight.Bold, color = if (hospital.type == "24시 응급") Color(0xFFD32F2F) else Color(0xFF0284C7))
                     HorizontalDivider()
-                    Text("📍 주소", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
-                    Text(hospital.address, fontSize = 14.sp)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("📞 전화번호", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
-                    Text(hospital.phone, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("📍 주소", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
+                        Text(hospital.address, fontSize = 13.sp, color = Color(0xFF0F172A), fontWeight = FontWeight.Medium)
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("📞 전화번호 & 🐾 대상", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
+                        Text("📞 ${hospital.phone} | 🐾 대상: ${hospital.targetSpecies.joinToString(", ")}", fontSize = 13.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                    }
+
+                    if (hospital.departments.isNotEmpty()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("🩺 진료 과목", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
+                            Text(hospital.departments.joinToString(", "), fontSize = 12.sp, color = Color(0xFF334155), lineHeight = 16.sp)
+                        }
+                    }
+
+                    if (hospital.additionalServices.isNotEmpty()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("✨ 부가 서비스 & 특이사항", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
+                            Text(hospital.additionalServices.joinToString(", "), fontSize = 12.sp, color = Color(0xFFD97706), fontWeight = FontWeight.Medium)
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -6024,7 +6055,7 @@ fun HomeScreenContent(
                     onClick = { selectedHospital = null },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
                 ) {
-                    Text("확인")
+                    Text("확인", fontWeight = FontWeight.Bold)
                 }
             }
         )
