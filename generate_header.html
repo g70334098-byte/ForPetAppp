@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        body { width: 1024px; height: 500px; overflow: hidden; background: linear-gradient(135deg, #f8f6f0 0%, #f1ede4 100%); position: relative; }
+
+        .aura1 { position: absolute; top: -100px; right: -80px; width: 600px; height: 600px; background: rgba(2, 132, 199, 0.12); border-radius: 50%; filter: blur(40px); }
+        .aura2 { position: absolute; bottom: -80px; right: 100px; width: 450px; height: 450px; background: rgba(217, 119, 6, 0.12); border-radius: 50%; filter: blur(40px); }
+
+        .content { position: relative; z-index: 10; padding: 50px 60px; display: flex; flex-direction: column; height: 100%; justify-content: space-between; }
+
+        .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(2, 132, 199, 0.12); border: 1.5px solid #0284c7; color: #0284c7; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 800; width: fit-content; }
+
+        .brand-title { font-size: 54px; font-weight: 900; color: #0f172a; margin-top: 10px; letter-spacing: -1px; }
+        .brand-sub { font-size: 22px; font-weight: 800; color: #d97706; margin-top: 4px; }
+
+        .features { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; color: #475569; font-size: 15px; font-weight: 700; }
+
+        .trims-row { display: flex; gap: 12px; margin-top: 20px; }
+        .trim-card { padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+        .trim-red { background: #fef2f2; border: 1.5px solid #ef4444; color: #dc2626; }
+        .trim-yellow { background: #fffbeb; border: 1.5px solid #f59e0b; color: #b45309; }
+        .trim-blue { background: #f0f9ff; border: 1.5px solid #0284c7; color: #0284c7; }
+
+        .logo-img { position: absolute; right: 80px; top: 110px; width: 280px; height: 280px; border-radius: 50%; border: 6px solid #ffffff; box-shadow: 0 16px 40px rgba(0,0,0,0.15); object-fit: cover; }
+    </style>
+</head>
+<body>
+    <div class="aura1"></div>
+    <div class="aura2"></div>
+
+    <img src="official_logo.png" class="logo-img" alt="발자국동행 로고">
+
+    <div class="content">
+        <div>
+            <div class="badge">
+                <span>🟢</span>
+                <span>부산 전 지역 1:1 레이 케어카 실시간 배차</span>
+            </div>
+
+            <div class="brand-title">발자국동행</div>
+            <div class="brand-sub">반려동물과 함께 걷는 따뜻한 길 🐾</div>
+
+            <div class="features">
+                <div>• 1:1 수석 가드 안심 동행 및 1080p 바디캠 라이브 송출</div>
+                <div>• 22.5℃ 차내 자동 온습도 제어 & 펫전용 안심 시트</div>
+                <div>• 수의사 정밀 진료 리포트 및 펫보험 청구 영수증 수령</div>
+            </div>
+        </div>
+
+        <div class="trims-row">
+            <div class="trim-card trim-red">🚨 긴급 응급 출동 5만</div>
+            <div class="trim-card trim-yellow">🚗 미예약 당일이동 3.5만</div>
+            <div class="trim-card trim-blue">📅 예약 진료 3만</div>
+        </div>
+    </div>
+</body>
+</html>

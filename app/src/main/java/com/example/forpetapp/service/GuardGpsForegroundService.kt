@@ -30,7 +30,7 @@ class GuardGpsForegroundService : Service() {
 
     private fun startForegroundServiceNotification() {
         val channelId = "guard_gps_service_channel"
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as? NotificationManager
         if (notificationManager != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,

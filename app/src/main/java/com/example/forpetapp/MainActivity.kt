@@ -3496,6 +3496,23 @@ fun AiHealthChatDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                // 🛡️ 구글 플레이스토어 의료 정책 준수 안심 면책 안내 배너
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFFFFBEB),
+                    border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                ) {
+                    Text(
+                        "※ 본 AI 보듬이는 수의사 진료를 보조하는 AI 시스템이며, 정확한 질환 진단 및 투약 처방은 반드시 동물병원 수의사 직통 진료를 받아보셔야 합니다.",
+                        fontSize = 10.sp,
+                        color = Color(0xFFB45309),
+                        modifier = Modifier.padding(8.dp),
+                        lineHeight = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
                 LazyColumn(
                     state = chatListState,
                     modifier = Modifier
