@@ -1127,11 +1127,13 @@
             }
         }
 
-        // 오더 삭제
+        // 오더 삭제 (고객 실수 예약건 직접 취소/삭제)
         function deleteOrder(index) {
-            if (confirm(`정말로 오더 [${ordersData[index].id}]를 삭제하시겠습니까?`)) {
+            const item = ordersData[index];
+            if (item && confirm(`정말로 고객 [${item.owner}] 님의 실수 오더 [${item.id}] 항목을 관리자 권한으로 삭제하시겠습니까?`)) {
                 ordersData.splice(index, 1);
                 persistData();
+                alert(`🗑️ [${item.owner}] 고객님의 오더 [${item.id}] 항목이 관제 포털에서 완전히 삭제되었습니다.`);
             }
         }
 
