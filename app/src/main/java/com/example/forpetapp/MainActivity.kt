@@ -1081,7 +1081,15 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
                                         onClick = {
                                             val updatedOrder = order.copy(status = statusStep)
                                             driverOrders[index] = updatedOrder
-                                            Toast.makeText(context, "[$statusStep] 동선 상태가 보호자에게 실시간 전송되었습니다!", Toast.LENGTH_SHORT).show()
+                                            PersistentStorageManager.saveBookingList(context, driverOrders)
+
+                                            if (statusStep.contains("6. 안전 귀가 완료")) {
+                                                sendSystemPushNotification(context, "🎉 [발자국동행] 안전 귀가 완료 & 콜 마감", "[${order.petName}] 아이의 안심 이송이 완료되었습니다. 가드 바디캠이 자동 종료(OFF) 처리되었습니다.")
+                                                Toast.makeText(context, "🔒 오더 마감: 가드 바디캠 및 카메라/마이크가 자동 OFF 종료되었습니다. (사생활 보호)", Toast.LENGTH_LONG).show()
+                                            } else {
+                                                sendSystemPushNotification(context, "📹 [발자국동행] 바디캠 자동 가동 ON", "[${order.petName}] 아이 이송 중: 가드 바디캠 1080p 라이브 송출 가동 ON")
+                                                Toast.makeText(context, "📹 오더 수행 중: 바디캠 1080p 라이브 송출 가동 ON", Toast.LENGTH_SHORT).show()
+                                            }
                                         },
                                         label = { Text(statusStep, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
                                         modifier = Modifier.fillMaxWidth()
