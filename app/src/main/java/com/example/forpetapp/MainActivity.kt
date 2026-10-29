@@ -5299,48 +5299,6 @@ fun HomeScreenContent(
             }
         }
 
-        // 1-4. 🩺 AI 반려동물 건강 증상 상담봇 배너
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showAiChatDialog = true },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFE0F2FE)),
-                border = BorderStroke(1.dp, Color(0xFFBAE6FD))
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("🩺", fontSize = 28.sp)
-                        Column {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text("발자국동행 AI 건강 증상 상담봇", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0369A1))
-                                Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = Color(0xFF0284C7)
-                                ) {
-                                    Text("AI 봇 🤖", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
-                                }
-                            }
-                            Text("아이의 증상(구토, 기침 등)을 적으면 진료 과목을 안내해 드립니다.", fontSize = 11.sp, color = Color(0xFF0284C7))
-                        }
-                    }
-                    Text("상담하기 ➔", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
-                }
-            }
-        }
-
         // 2. 핵심 서비스 카드 2종
         item {
             Row(
