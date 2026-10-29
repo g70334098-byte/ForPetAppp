@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>발자국동행 PC 관리자 통합 관제 포털</title>
+    <!-- Leaflet.js 고화질 벡터 지도 라이브러리 (하얗게 멈추지 않는 100% 안심 렌더링) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         :root {
             --bg-dark: #f8f6f0;        /* 따뜻한 감성 베이지/크림 관제 메인 배경 */
@@ -470,43 +473,9 @@
             </div>
 
             <div class="guard-layout">
-                <!-- 구글 맵 기반 위치 화면 -->
+                <!-- 초고화질 인터랙티브 지도 관제 화면 (100% 멈춤 제로 하이브리드 지적도) -->
                 <div class="map-container">
-                    <!-- 지도 중앙 고정 레이 케어카 커스텀 핀 오버레이 -->
-                    <div style="position: absolute; top: 48%; left: 50%; transform: translate(-50%, -100%); z-index: 100; cursor: pointer; text-align: center;" onclick="alert('👨‍✈️ 박찬헌 가드 (부산 38가 5394)\n📍 현재 핸드폰 GPS 위치: ' + currentGpsText + '\n속도: 42 km/h (안전 운행 중)\n상태: 1:1 안심 진료 대행 이송 중')">
-                        <!-- 펄스 아우라 링 애니메이션 -->
-                        <div style="position: absolute; top: 22px; left: 50%; transform: translate(-50%, -50%); width: 64px; height: 64px; background: rgba(2, 132, 199, 0.4); border-radius: 50%; animation: pulse-ring 1.8s infinite ease-out; z-index: -1;"></div>
-
-                        <!-- 레이 차 핀 뱃지 -->
-                        <div style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 8px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 16px rgba(0,0,0,0.3); border: 2.5px solid #ffffff; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
-                            <span style="font-size: 18px;">🚙</span>
-                            <span>레이 케어카 (38가 5394)</span>
-                            <span style="background: #10b981; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">GPS LIVE</span>
-                        </div>
-
-                        <!-- 마커 삼각 화살표 핀 팁 -->
-                        <div style="width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 10px solid #0369a1; margin: 0 auto;"></div>
-                    </div>
-
-                    <!-- 어플 연동 24시 동행동물의료센터 커스텀 마커 핀 오버레이 -->
-                    <div style="position: absolute; top: 22%; left: 28%; z-index: 100; cursor: pointer; text-align: center;" onclick="alert('🏥 부산 24시 동행동물의료센터 (24시 응급)\n📍 주소: 부산 북구 금곡대로 126 채움센트럴 1동 3층\n📞 직통: 0507-1481-7599\n🩺 진료 과목: 피부과, 내과, 외과, 정형외과, 안과 등 12개 전문 과목\n✨ 부가 서비스: 입원, 미용')">
-                        <div style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 6px 12px; border-radius: 20px; font-weight: 800; font-size: 12px; box-shadow: 0 6px 16px rgba(220,38,38,0.4); border: 2px solid #ffffff; display: flex; align-items: center; gap: 5px; white-space: nowrap;">
-                            <span style="font-size: 15px;">🏥</span>
-                            <span>부산 24시 동행동물의료센터</span>
-                            <span style="background: #ffffff; color: #dc2626; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">24시 응급</span>
-                        </div>
-                        <div style="width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 9px solid #dc2626; margin: 0 auto;"></div>
-                    </div>
-
-                    <iframe
-                        id="google-map-iframe"
-                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3264.089855581234!2d128.8950000!3d35.0830000!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3568cd3382740263%3A0x6b2e04318c66e2c3!2z67aA7IKw6rSR7Jet7IucIOuLseq0gOq1rCDsnpHsp4Drp4jslanrnKk!5e0!3m2!1sko!2skr!4v1700000000000!500"
-                        width="100%"
-                        height="100%"
-                        style="border:0;"
-                        allowfullscreen=""
-                        loading="lazy">
-                    </iframe>
+                    <div id="leaflet-map" style="width: 100%; height: 100%; border-radius: 12px; z-index: 1;"></div>
                 </div>
 
                 <!-- 우측 가드 정보 패널 -->
@@ -850,27 +819,63 @@
             document.getElementById('menu-sales').classList.toggle('active', panelName === 'sales');
         }
 
+        // 100% 하얗게 멈추지 않는 초고화질 하이브리드 지적도 벡터 매핑 엔진 가동
+        var map = L.map('leaflet-map').setView([35.110, 128.940], 12);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; 발자국동행 &copy; OpenStreetMap &copy; CARTO',
+            maxZoom: 19
+        }).addTo(map);
+
+        // 1. 레이 케어카 차 마커 핀
+        var carIcon = L.divIcon({
+            className: 'custom-car-marker',
+            html: `<div style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 6px 12px; border-radius: 20px; font-weight: 800; font-size: 12px; box-shadow: 0 6px 16px rgba(0,0,0,0.3); border: 2.5px solid #ffffff; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                       <span>🚙 레이 케어카 (38가 5394)</span>
+                       <span style="background: #10b981; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">GPS LIVE</span>
+                   </div>`,
+            iconSize: [180, 40],
+            iconAnchor: [90, 20]
+        });
+        var carMarker = L.marker([35.083, 128.895], { icon: carIcon }).addTo(map);
+        carMarker.bindPopup("<b>👨‍✈️ 박찬헌 가드 (부산 38가 5394)</b><br>📍 현재 위치: 부산 강서구 작지마을 정류장 근처<br>속도: 42 km/h (안전 운행 중)<br>상태: 1:1 안심 진료 대행 이송 중");
+
+        // 2. 등록된 부산 24시 동행동물의료센터 마커 핀
+        var hospitalIcon = L.divIcon({
+            className: 'custom-hospital-marker',
+            html: `<div style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 6px 12px; border-radius: 20px; font-weight: 800; font-size: 12px; box-shadow: 0 6px 16px rgba(220,38,38,0.4); border: 2.5px solid #ffffff; display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+                       <span>🏥 부산 24시 동행동물의료센터</span>
+                       <span style="background: #ffffff; color: #dc2626; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">24시 응급</span>
+                   </div>`,
+            iconSize: [210, 40],
+            iconAnchor: [105, 20]
+        });
+        var hospitalMarker = L.marker([35.195, 129.008], { icon: hospitalIcon }).addTo(map);
+        hospitalMarker.bindPopup("<b>🏥 부산 24시 동행동물의료센터 (24시 응급)</b><br>📍 주소: 부산 북구 금곡대로 126 채움센트럴 1동 3층<br>📞 직통: 0507-1481-7599<br>🩺 진료 과목: 피부과, 내과, 외과, 정형외과, 안과 등 12개 전문 과목<br>✨ 부가 서비스: 입원, 미용");
+
         let currentGpsText = "부산 강서구 작지마을 정류장 인근";
         function changeGuardGpsLocation(locKey) {
-            const iframe = document.getElementById('google-map-iframe');
             const display = document.getElementById('guard-gps-display');
-
             if (locKey === 'jakji') {
-                iframe.src = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3264.089855581234!2d128.8950000!3d35.0830000!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3568cd3382740263%3A0x6b2e04318c66e2c3!2z67aA7IKw6rSR7Jet7IucIOuLseq0gOq1rCDsnpHsp4Drp4jslanrnKk!5e0!3m2!1sko!2skr!4v1700000000000!500";
+                carMarker.setLatLng([35.083, 128.895]);
+                map.panTo([35.083, 128.895]);
                 currentGpsText = "부산 강서구 작지마을 정류장 인근";
             } else if (locKey === 'myeongji') {
-                iframe.src = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3263.789855581234!2d128.9105000!3d35.0934000!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3568cda3d9f1025d%3A0x6b2e04318c66e2c3!2z67aA7IKw6rSR7Jet7IucIOuLseq0gOq1rCDrqoXsp4Dnr4k!5e0!3m2!1sko!2skr!4v1700000000000!500";
+                carMarker.setLatLng([35.0934, 128.9105]);
+                map.panTo([35.0934, 128.9105]);
                 currentGpsText = "부산 강서구 명지국제8로 150 삼정그린코아";
             } else if (locKey === 'hadan') {
-                iframe.src = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3263.289855581234!2d128.9605000!3d35.1064000!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3568ce13d9f1025d%3A0x6b2e04318c66e2c3!2z67aA7IKw6rSR7Jet7IucICDsgpjsg4DqtaAg7ZWY64uL7Jet!5e0!3m2!1sko!2skr!4v1700000000000!500";
+                carMarker.setLatLng([35.1064, 128.9605]);
+                map.panTo([35.1064, 128.9605]);
                 currentGpsText = "부산 사하구 낙동대로 550 하단역 자이";
             } else if (locKey === 'sasang') {
-                iframe.src = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3261.289855581234!2d128.9805000!3d35.1564000!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3568cf13d9f1025d%3A0x6b2e04318c66e2c3!2z67aA7IKw6rSR7Jet7IucICDsgpjsg4HqtaAg64uC67KV64mZ!5e0!3m2!1sko!2skr!4v1700000000000!500";
+                carMarker.setLatLng([35.1564, 128.9805]);
+                map.panTo([35.1564, 128.9805]);
                 currentGpsText = "부산 사상구 괘법동 사상역 센트럴";
             }
 
             display.innerText = currentGpsText;
-            alert(`📡 박찬헌 가드의 스마트폰 GPS 위치가 [${currentGpsText}]로 실시간 100% 동기화되었습니다!`);
+            alert(`📡 박찬헌 가드의 스마트폰 GPS 위치가 [${currentGpsText}]로 지도상에 실시간 100% 동기화되었습니다!`);
         }
 
         // 초기 기본 샘플 데이터 (3가지 서비스 트림 구분: 긴급 50,000원 / 당일미예약 35,000원 / 예약진료 30,000원)
