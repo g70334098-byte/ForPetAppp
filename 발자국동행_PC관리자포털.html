@@ -415,8 +415,8 @@
 
             <div class="kpi-card">
                 <div class="kpi-title">가동 레이 케어카</div>
-                <div class="kpi-value">6 대</div>
-                <div class="kpi-sub">🚙 핸드폰 GPS 실시간 구글맵 동기화 중</div>
+                <div class="kpi-value">1 대</div>
+                <div class="kpi-sub">🚙 부산 38가 5394 (박찬헌 가드 전담)</div>
             </div>
 
             <div class="kpi-card">
@@ -519,7 +519,41 @@
 
                     <div style="margin-top:auto; display:flex; flex-direction:column; gap:8px;">
                         <button class="btn-action" style="padding:12px; justify-content:center; font-size:13px;" onclick="alert('박찬헌 가드에게 직통 통화가 연결됩니다 (010-2654-5394)')">📞 가드 직통 무전/전화 연결</button>
-                        <button class="btn-action btn-gold" style="padding:10px; justify-content:center; font-size:12px;" onclick="alert('가드 비상 지원 발송 완료')">🚨 가드 비상 지원 발송</button>
+                        <button class="btn-action btn-gold" style="padding:10px; justify-content:center; font-size:12px;" onclick="openBodycamModal('ORD-01')">📹 1080p 바디캠 라이브 시청</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 바디캠 실시간 라이브 스트리밍 모니터 섹션 -->
+            <div style="margin-top: 20px; background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; padding: 20px; color: #fff;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="font-size: 20px;">📹</span>
+                        <div>
+                            <b style="font-size:16px; color:#fff;">박찬헌 가드 - 1080p FHD 바디캠 60fps 라이브 수송 모니터링</b>
+                            <p style="font-size:11px; color:#94a3b8; margin-top:2px;">차내 레이 안심 세이프티 시트 및 아이('초코') 이송 상태 실시간 라이브 수신 중</p>
+                        </div>
+                    </div>
+                    <span class="badge badge-active" style="font-size:12px; padding:6px 12px;">🔴 LIVE 1080p 60fps</span>
+                </div>
+
+                <!-- 라이브 카메라 뷰박스 -->
+                <div style="position:relative; width:100%; height:260px; background:#1e293b; border-radius:12px; overflow:hidden; border:2px solid #334155; display:flex; align-items:center; justify-content:center;">
+                    <img src="hero_visual.jpg" style="width:100%; height:100%; object-fit:cover; opacity:0.85;" alt="바디캠 실시간 라이브">
+
+                    <div style="position:absolute; top:12px; left:12px; background:rgba(0,0,0,0.7); color:#4ade80; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:6px;">
+                        <span>🔴 CAM-01 [박찬헌 가드 바디캠]</span>
+                        <span>|</span>
+                        <span>LIVE STREAM</span>
+                    </div>
+
+                    <div style="position:absolute; bottom:12px; left:12px; background:rgba(0,0,0,0.7); color:#fff; padding:6px 12px; border-radius:8px; font-size:11px;">
+                        🚘 기아 레이 펫전용차 (부산 38가 5394) | 🌡️ 차내 온도: 22.5℃ | 🎙️ 음성 오디오 정상
+                    </div>
+
+                    <div style="position:absolute; bottom:12px; right:12px; display:flex; gap:8px;">
+                        <button class="btn-action" style="background:#0284c7; padding:6px 12px; font-size:11px;" onclick="alert('📸 바디캠 고화질 스냅샷 캡처가 관제 서버에 저장되었습니다.')">📸 스냅샷 캡처</button>
+                        <button class="btn-action btn-gold" style="padding:6px 12px; font-size:11px;" onclick="alert('🎙️ 박찬헌 가드 무전 스피커로 관제 음성이 송출됩니다.')">🔊 안심 무전 송출</button>
                     </div>
                 </div>
             </div>
@@ -702,7 +736,7 @@
 
             <div class="form-group">
                 <label>휴대폰 연락처</label>
-                <input type="text" id="form-user-phone" placeholder="예: 010-1234-5678">
+                <input type="text" id="form-user-phone" placeholder="예: 010-">
             </div>
 
             <div class="form-group">
@@ -741,6 +775,40 @@
 
             <div class="btn-group">
                 <button class="btn-action btn-green" style="padding:10px 18px;" onclick="closeModal('user-detail-modal')">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. 1080p 바디캠 실시간 모니터링 팝업 모달 -->
+    <div class="modal-overlay" id="bodycam-modal">
+        <div class="modal-box" style="width: 700px; max-width: 95vw; background:#0f172a; color:#fff;">
+            <div class="modal-header">
+                <h3 style="color:#fff;" id="bodycam-modal-title">📹 1080p FHD 바디캠 라이브 실시간 수송 모니터링</h3>
+                <span class="modal-close" style="color:#94a3b8;" onclick="closeModal('bodycam-modal')">✕</span>
+            </div>
+
+            <div style="position:relative; width:100%; height:320px; background:#1e293b; border-radius:12px; overflow:hidden; border:2px solid #334155; display:flex; align-items:center; justify-content:center;">
+                <img src="hero_visual.jpg" style="width:100%; height:100%; object-fit:cover; opacity:0.9;" alt="바디캠 실시간 라이브">
+
+                <div style="position:absolute; top:12px; left:12px; background:rgba(0,0,0,0.8); color:#4ade80; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:6px;">
+                    <span>🔴 CAM-01 [박찬헌 가드 전용 바디캠]</span>
+                    <span>|</span>
+                    <span>LIVE STREAM 60fps</span>
+                </div>
+
+                <div style="position:absolute; bottom:12px; left:12px; background:rgba(0,0,0,0.8); color:#fff; padding:6px 12px; border-radius:8px; font-size:11px;">
+                    🚘 레이 케어카 (부산 38가 5394) | 🌡️ 실내 온도: 22.5 ℃ | 🎙️ 음성 정상 수신
+                </div>
+
+                <div style="position:absolute; bottom:12px; right:12px; display:flex; gap:8px;">
+                    <button class="btn-action" style="background:#0284c7; padding:6px 12px; font-size:11px;" onclick="alert('📸 바디캠 고화질 스냅샷 캡처가 관제 서버에 저장되었습니다.')">📸 스냅샷 캡처</button>
+                    <button class="btn-action btn-gold" style="padding:6px 12px; font-size:11px;" onclick="alert('🎙️ 박찬헌 가드 무전 스피커로 관제 음성이 송출됩니다.')">🔊 안심 무전 송출</button>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:12px; color:#94a3b8;">💡 픽업부터 진료 수속, 귀가까지 바디캠 라이브가 100% 안전 녹화됩니다.</span>
+                <button class="btn-action btn-green" style="padding:8px 16px;" onclick="closeModal('bodycam-modal')">닫기</button>
             </div>
         </div>
     </div>
@@ -864,6 +932,7 @@
                     <td><b style="color:#d97706;">${item.price}</b></td>
                     <td>
                         <div style="display:flex; gap:4px;">
+                            <button class="btn-action" style="padding:4px 8px; font-size:11px; background:#0284c7;" onclick="openBodycamModal('${item.id}')">📹 바디캠 시청</button>
                             <button class="btn-action" style="padding:4px 8px; font-size:11px;" onclick="openReportModal('${item.id}')">📄 리포트</button>
                             <button class="btn-action btn-gold" style="padding:4px 8px; font-size:11px;" onclick="openEditOrderModal(${index})">✏️ 수정</button>
                             <button class="btn-action btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteOrder(${index})">🗑️ 삭제</button>
@@ -1041,6 +1110,10 @@
             `;
 
             modal.style.display = 'flex';
+        }
+
+        function openBodycamModal(orderId) {
+            document.getElementById('bodycam-modal').style.display = 'flex';
         }
 
         // 포인트 지급
