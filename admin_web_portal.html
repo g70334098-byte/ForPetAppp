@@ -818,6 +818,15 @@
             document.getElementById('menu-guard').classList.toggle('active', panelName === 'guard');
             document.getElementById('menu-users').classList.toggle('active', panelName === 'users');
             document.getElementById('menu-sales').classList.toggle('active', panelName === 'sales');
+
+            // ⚡ 지도 크기 즉시 100% 가상화 재계산 (타일 잘림/지연 100% 즉시 해결!)
+            if (panelName === 'guard') {
+                setTimeout(function() {
+                    if (leafletMap) {
+                        leafletMap.invalidateSize();
+                    }
+                }, 50);
+            }
         }
 
         // 고화질 실수없는 실시간 관제 지도 엔진 가동 (부산시 중심 35.1795583, 129.0756416)
