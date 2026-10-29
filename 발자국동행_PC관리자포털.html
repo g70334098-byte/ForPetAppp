@@ -828,8 +828,8 @@
             if (typeof L !== 'undefined') {
                 leafletMap = L.map('map-canvas').setView([35.150, 128.980], 12); // 부산 시내 중심
 
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                    attribution: '&copy; 발자국동행 &copy; OpenStreetMap &copy; CARTO',
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; 발자국동행 &copy; OpenStreetMap contributors',
                     maxZoom: 19
                 }).addTo(leafletMap);
 
