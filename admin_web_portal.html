@@ -949,13 +949,15 @@
                 currentGpsText = "부산 사하구 하신중앙로 340 하단오거리동물병원 앞";
             }
 
-            if (googleMap && carMarker) {
-                carMarker.setLatLng([lat, lng]);
-                googleMap.panTo([lat, lng]);
+            if (googleMap) {
+                if (carMarker && (locKey === 'jakji' || locKey === 'myeongji' || locKey === 'hadan' || locKey === 'sasang')) {
+                    carMarker.setLatLng([lat, lng]);
+                }
+                googleMap.setView([lat, lng], 15); // ⚡ 지도가 해당 병원 및 주소 위치로 고화질 밀착 로킹!
             }
 
             display.innerText = currentGpsText;
-            alert(`📡 박찬헌 가드의 스마트폰 GPS 위치가 구글 지도상에 [${currentGpsText}]로 실시간 100% 동기화되었습니다!`);
+            alert(`📡 위치가 구글 지도상에 [${currentGpsText}]로 실시간 100% 동기화되었습니다!`);
         }
 
         // 초기 기본 샘플 데이터 (3가지 서비스 트림 구분: 긴급 50,000원 / 당일미예약 35,000원 / 예약진료 30,000원)
