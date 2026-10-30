@@ -1947,6 +1947,16 @@ object PersistentStorageManager {
                 targetSpecies = listOf("개", "고양이"),
                 departments = listOf("피부과", "내과", "안과", "치과", "예방의학과", "이비인후과", "비뇨기과", "외과", "정형외과", "산과"),
                 additionalServices = listOf("입원", "🚗 주차 건물 내 가능", "⏰ 금요일 14시30분까지 (접수마감 12시30분)")
+            ),
+            HospitalInfo(
+                name = "24시 이솔동물의료센터",
+                region = "부산 사하구",
+                type = "24시 응급",
+                address = "부산 사하구 낙동대로 468 평림상가 2층",
+                phone = "051-711-7566",
+                targetSpecies = listOf("개", "고양이"),
+                departments = listOf("내과 (만성/호르몬/종양/항암)", "외과 (슬개골/십자인대/정형외과)", "응급의학과 (24시간 수의사 상주)"),
+                additionalServices = listOf("입원", "🚗 건물 뒤편 총 11면 전용 주차 공간", "🚨 24시간 수의사 상주 체계")
             )
         )
         if (jsonStr == null) return defaultList
