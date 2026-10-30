@@ -469,6 +469,7 @@
                         <option value="sasang">📍 [사상] 부산 사상구 괘법동 사상역 센트럴</option>
                         <option value="yeonsan">📍 [연산동] 부산 연제구 연수로 135 연산동물의료센터 앞</option>
                         <option value="saha_eisol">📍 [당리/하단] 부산 사하구 낙동대로 468 24시 이솔동물의료센터 앞</option>
+                        <option value="saha_hadan5">📍 [하단오거리] 부산 사하구 하신중앙로 340 23시 하단오거리동물병원 앞</option>
                     </select>
                     <button class="btn-action btn-green" onclick="alert('📡 박찬헌 가드의 스마트폰 GPS 위치 신호가 최신 상태로 100% 동기화되었습니다!')">📡 GPS 위치 갱신</button>
                 </div>
@@ -900,6 +901,20 @@
                 });
                 var hospMarker3 = L.marker([35.1018000, 128.9665000], { icon: hospIcon3 }).addTo(googleMap);
                 hospMarker3.bindPopup("<b>🏥 24시 이솔동물의료센터 (24시 응급)</b><br>📍 주소: 부산 사하구 낙동대로 468 평림상가 2층<br>📞 직통: 051-711-7566<br>🚗 건물 뒤편 총 11면 전용 주차 공간");
+
+                // 5. 23시 하단오거리동물병원 커스텀 마커 핀 (4번째 신규 등록 병원 - 사하구 특수동물 전문)
+                var hospIcon4 = L.divIcon({
+                    className: 'custom-hospital-marker-4',
+                    html: `<div style="background: linear-gradient(135deg, #ef4444, #7f1d1d); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(220,38,38,0.4); border: 2.5px solid #ffffff; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 23시 하단오거리동물병원 (24시간 진료)\\n📍 주소: 부산 사하구 하신중앙로 340 1층\\n📞 직통: 051-291-7582\\n🐾 주요 진료 대상: 개, 고양이, 토끼, 고슴도치, 페릿, 기니피그, 햄스터, 조류, 파충류, 어류, 야생동물\\n🚗 특이사항: 입원, 건물 뒷편과 벽측 약 10대 주차 공간 완비')">
+                               <span style="font-size: 18px;">🏥</span>
+                               <span>23시 하단오거리동물병원</span>
+                               <span style="background: #ffffff; color: #dc2626; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">24시 응급</span>
+                           </div>`,
+                    iconSize: [210, 40],
+                    iconAnchor: [105, 20]
+                });
+                var hospMarker4 = L.marker([35.1052000, 128.9618000], { icon: hospIcon4 }).addTo(googleMap);
+                hospMarker4.bindPopup("<b>🏥 23시 하단오거리동물병원 (24시간 진료)</b><br>📍 주소: 부산 사하구 하신중앙로 340 1층<br>📞 직통: 051-291-7582<br>🐾 특수동물 전문 진료 (토끼/파충류/조류 등)<br>🚗 건물 뒷편 약 10대 주차 공간");
             }
         }
 
@@ -929,6 +944,9 @@
             } else if (locKey === 'saha_eisol') {
                 lat = 35.1018000; lng = 128.9665000;
                 currentGpsText = "부산 사하구 낙동대로 468 이솔동물의료센터 앞";
+            } else if (locKey === 'saha_hadan5') {
+                lat = 35.1052000; lng = 128.9618000;
+                currentGpsText = "부산 사하구 하신중앙로 340 하단오거리동물병원 앞";
             }
 
             if (googleMap && carMarker) {

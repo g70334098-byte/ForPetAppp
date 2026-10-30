@@ -1957,6 +1957,16 @@ object PersistentStorageManager {
                 targetSpecies = listOf("개", "고양이"),
                 departments = listOf("내과 (만성/호르몬/종양/항암)", "외과 (슬개골/십자인대/정형외과)", "응급의학과 (24시간 수의사 상주)"),
                 additionalServices = listOf("입원", "🚗 건물 뒤편 총 11면 전용 주차 공간", "🚨 24시간 수의사 상주 체계")
+            ),
+            HospitalInfo(
+                name = "23시 하단오거리동물병원",
+                region = "부산 사하구",
+                type = "24시 응급",
+                address = "부산 사하구 하신중앙로 340 1층 23시 하단오거리동물병원",
+                phone = "051-291-7582",
+                targetSpecies = listOf("개", "고양이", "토끼", "고슴도치", "페릿", "기니피그", "햄스터", "조류", "설치류", "파충류", "어류", "야생동물"),
+                departments = listOf("피부과", "내과", "안과", "치과", "영상의학과", "예방의학과", "이비인후과", "임상병리학과", "비뇨기과", "외과", "정형외과", "산과"),
+                additionalServices = listOf("입원", "🚗 건물 뒷편과 벽측 약 10대 주차 공간 완비", "🐾 특수동물 전문 진료 (토끼/파충류/조류 등)")
             )
         )
         if (jsonStr == null) return defaultList
