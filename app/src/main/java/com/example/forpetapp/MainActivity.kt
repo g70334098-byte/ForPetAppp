@@ -1937,6 +1937,16 @@ object PersistentStorageManager {
                 targetSpecies = listOf("개", "고양이"),
                 departments = listOf("피부과", "예방의학과", "내과", "이비인후과", "안과", "비뇨기과", "치과", "외과", "임상병리학과", "영상의학과", "정형외과", "산과"),
                 additionalServices = listOf("입원", "미용")
+            ),
+            HospitalInfo(
+                name = "부산 24시 연산동물의료센터",
+                region = "부산 연제구",
+                type = "24시 응급",
+                address = "부산 연제구 연수로 135 부산 24시 연산동물의료센터",
+                phone = "051-791-0175",
+                targetSpecies = listOf("개", "고양이"),
+                departments = listOf("피부과", "내과", "안과", "치과", "예방의학과", "이비인후과", "비뇨기과", "외과", "정형외과", "산과"),
+                additionalServices = listOf("입원", "🚗 주차 건물 내 가능", "⏰ 금요일 14시30분까지 (접수마감 12시30분)")
             )
         )
         if (jsonStr == null) return defaultList
@@ -5649,10 +5659,12 @@ fun HomeScreenContent(
         var newHospDepts by remember { mutableStateOf("피부과, 예방의학과, 내과, 이비인후과, 안과, 비뇨기과, 치과, 외과, 임상병리학과, 영상의학과, 정형외과, 산과") }
         var newHospSvcs by remember { mutableStateOf("입원, 미용") }
 
-        val regions = listOf("전체", "부산 북구", "부산 강서구", "부산 사하구", "부산 사상구", "부산진구", "해운대/수영구", "금정/연제구")
+        val regions = listOf("전체", "부산 북구", "부산 강서구", "부산 사하구", "부산 사상구", "부산 연제구", "부산진구", "해운대/수영구", "금정구")
 
         val filteredHospitals = hospitals.filter { item ->
-            val regionMatch = selectedRegionFilter == "전체" || item.region.contains(selectedRegionFilter)
+            val regionMatch = selectedRegionFilter == "전체" ||
+                    item.region.contains(selectedRegionFilter) ||
+                    selectedRegionFilter.contains(item.region.replace("부산 ", ""))
             val typeMatch = selectedTypeFilter == "전체" || item.type == selectedTypeFilter
             regionMatch && typeMatch
         }
