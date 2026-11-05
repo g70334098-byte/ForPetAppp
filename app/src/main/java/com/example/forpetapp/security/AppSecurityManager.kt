@@ -1,3 +1,5 @@
+@file:Suppress("unused", "SpellCheckingInspection")
+
 package com.example.forpetapp.security
 
 import android.content.Context
@@ -43,7 +45,7 @@ object AppSecurityManager {
             "/data/local/bin/su",
             "/system/sd/xbin/su",
             "/system/bin/failsafe/su",
-            "/data/local/su"
+            "/data/local/su",
         )
         for (path in rootPaths) {
             if (File(path).exists()) return true
@@ -51,9 +53,7 @@ object AppSecurityManager {
 
         // test-keys 커스텀 롬 빌드 검사
         val buildTags = Build.TAGS
-        if (buildTags != null && buildTags.contains("test-keys")) return true
-
-        return false
+        return buildTags?.contains("test-keys") == true
     }
 
     // 3. 치트엔진, 게임가디언, 프리다(Frida), Xposed 등 메모리 변조 해킹 툴 검사
@@ -67,7 +67,7 @@ object AppSecurityManager {
             "com.gmd.speedtime",
             "com.chelpus.lackypatch",
             "de.robv.android.xposed.installer",
-            "re.frida.server"
+            "re.frida.server",
         )
 
         val pm = context.packageManager
@@ -95,14 +95,15 @@ object AppSecurityManager {
         return false
     }
 
-    // 4. 안티 디버깅 (Anti-Debugging) 검사
-    fun isDebuggerAttached(): Boolean {
-        return Debug.isDebuggerConnected() || Debug.waitingForDebugger()
+    // 4. 안티 디버깅 (Anti-Debugging) 검사 (개발/디버그 모드에서는 오탐 방지)
+    fun isDebuggerAttached(context: Context? = null): Boolean {
+        val isDebuggable = (context != null) && ((context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0)
+        return !isDebuggable && (Debug.isDebuggerConnected() || Debug.waitingForDebugger())
     }
 
     // 5. 종합 보안 상태 체크
     fun performFullSecurityScan(context: Context): SecurityScanResult {
-        if (isDebuggerAttached()) {
+        if (isDebuggerAttached(context)) {
             return SecurityScanResult.DETECTED_DEBUGGER
         }
         if (isCheatOrHookToolDetected(context)) {

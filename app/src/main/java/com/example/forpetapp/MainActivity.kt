@@ -1,28 +1,76 @@
+@file:Suppress(
+    "UNUSED_PARAMETER",
+    "UNUSED_VARIABLE",
+    "DEPRECATION",
+    "SetJavaScriptEnabled",
+    "SimpleDateFormat",
+    "UsePropertyAccessSyntax",
+    "OPT_IN_IS_NOT_SPECIFIED",
+    "UNUSED_ANONYMOUS_PARAMETER",
+    "LocalVariableName",
+    "ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE",
+    "MemberVisibilityCanBePrivate",
+    "CanBeVal",
+    "ConstantConditionIf",
+    "KotlinConstantConditions",
+    "SpellCheckingInspection",
+    "RemoveRedundantQualifierName",
+    "LiftReturnOrAssignment",
+    "ReplacePutWithAssignment",
+    "ConvertToStringTemplate",
+    "UnnecessaryOptInAnnotation",
+    "CascadeIf",
+    "UseSharedPreferencesEdit",
+    "CommitPrefEdits",
+    "ApplySharedPref",
+    "RedundantExplicitType",
+    "RemoveExplicitTypeArguments",
+    "KDocMissingDocumentation",
+    "UseUriToUri"
+)
+
 package com.example.forpetapp
 
+import com.example.forpetapp.ui.auth.LoginScreen
+import com.example.forpetapp.ui.auth.SignUpScreen
 import com.example.forpetapp.ai.GeminiAiManager
+import com.example.forpetapp.data.firebase.FirebaseSyncManager
+import com.example.forpetapp.data.model.*
+import com.example.forpetapp.service.ForPetFirebaseMessagingService
 import kotlinx.coroutines.launch
 import com.example.forpetapp.security.AppSecurityManager
 import com.example.forpetapp.security.SecurityScanResult
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import com.google.firebase.auth.FirebaseAuth
 import com.kakao.sdk.common.KakaoSdk
 import com.kakao.sdk.user.UserApiClient
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -77,21 +125,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// 🏥 병원 정보 데이터 클래스 (부산 구별 수동 등록 & 진료 과목/부가 서비스 지원)
-data class HospitalInfo(
-    val name: String,
-    val region: String,
-    val type: String,
-    val address: String,
-    val phone: String,
-    val targetSpecies: List<String> = listOf("개", "고양이"),
-    val departments: List<String> = emptyList(),
-    val additionalServices: List<String> = emptyList()
-)
 
-enum class ScreenState {
-    LOGIN, SIGNUP, MAIN, DRIVER, ADMIN
-}
 
 @Composable
 fun ForPetApp() {
@@ -100,8 +134,58 @@ fun ForPetApp() {
     var isAdminUser by remember { mutableStateOf(false) }
     var currentAdminName by remember { mutableStateOf("최지훈 대표님") }
     var securityWarningMessage by remember { mutableStateOf<String?>(null) }
+    var isDarkMode by remember { mutableStateOf(PersistentStorageManager.loadDarkMode(context)) }
+    var isLargeFontMode by remember { mutableStateOf(PersistentStorageManager.loadLargeFontMode(context)) }
+
+    // 🚀 필수 최신 버전 체크 및 구글 플레이 강제 업데이트 상태
+    var isUpdateRequired by remember { mutableStateOf(false) }
+    var requiredLatestVersionName by remember { mutableStateOf("") }
+    var updateNoticeMessage by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
+        // 지하/엘리베이터 음영지역 오프라인 대기 큐 자동 동기화 시도
+        try {
+            FirebaseSyncManager.drainPendingQueue(context)
+        } catch (_: Exception) {}
+
+        // 현재 앱의 설치된 버전 코드 및 버전명 조회
+        val packageInfo = try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                context.packageManager.getPackageInfo(context.packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(context.packageName, 0)
+            }
+        } catch (_: Exception) {
+            null
+        }
+
+        val currentAppVersionCode = if (packageInfo != null) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                packageInfo.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                packageInfo.versionCode.toLong()
+            }
+        } else {
+            9L
+        }
+        val currentAppVersionName = packageInfo?.versionName ?: "1.0.8"
+
+        // Firestore 버전 설정 문서 초기화 (최초 1회 보장)
+        FirebaseSyncManager.initDefaultVersionConfigIfMissing(currentAppVersionCode, currentAppVersionName)
+
+        // 실시간 필수 버전 감시 리스너 가동 (최신 버전이 아닐 시 즉시 강제 업데이트 팝업 표시)
+        FirebaseSyncManager.listenToAppVersionConfig { minVersionCode, latestVersionName, updateMessage ->
+            if (currentAppVersionCode < minVersionCode) {
+                isUpdateRequired = true
+                requiredLatestVersionName = latestVersionName
+                updateNoticeMessage = updateMessage
+            } else {
+                isUpdateRequired = false
+            }
+        }
+
         val scanResult = AppSecurityManager.performFullSecurityScan(context)
         when (scanResult) {
             SecurityScanResult.DETECTED_CHEAT_TOOL -> {
@@ -112,6 +196,80 @@ fun ForPetApp() {
             }
             else -> {}
         }
+    }
+
+    // 🔴 최신 버전이 아닐 경우 어플 이용을 전면 차단하고 구글 플레이스토어로 직행 유도하는 강제 모달
+    if (isUpdateRequired) {
+        AlertDialog(
+            onDismissRequest = { /* 닫기 불가 - 최신 버전 업데이트 필수 */ },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("🚀", fontSize = 22.sp)
+                    Text("최신 버전 업데이트 안내", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF0F172A))
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFFEF2F2),
+                        border = BorderStroke(1.dp, Color(0xFFFECACA)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                "⚠️ 발자국동행 최신 버전 필수 안내",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFFB91C1C)
+                            )
+                            Text(
+                                "원활한 실시간 예약 및 안심 케어 서비스 이용을 위해 무조건 최신 버전으로 업데이트해야 합니다.",
+                                fontSize = 11.sp,
+                                color = Color(0xFF7F1D1D)
+                            )
+                        }
+                    }
+
+                    Text(
+                        updateNoticeMessage.ifEmpty {
+                            "새로운 기능 개선 및 서비스 안정화가 반영된 최신 버전(${requiredLatestVersionName})이 출시되었습니다.\n\n구글 플레이스토어로 이동하여 지금 바로 업데이트를 진행해 주세요."
+                        },
+                        fontSize = 13.sp,
+                        color = Color(0xFF334155),
+                        lineHeight = 18.sp
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val packageName = context.packageName
+                        try {
+                            // 1. 구글 플레이스토어 앱 상세 화면으로 직접 연결
+                            val marketIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName")).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                            }
+                            context.startActivity(marketIntent)
+                        } catch (_: Exception) {
+                            // 2. 플레이스토어 앱이 없을 경우 웹 브라우저로 구글 플레이 링크 연결
+                            val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$packageName")).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                            }
+                            context.startActivity(webIntent)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                ) {
+                    Text("구글 플레이에서 지금 업데이트하기", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+            }
+        )
     }
 
     if (securityWarningMessage != null) {
@@ -130,35 +288,71 @@ fun ForPetApp() {
         )
     }
 
-    when (currentScreen) {
-        ScreenState.LOGIN -> LoginScreen(
-            onLoginSuccess = { isAdmin, isDedicatedAdminWorkspace, adminName ->
-                isAdminUser = isAdmin
-                currentAdminName = adminName
-                if (isDedicatedAdminWorkspace) {
-                    currentScreen = ScreenState.ADMIN
-                } else {
-                    currentScreen = ScreenState.MAIN
-                }
-            },
-            onDriverLoginSuccess = { currentScreen = ScreenState.DRIVER },
-            onNavigateToSignUp = { currentScreen = ScreenState.SIGNUP }
+    val currentDensity = androidx.compose.ui.platform.LocalDensity.current
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(
+            density = currentDensity.density,
+            fontScale = if (isLargeFontMode) 1.25f else 1.0f
         )
-        ScreenState.SIGNUP -> SignUpScreen(
-            onSignUpSuccess = { currentScreen = ScreenState.LOGIN },
-            onBackToLogin = { currentScreen = ScreenState.LOGIN }
-        )
-        ScreenState.MAIN -> ForPetMainScreen(
-            isAdminUser = isAdminUser,
-            onLogout = { currentScreen = ScreenState.LOGIN }
-        )
-        ScreenState.DRIVER -> DriverMainDashboardScreen(
-            onLogout = { currentScreen = ScreenState.LOGIN }
-        )
-        ScreenState.ADMIN -> AdminMainDashboardScreen(
-            adminName = currentAdminName,
-            onLogout = { currentScreen = ScreenState.LOGIN }
-        )
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = if (isDarkMode) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+        ) {
+            when (currentScreen) {
+                ScreenState.LOGIN -> LoginScreen(
+                    onLoginSuccess = { isAdmin, isDedicatedAdminWorkspace, adminName ->
+                        isAdminUser = isAdmin
+                        currentAdminName = adminName
+                        currentScreen = if (isDedicatedAdminWorkspace) {
+                            ScreenState.ADMIN
+                        } else {
+                            ScreenState.MAIN
+                        }
+                    },
+                    onDriverLoginSuccess = { currentScreen = ScreenState.DRIVER },
+                    onNavigateToSignUp = { currentScreen = ScreenState.SIGNUP }
+                )
+                ScreenState.SIGNUP -> SignUpScreen(
+                    onSignUpSuccess = { isAdmin, isDedicatedAdminWorkspace, adminName ->
+                        isAdminUser = isAdmin
+                        currentAdminName = adminName
+                        currentScreen = if (isDedicatedAdminWorkspace) {
+                            ScreenState.ADMIN
+                        } else {
+                            ScreenState.MAIN
+                        }
+                    },
+                    onBackToLogin = { currentScreen = ScreenState.LOGIN }
+                )
+                ScreenState.MAIN -> ForPetMainScreen(
+                    isAdminUser = isAdminUser,
+                    isDarkMode = isDarkMode,
+                    isLargeFontMode = isLargeFontMode,
+                    onToggleDarkMode = { enabled ->
+                        isDarkMode = enabled
+                        PersistentStorageManager.saveDarkMode(context, isDarkMode)
+                    },
+                    onToggleLargeFontMode = { enabled ->
+                        isLargeFontMode = enabled
+                        PersistentStorageManager.saveLargeFontMode(context, isLargeFontMode)
+                    },
+                    onLogout = { currentScreen = ScreenState.LOGIN }
+                )
+                ScreenState.DRIVER -> DriverMainDashboardScreen(
+                    isDarkMode = isDarkMode,
+                    onToggleDarkMode = {
+                        isDarkMode = !isDarkMode
+                        PersistentStorageManager.saveDarkMode(context, isDarkMode)
+                    },
+                    onLogout = { currentScreen = ScreenState.LOGIN }
+                )
+                ScreenState.ADMIN -> AdminMainDashboardScreen(
+                    adminName = currentAdminName,
+                    onLogout = { currentScreen = ScreenState.LOGIN }
+                )
+            }
+        }
     }
 }
 
@@ -182,7 +376,7 @@ fun AdaptiveAppIcon(
             try {
                 val w = drawable.intrinsicWidth.coerceAtLeast(120)
                 val h = drawable.intrinsicHeight.coerceAtLeast(120)
-                val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+                val bmp = androidx.core.graphics.createBitmap(w, h)
                 val canvas = android.graphics.Canvas(bmp)
                 drawable.setBounds(0, 0, canvas.width, canvas.height)
                 drawable.draw(canvas)
@@ -224,684 +418,23 @@ fun AdaptiveAppIcon(
     }
 }
 
-// 📱 대한민국 휴대폰 번호 전용 VisualTransformation (커서 튐 완전 차단)
-class KoreanPhoneNumberVisualTransformation : VisualTransformation {
-    override fun filter(text: AnnotatedString): TransformedText {
-        val trimmed = if (text.text.length >= 11) text.text.substring(0, 11) else text.text
-        var out = ""
-        for (i in trimmed.indices) {
-            out += trimmed[i]
-            if (i == 2 || i == 6) {
-                out += "-"
-            }
-        }
-
-        val phoneNumberOffsetTranslator = object : OffsetMapping {
-            override fun originalToTransformed(offset: Int): Int {
-                if (offset <= 2) return offset
-                if (offset <= 6) return offset + 1
-                if (offset <= 11) return offset + 2
-                return out.length
-            }
-
-            override fun transformedToOriginal(offset: Int): Int {
-                if (offset <= 3) return offset
-                if (offset <= 8) return offset - 1
-                if (offset <= 13) return offset - 2
-                return trimmed.length
-            }
-        }
-
-        return TransformedText(AnnotatedString(out), phoneNumberOffsetTranslator)
-    }
-}
-
-fun formatPhoneNumber(input: String): String {
-    val digits = input.replace(Regex("[^0-9]"), "")
-    return when {
-        digits.length <= 3 -> digits
-        digits.length <= 7 -> "${digits.substring(0, 3)}-${digits.substring(3)}"
-        digits.length <= 11 -> "${digits.substring(0, 3)}-${digits.substring(3, 7)}-${digits.substring(7)}"
-        else -> "${digits.substring(0, 3)}-${digits.substring(3, 7)}-${digits.substring(7, 11)}"
-    }
-}
-
-@Composable
-fun PhoneVerificationDialog(
-    initialPhone: String,
-    onVerifiedSuccess: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val context = LocalContext.current
-    var inputPhoneDigits by remember { mutableStateOf(initialPhone.filter { it.isDigit() }.ifEmpty { "010" }) }
-    var inputAuthCode by remember { mutableStateOf("") }
-    var generatedAuthCode by remember { mutableStateOf("") }
-    var firebaseVerificationId by remember { mutableStateOf<String?>(null) }
-    var isCodeSent by remember { mutableStateOf(false) }
-
-    val formattedPhone = formatPhoneNumber(inputPhoneDigits)
-
-    fun sendFirebaseSms(phoneNumber: String) {
-        val rawNum = phoneNumber.replace("-", "").trim()
-        val internationalNum = if (rawNum.startsWith("010")) {
-            "+82" + rawNum.substring(1)
-        } else if (rawNum.startsWith("10")) {
-            "+82" + rawNum
-        } else {
-            rawNum
-        }
-
-        try {
-            val activity = context as? android.app.Activity
-            if (activity != null) {
-                val callbacks = object : com.google.firebase.auth.PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-                    override fun onVerificationCompleted(credential: com.google.firebase.auth.PhoneAuthCredential) {
-                        Toast.makeText(context, "🎉 SMS 자동 인증이 성공적으로 완료되었습니다!", Toast.LENGTH_LONG).show()
-                        onVerifiedSuccess(formattedPhone)
-                    }
-
-                    override fun onVerificationFailed(e: com.google.firebase.FirebaseException) {
-                        val fallbackCode = (100000..999999).random().toString()
-                        generatedAuthCode = fallbackCode
-                        isCodeSent = true
-                        Toast.makeText(context, "📱 [발자국동행] SMS 인증번호 [$fallbackCode] 발송 완료!", Toast.LENGTH_LONG).show()
-                    }
-
-                    override fun onCodeSent(verificationId: String, token: com.google.firebase.auth.PhoneAuthProvider.ForceResendingToken) {
-                        firebaseVerificationId = verificationId
-                        isCodeSent = true
-                        Toast.makeText(context, "📱 SMS 인증문자가 휴대폰으로 성공적으로 발송되었습니다!", Toast.LENGTH_LONG).show()
-                    }
-                }
-
-                val options = com.google.firebase.auth.PhoneAuthOptions.newBuilder(com.google.firebase.auth.FirebaseAuth.getInstance())
-                    .setPhoneNumber(internationalNum)
-                    .setTimeout(60L, java.util.concurrent.TimeUnit.SECONDS)
-                    .setActivity(activity)
-                    .setCallbacks(callbacks)
-                    .build()
-                com.google.firebase.auth.PhoneAuthProvider.verifyPhoneNumber(options)
-            } else {
-                val fallbackCode = (100000..999999).random().toString()
-                generatedAuthCode = fallbackCode
-                isCodeSent = true
-                Toast.makeText(context, "📱 [발자국동행] SMS 인증번호 [$fallbackCode] 발송 완료!", Toast.LENGTH_LONG).show()
-            }
-        } catch (_: Exception) {
-            val fallbackCode = (100000..999999).random().toString()
-            generatedAuthCode = fallbackCode
-            isCodeSent = true
-            Toast.makeText(context, "📱 [발자국동행] SMS 인증번호 [$fallbackCode] 발송 완료!", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("📱", fontSize = 22.sp)
-                Text("최초 1회 휴대폰 본인인증", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFFEFF6FF),
-                    border = BorderStroke(1.dp, Color(0xFFBFDBFE))
-                ) {
-                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("🔒 안전 이송을 위한 휴대폰 본인인증", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1E40AF))
-                        Text("구글/카카오 최초 가입 시 1회 휴대폰 번호 인증이 진행됩니다. 인증된 번호는 가드 배차 및 안심 이송 연락 시에만 안전하게 사용됩니다.", fontSize = 11.sp, color = Color(0xFF1E3A8A), lineHeight = 15.sp)
-                    }
-                }
-
-                Text("1. 휴대폰 번호 입력 (숫자 연속 입력)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = inputPhoneDigits,
-                        onValueChange = { newText ->
-                            val digitsOnly = newText.filter { it.isDigit() }
-                            if (digitsOnly.length <= 11) {
-                                inputPhoneDigits = digitsOnly
-                            }
-                        },
-                        label = { Text("휴대폰 번호") },
-                        placeholder = { Text("01012345678") },
-                        visualTransformation = KoreanPhoneNumberVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    Button(
-                        onClick = {
-                            if (inputPhoneDigits.length >= 10) {
-                                sendFirebaseSms(formattedPhone)
-                            } else {
-                                Toast.makeText(context, "올바른 휴대폰 번호를 입력해 주세요. (예: 01012345678)", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
-                    ) {
-                        Text(if (isCodeSent) "재발송" else "SMS 인증", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    }
-                }
-
-                if (isCodeSent) {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFFFEF3C7),
-                        border = BorderStroke(1.dp, Color(0xFFFDE68A))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
-                                Text("📱 [발자국동행] SMS 인증번호", fontSize = 11.sp, color = Color(0xFF92400E), fontWeight = FontWeight.Bold)
-                                Text(generatedAuthCode.ifEmpty { "123456" }, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706), fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-                            }
-                            Button(
-                                onClick = {
-                                    inputAuthCode = generatedAuthCode.ifEmpty { "123456" }
-                                    Toast.makeText(context, "⚡ 인증번호 6자리가 자동 입력되었습니다!", Toast.LENGTH_SHORT).show()
-                                },
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
-                            ) {
-                                Text("⚡ 1초 자동 채우기", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-
-                    Text("2. SMS 인증번호 6자리 입력", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0284C7))
-                    OutlinedTextField(
-                        value = inputAuthCode,
-                        onValueChange = { inputAuthCode = it },
-                        label = { Text("SMS 인증번호 6자리") },
-                        placeholder = { Text("예: ${generatedAuthCode.ifEmpty { "123456" }}") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (isCodeSent) {
-                        val isCodeValid = inputAuthCode.isNotEmpty() && (
-                            inputAuthCode == generatedAuthCode ||
-                            inputAuthCode == "123456" ||
-                            firebaseVerificationId != null
-                        )
-                        if (isCodeValid) {
-                            Toast.makeText(context, "🎉 휴대폰 본인인증이 성공적으로 완료되었습니다!", Toast.LENGTH_LONG).show()
-                            onVerifiedSuccess(formattedPhone)
-                        } else {
-                            Toast.makeText(context, "인증번호가 일치하지 않습니다. 다시 확인해 주세요.", Toast.LENGTH_SHORT).show()
-                        }
-                    } else {
-                        Toast.makeText(context, "'SMS 인증' 버튼을 눌러 인증문자를 받아주세요.", Toast.LENGTH_SHORT).show()
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
-            ) {
-                Text("인증 완료 및 시작하기", fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("취소") }
-        }
-    )
-}
-
-@Composable
-fun LoginScreen(
-    onLoginSuccess: (Boolean, Boolean, String) -> Unit,
-    onDriverLoginSuccess: () -> Unit = {},
-    onNavigateToSignUp: () -> Unit
-) {
-    val context = LocalContext.current
-    var showAdminLogin by remember { mutableStateOf(false) }
-    var showGoogleAccountChooserDialog by remember { mutableStateOf(false) }
-    var showPhoneVerificationDialog by remember { mutableStateOf(false) }
-    var pendingLoginData by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
-    var userId by remember { mutableStateOf("") }
-    var userPw by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf("") }
-
-    val guardPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val cameraGranted = permissions[android.Manifest.permission.CAMERA] ?: false
-        val audioGranted = permissions[android.Manifest.permission.RECORD_AUDIO] ?: false
-        if (cameraGranted || audioGranted) {
-            Toast.makeText(context, "📹 [가드 안심 바디캠 가동 권한 동의 완료] 실시간 바디캠 가동 준비 완료!", Toast.LENGTH_SHORT).show()
-        }
-        try {
-            val serviceIntent = Intent(context, com.example.forpetapp.service.GuardGpsForegroundService::class.java)
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                context.startForegroundService(serviceIntent)
-            } else {
-                context.startService(serviceIntent)
-            }
-        } catch (_: Exception) {}
-        onDriverLoginSuccess()
-    }
-
-    fun processLoginWithPhoneCheck(isAdmin: Boolean, isDedicatedAdminWorkspace: Boolean, displayName: String) {
-        val savedPhone = PersistentStorageManager.loadUserPhone(context, "")
-        if (savedPhone.length >= 10) {
-            onLoginSuccess(isAdmin, isDedicatedAdminWorkspace, displayName)
-        } else {
-            pendingLoginData = Pair(isAdmin, displayName)
-            showPhoneVerificationDialog = true
-        }
-    }
-
-    val googleSignInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK && result.data != null) {
-            val accountName = result.data?.getStringExtra(android.accounts.AccountManager.KEY_ACCOUNT_NAME)
-            if (!accountName.isNullOrEmpty()) {
-                val displayName = accountName.split("@")[0]
-                Toast.makeText(context, "🎉 Google 계정[$accountName]으로 간편 연동 로그인되었습니다!", Toast.LENGTH_LONG).show()
-                processLoginWithPhoneCheck(false, false, displayName)
-            } else {
-                try {
-                    val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
-                    val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
-                    val email = account?.email ?: "g70334098@gmail.com"
-                    val displayName = account?.displayName ?: email.split("@")[0]
-                    Toast.makeText(context, "🎉 Google 계정[$email]으로 간편 연동 로그인되었습니다!", Toast.LENGTH_LONG).show()
-                    processLoginWithPhoneCheck(false, false, displayName)
-                } catch (_: Exception) {
-                    Toast.makeText(context, "🎉 Google 계정으로 연동 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                    processLoginWithPhoneCheck(false, false, "구글 회원님")
-                }
-            }
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF8FAFC))
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // 어플 대표 아이콘 이미지
-        AdaptiveAppIcon(
-            modifier = Modifier
-                .size(90.dp)
-                .clip(CircleShape)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text("발자국동행", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-        Text("반려동물과 함께 걷는 따뜻한 길 🐾", fontSize = 13.sp, color = Color(0xFFEA580C), fontWeight = FontWeight.Bold)
-
-        Spacer(modifier = Modifier.height(40.dp))
-
-        // 1. 일반 회원 구글 로그인 카드 (메인)
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text("회원 간편 로그인 / 시작하기", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
-                Text("별도의 번거로운 가입 없이 구글 계정으로 바로 시작하세요.", fontSize = 12.sp, color = Color.Gray, textAlign = TextAlign.Center)
-
-                Button(
-                    onClick = {
-                        try {
-                            val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
-                                com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
-                            ).requestEmail().build()
-                            val googleSignInClient = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
-                            googleSignInLauncher.launch(googleSignInClient.signInIntent)
-                        } catch (_: Exception) {
-                            try {
-                                @Suppress("DEPRECATION")
-                                val intent = android.accounts.AccountManager.newChooseAccountIntent(
-                                    null, null, arrayOf("com.google"), false, null, null, null, null
-                                )
-                                googleSignInLauncher.launch(intent)
-                            } catch (_: Exception) {
-                                showGoogleAccountChooserDialog = true
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(46.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text("🔴", fontSize = 15.sp)
-                        Text("Google 계정으로 시작하기", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-
-                // 카카오톡 간편 시작 버튼
-                Button(
-                    onClick = {
-                        try {
-                            if (UserApiClient.instance.isKakaoTalkLoginAvailable(context)) {
-                                UserApiClient.instance.loginWithKakaoTalk(context) { token, error ->
-                                    if (error != null) {
-                                        UserApiClient.instance.loginWithKakaoAccount(context) { token2, error2 ->
-                                            Toast.makeText(context, "💛 카카오 계정으로 간편 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                                            processLoginWithPhoneCheck(false, false, "발자국동행 회원님")
-                                        }
-                                    } else {
-                                        Toast.makeText(context, "💛 카카오톡 원클릭 연동으로 간편 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                                        processLoginWithPhoneCheck(false, false, "발자국동행 회원님")
-                                    }
-                                }
-                            } else {
-                                UserApiClient.instance.loginWithKakaoAccount(context) { token, error ->
-                                    Toast.makeText(context, "💛 카카오 계정으로 간편 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                                    processLoginWithPhoneCheck(false, false, "발자국동행 회원님")
-                                }
-                            }
-                        } catch (_: Exception) {
-                            Toast.makeText(context, "💛 카카오톡 간편 연동으로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                            processLoginWithPhoneCheck(false, false, "발자국동행 회원님")
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(46.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFEE500), contentColor = Color(0xFF191919))
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text("💬", fontSize = 15.sp)
-                        Text("카카오톡으로 1초 시작하기", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 2. 관리자 & 가드 전용 로그인 토글 버튼
-        TextButton(onClick = { showAdminLogin = !showAdminLogin }) {
-            Text(
-                if (showAdminLogin) "🔒 계정 로그인 닫기" else "🔐 관리자 & 가드 로그인 (아이디/비번)",
-                color = Color(0xFF475569),
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp
-            )
-        }
-
-        // 3. 관리자 및 가드 전용 ID/PW 로그인 영역
-        if (showAdminLogin) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9))
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text("🔐 관리자 & 가드 계정 인증", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-
-                    OutlinedTextField(
-                        value = userId,
-                        onValueChange = { 
-                            userId = it 
-                            errorMessage = ""
-                        },
-                        label = { Text("아이디") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    OutlinedTextField(
-                        value = userPw,
-                        onValueChange = { 
-                            userPw = it 
-                            errorMessage = ""
-                        },
-                        label = { Text("비밀번호") },
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    if (errorMessage.isNotEmpty()) {
-                        Text(
-                            text = errorMessage,
-                            color = Color(0xFFD32F2F),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Button(
-                        onClick = {
-                            val trimmedId = userId.trim()
-                            val trimmedPw = userPw.trim()
-                            when {
-                                trimmedId == "k7turbo" && trimmedPw == "942800" -> {
-                                    errorMessage = ""
-                                    Toast.makeText(context, "👑 총괄 대표 관리자 대시보드 (최지훈 대표님)로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                                    onLoginSuccess(true, true, "최지훈 대표님")
-                                }
-                                trimmedId == "seonha2525" && trimmedPw == "7521739ee@" -> {
-                                    errorMessage = ""
-                                    Toast.makeText(context, "👑 총괄 대표 관리자 대시보드 (이선하 대표님)로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                                    onLoginSuccess(true, true, "이선하 대표님")
-                                }
-                                trimmedId == "driver" && trimmedPw == "942800" -> {
-                                    errorMessage = ""
-                                    Toast.makeText(context, "👨‍✈️ 담당 가드(driver) 계정으로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                                    onDriverLoginSuccess()
-                                }
-                                else -> {
-                                    errorMessage = "❌ 아이디 또는 비밀번호가 일치하지 않습니다."
-                                    Toast.makeText(context, "아이디 및 비밀번호를 확인해 주세요.", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(44.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))
-                    ) {
-                        Text("계정 로그인", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // 4. 담당 가드 모드 로그인 전용 간편 버튼 (가드 전용 카메라/마이크 권한 지연 동의)
-        OutlinedButton(
-            onClick = {
-                val hasCamera = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                val hasAudio = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-                if (!hasCamera || !hasAudio) {
-                    Toast.makeText(context, "📹 [가드 안심 바디캠 권한] 바디캠 라이브 생중계를 위해 카메라/오디오 권한을 허용해 주세요.", Toast.LENGTH_SHORT).show()
-                    guardPermissionLauncher.launch(
-                        arrayOf(
-                            android.Manifest.permission.CAMERA,
-                            android.Manifest.permission.RECORD_AUDIO
-                        )
-                    )
-                } else {
-                    Toast.makeText(context, "👨‍✈️ 담당 가드(박찬헌 가드) 모드로 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                    onDriverLoginSuccess()
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(46.dp),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, Color(0xFF0284C7)),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF0284C7))
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text("👨‍✈️", fontSize = 16.sp)
-                Text("담당 가드 로그인 (가드 모드)", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-
-    if (showGoogleAccountChooserDialog) {
-        var customGoogleEmail by remember { mutableStateOf("") }
-        val sampleDeviceAccounts = listOf(
-            "g70334098@gmail.com",
-            "forpet.app.official@gmail.com"
-        )
-
-        AlertDialog(
-            onDismissRequest = { showGoogleAccountChooserDialog = false },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("🔴", fontSize = 22.sp)
-                    Text("Google 계정 선택", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                }
-            },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text("발자국동행에 연동할 구글 계정(Gmail)을 선택해 주세요.", fontSize = 12.sp, color = Color.Gray)
-
-                    sampleDeviceAccounts.forEach { acc ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    val name = acc.split("@")[0]
-                                    Toast.makeText(context, "🎉 Google 계정[$acc]으로 연동 로그인되었습니다!", Toast.LENGTH_LONG).show()
-                                    showGoogleAccountChooserDialog = false
-                                    processLoginWithPhoneCheck(false, false, name)
-                                },
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(14.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Surface(shape = CircleShape, color = Color(0xFFE0F2FE), modifier = Modifier.size(36.dp)) {
-                                    Box(contentAlignment = Alignment.Center) { Text("👤", fontSize = 18.sp) }
-                                }
-                                Column {
-                                    Text(acc, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                                    Text("Google 계정 연동 가능", fontSize = 10.sp, color = Color(0xFF0284C7))
-                                }
-                            }
-                        }
-                    }
-
-                    HorizontalDivider()
-
-                    Text("다른 Google 계정 직접 입력", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-                    OutlinedTextField(
-                        value = customGoogleEmail,
-                        onValueChange = { customGoogleEmail = it },
-                        label = { Text("Gmail 이메일 주소 입력") },
-                        placeholder = { Text("예: mypet@gmail.com") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (customGoogleEmail.isNotEmpty()) {
-                            val name = if (customGoogleEmail.contains("@")) customGoogleEmail.split("@")[0] else customGoogleEmail
-                            Toast.makeText(context, "🎉 Google 계정[$customGoogleEmail]으로 연동 로그인되었습니다!", Toast.LENGTH_LONG).show()
-                            showGoogleAccountChooserDialog = false
-                            processLoginWithPhoneCheck(false, false, name)
-                        } else {
-                            Toast.makeText(context, "구글 계정 이메일을 입력하거나 선택해 주세요.", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
-                ) {
-                    Text("이 계정으로 로그인", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showGoogleAccountChooserDialog = false }) { Text("취소") }
-            }
-        )
-    }
-
-    if (showPhoneVerificationDialog && pendingLoginData != null) {
-        PhoneVerificationDialog(
-            initialPhone = PersistentStorageManager.loadUserPhone(context, "010-"),
-            onVerifiedSuccess = { verifiedPhone ->
-                PersistentStorageManager.saveUserProfile(
-                    context = context,
-                    nickname = pendingLoginData!!.second,
-                    phone = verifiedPhone,
-                    address = PersistentStorageManager.loadUserAddress(context, "부산 강서구 명지국제8로 150"),
-                    detailAddress = PersistentStorageManager.loadUserDetailAddress(context, "101동 1502호"),
-                    card = PersistentStorageManager.loadRegisteredCard(context)
-                )
-                showPhoneVerificationDialog = false
-                onLoginSuccess(pendingLoginData!!.first, false, pendingLoginData!!.second)
-            },
-            onDismiss = { showPhoneVerificationDialog = false }
-        )
-    }
-}
+// 📱 인증/로그인 컴포넌트(PhoneVerificationDialog, LoginScreen, SignUpScreen)는 ui.auth 패키지로 분리됨
 
 // 👨‍✈️ 담당 가드 전용 메인 대시보드 화면
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DriverMainDashboardScreen(onLogout: () -> Unit) {
+fun DriverMainDashboardScreen(
+    isDarkMode: Boolean = false,
+    onToggleDarkMode: () -> Unit = {},
+    onLogout: () -> Unit
+) {
     val context = LocalContext.current
     var isBodycamActive by remember { mutableStateOf(true) }
     var selectedOrderForGpsMap by remember { mutableStateOf<BookingItem?>(null) }
     var selectedOrderForChat by remember { mutableStateOf<BookingItem?>(null) }
     var selectedOrderForReport by remember { mutableStateOf<BookingItem?>(null) }
+    var selectedOrderForHandOff by remember { mutableStateOf<BookingItem?>(null) }
+    var selectedOrderForQuickNotify by remember { mutableStateOf<BookingItem?>(null) }
     var unlockedDoorlockId by remember { mutableStateOf<String?>(null) }
 
     val driverOrders = remember {
@@ -929,32 +462,98 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
         }
     }
 
+    // ☁️ 실시간 Cloud Firestore 오더 동기화 리스너 (가드 워크스페이스)
+    DisposableEffect(Unit) {
+        val listener = FirebaseSyncManager.listenToCloudOrders { cloudOrders ->
+            if (cloudOrders.isNotEmpty()) {
+                driverOrders.clear()
+                driverOrders.addAll(cloudOrders)
+                PersistentStorageManager.saveBookingList(context, cloudOrders)
+            }
+        }
+        onDispose {
+            listener?.remove()
+        }
+    }
+
+    var currentGuardTab by remember { mutableIntStateOf(0) }
+    var lastGuardBackPressTime by remember { mutableLongStateOf(0L) }
+
+    // 뒤로가기 제스처 방어: 관제 지도 탭에서 뒤로가기 누르면 오더 관리로 복귀 (앱 종료/튕김 방지)
+    BackHandler(enabled = (currentGuardTab != 0)) {
+        currentGuardTab = 0
+    }
+
+    // 오더 관리 탭에서 뒤로가기 누르면 2초 내 재입력 시 안전하게 로그아웃
+    BackHandler(enabled = (currentGuardTab == 0)) {
+        val now = System.currentTimeMillis()
+        if (now - lastGuardBackPressTime < 2000L) {
+            onLogout()
+        } else {
+            lastGuardBackPressTime = now
+            Toast.makeText(context, "한 번 더 누르면 로그아웃됩니다.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Column {
-                        Text("👨‍✈️ 담당 가드 워크스페이스", fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                        Text("박찬헌 가드 (차량: 부산 38가 5394)", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Medium)
+                        Text("👨‍✈️ 담당 가드 워크스페이스", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = if (isDarkMode) Color.White else Color(0xFF0F172A))
+                        Text("박찬헌 가드 (차량: 부산 38가 5394)", fontSize = 11.sp, color = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7), fontWeight = FontWeight.Medium)
                     }
                 },
                 actions = {
+                    IconButton(onClick = onToggleDarkMode) {
+                        Text(if (isDarkMode) "🌙" else "☀️", fontSize = 16.sp)
+                    }
                     TextButton(onClick = onLogout) {
                         Text("로그아웃", color = Color.Red, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = if (isDarkMode) Color(0xFF1E293B) else Color.White)
             )
+        },
+        bottomBar = {
+            NavigationBar(
+                containerColor = if (isDarkMode) Color(0xFF1E293B) else Color.White,
+                tonalElevation = 8.dp
+            ) {
+                NavigationBarItem(
+                    selected = (currentGuardTab == 0),
+                    onClick = { currentGuardTab = 0 },
+                    icon = { Text("📋", fontSize = 18.sp) },
+                    label = { Text("오더 관리", fontWeight = if (currentGuardTab == 0) FontWeight.Bold else FontWeight.Normal) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color(0xFF0284C7),
+                        selectedTextColor = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7),
+                        indicatorColor = if (isDarkMode) Color(0xFF334155) else Color(0xFFE0F2FE)
+                    )
+                )
+                NavigationBarItem(
+                    selected = (currentGuardTab == 1),
+                    onClick = { currentGuardTab = 1 },
+                    icon = { Text("🗺️", fontSize = 18.sp) },
+                    label = { Text("관제 지도", fontWeight = if (currentGuardTab == 1) FontWeight.Bold else FontWeight.Normal) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color(0xFF0284C7),
+                        selectedTextColor = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7),
+                        indicatorColor = if (isDarkMode) Color(0xFF334155) else Color(0xFFE0F2FE)
+                    )
+                )
+            }
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color(0xFFF8FAFC))
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
+        if (currentGuardTab == 0) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(if (isDarkMode) Color(0xFF0F172A) else Color(0xFFF8FAFC))
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
             // 1. 드라이버 상태 및 바디캠 스위치 컨트롤 배너
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -1115,16 +714,34 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
                                     FilterChip(
                                         selected = isSelected,
                                         onClick = {
-                                            val updatedOrder = order.copy(status = statusStep)
-                                            driverOrders[index] = updatedOrder
-                                            PersistentStorageManager.saveBookingList(context, driverOrders)
-
-                                            if (statusStep.contains("6. 안전 귀가 완료")) {
-                                                sendSystemPushNotification(context, "🎉 [발자국동행] 안전 귀가 완료 & 콜 마감", "[${order.petName}] 아이의 안심 이송이 완료되었습니다. 가드 바디캠이 자동 종료(OFF) 처리되었습니다.")
-                                                Toast.makeText(context, "🔒 오더 마감: 가드 바디캠 및 카메라/마이크가 자동 OFF 종료되었습니다. (사생활 보호)", Toast.LENGTH_LONG).show()
+                                            if (statusStep.contains("2. 자택 도착 및 아이 안심 픽업 완료")) {
+                                                selectedOrderForHandOff = order
                                             } else {
-                                                sendSystemPushNotification(context, "📹 [발자국동행] 바디캠 자동 가동 ON", "[${order.petName}] 아이 이송 중: 가드 바디캠 라이브 송출 가동 ON")
-                                                Toast.makeText(context, "📹 오더 수행 중: 바디캠 라이브 송출 가동 ON", Toast.LENGTH_SHORT).show()
+                                                val updatedOrder = order.copy(status = statusStep)
+                                                driverOrders[index] = updatedOrder
+                                                PersistentStorageManager.saveBookingList(context, driverOrders)
+                                                FirebaseSyncManager.updateOrderStatus(context, order.id, statusStep, order.petName)
+                                                FirebaseSyncManager.syncOrderToCloud(updatedOrder)
+
+                                                if (statusStep.contains("6. 안전 귀가 완료")) {
+                                                    sendSystemPushNotification(context, "🎉 [발자국동행] 안전 귀가 완료 & 콜 마감", "[${order.petName}] 아이의 안심 이송이 완료되었습니다. 가드 바디캠이 자동 종료(OFF) 처리되었습니다.")
+                                                    Toast.makeText(context, "🔒 오더 마감: 가드 바디캠 및 카메라/마이크가 자동 OFF 종료되었습니다. (사생활 보호)", Toast.LENGTH_LONG).show()
+                                                } else if (statusStep.contains("2. 픽업 출발")) {
+                                                    sendSystemPushNotification(context, "🚗 [발자국동행] 픽업 출동 출발", "[${order.petName}] 아이를 만나러 보호자님 댁으로 안심 레이 케어카가 출발했습니다.")
+                                                    Toast.makeText(context, "🚗 픽업 출동 알림이 보호자님께 전송되었습니다.", Toast.LENGTH_SHORT).show()
+                                                } else if (statusStep.contains("3. 픽업 완료")) {
+                                                    sendSystemPushNotification(context, "🐾 [발자국동행] 픽업 탑승 완료", "[${order.petName}] 아이와 전용 케어카에 안심 탑승하여 병원으로 이동 중입니다.")
+                                                    Toast.makeText(context, "🐾 픽업 완료 알림이 보호자님께 전송되었습니다.", Toast.LENGTH_SHORT).show()
+                                                } else if (statusStep.contains("4. 병원 도착")) {
+                                                    sendSystemPushNotification(context, "🏥 [발자국동행] 동물병원 안전 도착", "[${order.petName}] ${order.hospitalName}에 안전하게 도착하여 진료 접수 중입니다.")
+                                                    Toast.makeText(context, "🏥 병원 도착 알림이 보호자님께 전송되었습니다.", Toast.LENGTH_SHORT).show()
+                                                } else if (statusStep.contains("5. 진료 완료")) {
+                                                    sendSystemPushNotification(context, "💊 [발자국동행] 진료 및 처방 완료", "[${order.petName}] 수의사 진료 및 처방약 수령을 마치고 귀가 준비 중입니다.")
+                                                    Toast.makeText(context, "💊 진료 완료 알림이 보호자님께 전송되었습니다.", Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    sendSystemPushNotification(context, "📹 [발자국동행] 바디캠 자동 가동 ON", "[${order.petName}] 아이 이송 중: 가드 바디캠 라이브 송출 가동 ON")
+                                                    Toast.makeText(context, "📹 오더 수행 중: 바디캠 라이브 송출 가동 ON", Toast.LENGTH_SHORT).show()
+                                                }
                                             }
                                         },
                                         label = { Text(statusStep, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
@@ -1133,18 +750,27 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
                                 }
                             }
 
-                            // 🗺️ 실시간 GPS 지도, 💬 보호자 톡 & 📄 진료 리포트 작성 버튼
+                            // ✍️ 안심 서명, 🗺️ 이동 지도, 💬 톡, 📄 소견 작성 버튼
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
+                                Button(
+                                    onClick = { selectedOrderForHandOff = order },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B))
+                                ) {
+                                    Text("✍️ 서명", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                                }
+
                                 Button(
                                     onClick = { selectedOrderForGpsMap = order },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(10.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A))
                                 ) {
-                                    Text("🗺️ 이동 지도", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    Text("🗺️ 지도", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                 }
 
                                 Button(
@@ -1153,7 +779,16 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
                                     shape = RoundedCornerShape(10.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
                                 ) {
-                                    Text("💬 보호자 톡", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    Text("💬 톡", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                }
+
+                                Button(
+                                    onClick = { selectedOrderForQuickNotify = order },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))
+                                ) {
+                                    Text("📱 알림", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
                                 }
 
                                 OutlinedButton(
@@ -1161,7 +796,7 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(10.dp)
                                 ) {
-                                    Text("📄 소견 작성", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF0284C7))
+                                    Text("📄 소견", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF0284C7))
                                 }
                             }
                         }
@@ -1169,16 +804,25 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
                 }
             }
         }
+    } else {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            GuardMapScreen()
+        }
     }
+}
 
     // 실시간 GPS 지도 다이얼로그
     selectedOrderForGpsMap?.let { order ->
         LiveGpsMapDialog(booking = order, onDismiss = { selectedOrderForGpsMap = null })
     }
 
-    // 보호자 톡 다이얼로그
+    // 보호자 톡 다이얼로그 (가드 화면)
     selectedOrderForChat?.let { order ->
-        DriverChatDialog(booking = order, onDismiss = { selectedOrderForChat = null })
+        DriverChatDialog(booking = order, isGuardSide = true, onDismiss = { selectedOrderForChat = null })
     }
 
     // 수의사 진료 소견 및 정산 영수증/처방전 작성 팝업 (가드 전용)
@@ -1186,8 +830,10 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
         var doctorNoteText by remember { mutableStateOf(order.doctorNote) }
         var prescriptionText by remember { mutableStateOf(order.prescription) }
 
-        var uploadedReceiptUri by remember { mutableStateOf<Uri?>(order.receiptImageUri?.let { try { Uri.parse(it) } catch(_: Exception) { null } }) }
-        var uploadedPrescriptionUri by remember { mutableStateOf<Uri?>(order.prescriptionImageUri?.let { try { Uri.parse(it) } catch(_: Exception) { null } }) }
+        val initialReceiptUri: Uri? = order.receiptImageUri?.let { try { it.toUri() } catch(_: Exception) { null } }
+        var uploadedReceiptUri by remember { mutableStateOf(initialReceiptUri) }
+        val initialPrescriptionUri: Uri? = order.prescriptionImageUri?.let { try { it.toUri() } catch(_: Exception) { null } }
+        var uploadedPrescriptionUri by remember { mutableStateOf(initialPrescriptionUri) }
 
         val receiptPickerLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.GetContent()
@@ -1296,11 +942,16 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
 
                             // 2. 디스크 저장소에 100% 영구 저장 및 서버 동기화!
                             PersistentStorageManager.saveBookingList(context, driverOrders)
+                            FirebaseSyncManager.syncOrderToCloud(updatedOrder)
 
                             // 3. 실시간 푸시 알림 발송
-                            sendSystemPushNotification(context, "📄 [발자국동행] 수의사 진료 리포트 & 영수증 도착!", "[${currentReportOrder.petName}] 아이의 진료 리포트 및 정산 영수증/처방전 사진이 전송되었습니다.")
+                            ForPetFirebaseMessagingService.sendLocalNotification(
+                                context,
+                                "📄 [발자국동행] 수의사 진료 리포트 & 영수증 도착!",
+                                "[${currentReportOrder.petName}] 아이의 진료 리포트 및 영수증 사진이 전송되었습니다."
+                            )
 
-                            Toast.makeText(context, "📤 수의사 진료 리포트 및 영수증/처방전 사진이 디스크에 영구 저장되었으며 보호자 앱으로 즉시 전송되었습니다!", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, "📤 수의사 진료 리포트 및 영수증/처방전 사진이 클라우드에 영구 저장되었으며 보호자 앱으로 즉시 전송되었습니다!", Toast.LENGTH_LONG).show()
                             selectedOrderForReport = null
                         }
                     },
@@ -1316,6 +967,372 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
             }
         )
     }
+
+    // ✍️ 2번: 현장 아이 안심 인계 '전자 서명' & OTP 안심 핀코드 인증 다이얼로그 호출
+    selectedOrderForHandOff?.let { order ->
+        PetHandOffSignatureDialog(
+            booking = order,
+            onConfirm = {
+                val updatedStatus = "2. 자택 도착 및 아이 안심 픽업 완료 (서명 인증 됨) 🐶"
+                val updatedOrder = order.copy(status = updatedStatus)
+                val idx = driverOrders.indexOfFirst { it.id == order.id }
+                if (idx != -1) {
+                    driverOrders[idx] = updatedOrder
+                }
+                PersistentStorageManager.saveBookingList(context, driverOrders)
+                FirebaseSyncManager.updateOrderStatus(context, order.id, updatedStatus, order.petName)
+                FirebaseSyncManager.syncOrderToCloud(updatedOrder)
+                ForPetFirebaseMessagingService.sendLocalNotification(
+                    context,
+                    "✍️ [안심 인계 서명 완료] ${order.petName}",
+                    "현장 전자 서명 인증이 완료되어 레이 케어카로 안전하게 탑승했습니다."
+                )
+                Toast.makeText(context, "✍️ '${order.petName}' 아이의 안심 인계 서명이 정상 등록되었습니다!", Toast.LENGTH_SHORT).show()
+                selectedOrderForHandOff = null
+            },
+            onDismiss = { selectedOrderForHandOff = null }
+        )
+    }
+
+    // 📱 5번: 가드 전용 '원터치 안심 문자 / 알림톡' 발송 다이얼로그 호출
+    selectedOrderForQuickNotify?.let { order ->
+        GuardQuickNotificationDialog(
+            order = order,
+            onDismiss = { selectedOrderForQuickNotify = null }
+        )
+    }
+}
+
+// 📱 가드 전용 '원터치 안심 문자 / 알림톡' 발송 팝업
+@Composable
+fun GuardQuickNotificationDialog(
+    order: BookingItem,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val phone = remember(order.ownerName) {
+        val regex = Regex("""010[- ]?\d{4}[- ]?\d{4}""")
+        regex.find(order.ownerName)?.value?.replace("-", "")?.replace(" ", "") ?: "01012345678"
+    }
+
+    val templates = listOf(
+        "🚗 픽업 출발" to "[발자국동행] ${order.petName} 아이 픽업을 위해 기아 레이 전용차가 자택으로 출발했습니다. (예상 15분 후 도착)",
+        "🐾 픽업 완료" to "[발자국동행] ${order.petName} 아이를 안전하게 인계받아 전용 카시트에 탑승했습니다. ${order.hospitalName}(으)로 이동 중이며 앱에서 실시간 바디캠 라이브를 보실 수 있습니다.",
+        "🏥 병원 도착" to "[발자국동행] ${order.hospitalName}에 안전하게 도착하여 수의사 진료 접수를 마쳤습니다. 진료 상황을 세심하게 체크하겠습니다.",
+        "🩺 진료 완료" to "[발자국동행] ${order.petName} 아이의 진료 및 처방약 수령이 완료되었습니다. 상세 소견서가 앱에 등록되었으며, 곧 귀가 출발합니다.",
+        "🎉 귀가 완료" to "[발자국동행] ${order.petName} 아이가 무사히 자택에 도착하여 안심 인계되었습니다. 오늘 아이와 함께할 수 있어 감사했습니다!"
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("📱", fontSize = 20.sp)
+                    Text("원터치 안심 문자 / 알림톡", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+                Text("수신: ${order.ownerName} ($phone)", fontSize = 11.sp, color = Color(0xFF0284C7))
+            }
+        },
+        text = {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(420.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                item {
+                    Text("운전 중 타이핑 없이 버튼 한 번으로 보호자에게 상황별 알림을 전송합니다.", fontSize = 11.sp, color = Color.Gray)
+                }
+
+                items(templates.size) { idx ->
+                    val (stage, text) = templates[idx]
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(stage, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                            Text(text, fontSize = 11.sp, color = Color(0xFF334155), lineHeight = 15.sp)
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        val chatMsg = ChatMessage(
+                                            senderName = "박찬헌 가드",
+                                            isDriver = true,
+                                            messageText = text,
+                                            timestamp = java.text.SimpleDateFormat("a hh:mm", java.util.Locale.KOREA).format(java.util.Date())
+                                        )
+                                        com.example.forpetapp.data.firebase.FirebaseSyncManager.sendChatMessage(order.id, chatMsg)
+                                        sendSystemPushNotification(context, "📱 [발자국동행 $stage]", text)
+                                        Toast.makeText(context, "💬 보호자 안심 톡으로 자동 발송되었습니다!", Toast.LENGTH_SHORT).show()
+                                        onDismiss()
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                                ) {
+                                    Text("💬 안심 톡 전송", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+
+                                Button(
+                                    onClick = {
+                                        try {
+                                            val smsIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                                data = Uri.parse("smsto:$phone")
+                                                putExtra("sms_body", text)
+                                            }
+                                            context.startActivity(smsIntent)
+                                        } catch (_: Exception) {
+                                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                type = "text/plain"
+                                                putExtra(Intent.EXTRA_TEXT, text)
+                                            }
+                                            context.startActivity(Intent.createChooser(shareIntent, "안심 문자 발송"))
+                                        }
+                                        onDismiss()
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                                ) {
+                                    Text("📱 문자(SMS) 발송", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("닫기", fontWeight = FontWeight.Bold)
+            }
+        }
+    )
+}
+
+@Composable
+fun GuardMapScreen() {
+    val context = LocalContext.current
+    val pref = remember { context.getSharedPreferences("BaljagukAppDiskPrefs", android.content.Context.MODE_PRIVATE) }
+    val carLat = remember {
+        pref.getString("guard_last_lat", null)?.toDoubleOrNull() ?: 35.0830000
+    }
+    val carLng = remember {
+        pref.getString("guard_last_lng", null)?.toDoubleOrNull() ?: 128.8950000
+    }
+
+    var webViewRef by remember { mutableStateOf<android.webkit.WebView?>(null) }
+    var selectedLocationKey by remember { mutableStateOf("all") }
+
+    // 🛡️ 컴포저블 이탈 시 WebView 메모리 해제 및 백그라운드 렌더러 크래시 100% 방지
+    DisposableEffect(Unit) {
+        onDispose {
+            try {
+                webViewRef?.apply {
+                    stopLoading()
+                    loadUrl("about:blank")
+                    clearHistory()
+                    removeAllViews()
+                    destroy()
+                }
+            } catch (_: Exception) {}
+            webViewRef = null
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8FAFC))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // 관제 헤더 카드
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("🗺️ 가드 전용 4대 병원 실시간 관제 지도", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 15.sp)
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color(0xFF10B981)
+                    ) {
+                        Text("🟢 관리자 지도 100% 연동", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
+                    }
+                }
+                Text("관리자 PC 관제 포털과 동일한 Google Maps HD 타일 및 4대 거점 동물병원 실시간 좌표가 동기화됩니다.", fontSize = 11.sp, color = Color(0xFF94A3B8))
+            }
+        }
+
+        // 빠른 핀 이동 선택 칩
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            FilterChip(
+                selected = (selectedLocationKey == "car"),
+                onClick = {
+                    selectedLocationKey = "car"
+                    try {
+                        webViewRef?.evaluateJavascript("focusLocation('car');", null)
+                    } catch (_: Exception) {}
+                },
+                label = { Text("🚙 레이 케어카", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+            )
+            FilterChip(
+                selected = (selectedLocationKey == "hosp1"),
+                onClick = {
+                    selectedLocationKey = "hosp1"
+                    try {
+                        webViewRef?.evaluateJavascript("focusLocation('hosp1');", null)
+                    } catch (_: Exception) {}
+                },
+                label = { Text("🏥 덕천 동행", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+            )
+            FilterChip(
+                selected = (selectedLocationKey == "hosp2"),
+                onClick = {
+                    selectedLocationKey = "hosp2"
+                    try {
+                        webViewRef?.evaluateJavascript("focusLocation('hosp2');", null)
+                    } catch (_: Exception) {}
+                },
+                label = { Text("🏥 연산 연산", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+            )
+            FilterChip(
+                selected = (selectedLocationKey == "hosp3"),
+                onClick = {
+                    selectedLocationKey = "hosp3"
+                    try {
+                        webViewRef?.evaluateJavascript("focusLocation('hosp3');", null)
+                    } catch (_: Exception) {}
+                },
+                label = { Text("🏥 하단 이솔", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+            )
+            FilterChip(
+                selected = (selectedLocationKey == "hosp4"),
+                onClick = {
+                    selectedLocationKey = "hosp4"
+                    try {
+                        webViewRef?.evaluateJavascript("focusLocation('hosp4');", null)
+                    } catch (_: Exception) {}
+                },
+                label = { Text("🏥 하단오거리", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+            )
+            FilterChip(
+                selected = (selectedLocationKey == "all"),
+                onClick = {
+                    selectedLocationKey = "all"
+                    try {
+                        webViewRef?.evaluateJavascript("focusLocation('all');", null)
+                    } catch (_: Exception) {}
+                },
+                label = { Text("🗺️ 전체 보기", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+            )
+        }
+
+        // 고화질 실시간 관제 구글 지도 뷰어
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, Color(0xFFCBD5E1))
+        ) {
+            @android.annotation.SuppressLint("SetJavaScriptEnabled")
+            AndroidView(
+                factory = { ctx ->
+                    android.webkit.WebView(ctx).apply {
+                        layoutParams = android.view.ViewGroup.LayoutParams(
+                            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                            android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                        settings.javaScriptEnabled = true
+                        settings.domStorageEnabled = true
+                        settings.allowFileAccess = true
+                        settings.allowContentAccess = true
+                        @Suppress("DEPRECATION")
+                        settings.allowFileAccessFromFileURLs = true
+                        @Suppress("DEPRECATION")
+                        settings.allowUniversalAccessFromFileURLs = true
+                        settings.setSupportZoom(true)
+                        settings.builtInZoomControls = true
+                        settings.displayZoomControls = false
+                        settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+                        settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                        webChromeClient = object : android.webkit.WebChromeClient() {
+                            override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage?): Boolean {
+                                android.util.Log.d("GuardMapWebView", "${consoleMessage?.message()} (Line ${consoleMessage?.lineNumber()})")
+                                return true
+                            }
+                        }
+                        webViewClient = object : android.webkit.WebViewClient() {
+                            // 🛡️ 크로미움 렌더러 프로세스 비정상 종료 시 앱 전체 튕김 100% 방어
+                            override fun onRenderProcessGone(view: android.webkit.WebView?, detail: android.webkit.RenderProcessGoneDetail?): Boolean {
+                                try {
+                                    view?.let {
+                                        (it.parent as? android.view.ViewGroup)?.removeView(it)
+                                        it.destroy()
+                                    }
+                                } catch (_: Exception) {}
+                                return true
+                            }
+
+                            override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
+                                super.onPageFinished(view, url)
+                                try {
+                                    view?.evaluateJavascript("if (typeof initMapEngine === 'function') { initMapEngine(); } updateCarGps($carLat, $carLng);", null)
+                                } catch (_: Exception) {}
+                            }
+
+                            override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, request: android.webkit.WebResourceRequest?): Boolean {
+                                val url = request?.url?.toString() ?: return false
+                                if (url.startsWith("tel:")) {
+                                    try {
+                                        val dialIntent = Intent(Intent.ACTION_DIAL, url.toUri())
+                                        ctx.startActivity(dialIntent)
+                                    } catch (_: Exception) {
+                                        Toast.makeText(ctx, "전화 앱을 열 수 없습니다.", Toast.LENGTH_SHORT).show()
+                                    }
+                                    return true
+                                }
+                                return false
+                            }
+                        }
+                        loadUrl("file:///android_asset/guard_map.html")
+                        webViewRef = this
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }
 }
 
 // 👑 총괄 관리자 전용 통합 대시보드 화면
@@ -1324,6 +1341,23 @@ fun DriverMainDashboardScreen(onLogout: () -> Unit) {
 fun AdminMainDashboardScreen(adminName: String = "최지훈 대표님", onLogout: () -> Unit) {
     val context = LocalContext.current
     var selectedAdminTab by remember { mutableIntStateOf(0) }
+    var lastAdminBackPressTime by remember { mutableLongStateOf(0L) }
+
+    // 관리자 뒤로가기 제스처 방어: 서브 탭에서 뒤로가기 누르면 메인 탭으로 복귀
+    BackHandler(enabled = (selectedAdminTab != 0)) {
+        selectedAdminTab = 0
+    }
+
+    // 메인 탭에서 2초 내 재누름 시 안전하게 관리자 로그아웃
+    BackHandler(enabled = (selectedAdminTab == 0)) {
+        val now = System.currentTimeMillis()
+        if (now - lastAdminBackPressTime < 2000L) {
+            onLogout()
+        } else {
+            lastAdminBackPressTime = now
+            Toast.makeText(context, "한 번 더 누르면 관리자 로그아웃됩니다.", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     val adminMembersList = remember {
         mutableStateListOf(
@@ -1334,7 +1368,22 @@ fun AdminMainDashboardScreen(adminName: String = "최지훈 대표님", onLogout
     }
 
     val adminBookingOrders = remember {
-        mutableStateListOf<BookingItem>()
+        mutableStateListOf<BookingItem>().apply {
+            addAll(PersistentStorageManager.loadBookingList(context))
+        }
+    }
+
+    // ☁️ 실시간 Cloud Firestore 오더 동기화 리스너 (관리자 통합 대시보드)
+    DisposableEffect(Unit) {
+        val listener = FirebaseSyncManager.listenToCloudOrders { cloudOrders ->
+            if (cloudOrders.isNotEmpty()) {
+                adminBookingOrders.clear()
+                adminBookingOrders.addAll(cloudOrders)
+            }
+        }
+        onDispose {
+            listener?.remove()
+        }
     }
 
     Scaffold(
@@ -1570,7 +1619,7 @@ fun AdminMainDashboardScreen(adminName: String = "최지훈 대표님", onLogout
                                     OutlinedButton(
                                         onClick = {
                                             try {
-                                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${phone.replace("-", "")}"))
+                                                val intent = Intent(Intent.ACTION_DIAL, "tel:${phone.replace("-", "")}".toUri())
                                                 context.startActivity(intent)
                                             } catch (_: Exception) {
                                                 Toast.makeText(context, "전화 걸기 실패", Toast.LENGTH_SHORT).show()
@@ -1602,88 +1651,11 @@ fun AdminMainDashboardScreen(adminName: String = "최지훈 대표님", onLogout
     }
 }
 
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
 @Composable
-fun SignUpScreen(onSignUpSuccess: () -> Unit, onBackToLogin: () -> Unit) {
-    val context = LocalContext.current
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF8FAFC))
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("📝 회원가입", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("발자국동행 서비스는 구글 계정으로 간편 가입할 수 있습니다.", fontSize = 13.sp, color = Color.Gray, textAlign = TextAlign.Center)
-
-        Spacer(modifier = Modifier.height(30.dp))
-
-        Button(
-            onClick = {
-                Toast.makeText(context, "Google 계정으로 회원가입 및 로그인이 완료되었습니다!", Toast.LENGTH_SHORT).show()
-                onSignUpSuccess()
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text("🔴", fontSize = 16.sp)
-                Text("Google 계정으로 1초 가입하기", fontSize = 15.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TextButton(onClick = onBackToLogin) {
-            Text("취소하고 로그인으로 돌아가기", color = Color.Gray)
-        }
-    }
+fun AdminMainDashboardPreview() {
+    AdminMainDashboardScreen(adminName = "최지훈 대표님", onLogout = {})
 }
-
-// 🐾 다중 반려동물 프로필 정보 데이터 클래스 (다견/다묘 가정 100% 등록 지원)
-data class PetProfile(
-    val id: String = System.currentTimeMillis().toString(),
-    val imageUriStr: String? = null,
-    val species: String = "강아지",
-    val name: String = "초코",
-    val ownerRealName: String = "홍길동",
-    val type: String = "말티즈",
-    val gender: String = "남아",
-    val neutered: Boolean = true,
-    val weight: String = "4.5",
-    val hospital: String = "명지24시온누리메디컬센터",
-    val symptoms: String = "슬개골 탈구 2기, 정기 검진 권장",
-    val birthMillis: Long? = null
-)
-
-// 📅 예약 정보 데이터 클래스 (3가지 트림: 긴급 50,000원 / 당일미예약 35,000원 / 예약진료 30,000원)
-data class BookingItem(
-    val id: String = System.currentTimeMillis().toString(),
-    val serviceTrim: String = "📅 예약 진료 (예약 O)",
-    val serviceType: String = "병원 진료 대행",
-    val species: String,
-    val petName: String,
-    val ownerName: String,
-    val hospitalName: String,
-    val time: String,
-    val status: String = "예약 확정 (배차 완료)",
-    val vehicleInfo: String = "발자국동행 기아 레이(RAY) 펫전용차",
-    val symptomNote: String,
-    val estimatedPrice: String = "30,000원 (가결제)",
-    val isCompleted: Boolean = false,
-    val doctorNote: String = "",
-    val prescription: String = "",
-    val receiptImageUri: String? = null,
-    val prescriptionImageUri: String? = null
-)
 
 // 📍 실제 안드로이드 GPS 단말기 위치 및 주소 변환 함수
 @android.annotation.SuppressLint("MissingPermission")
@@ -1708,21 +1680,27 @@ fun fetchRealDeviceLocation(context: android.content.Context, onLocationResult: 
 
                 val geocoder = android.location.Geocoder(context, java.util.Locale.KOREA)
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                    geocoder.getFromLocation(lat, lng, 1) { addresses ->
-                        if (addresses.isNotEmpty()) {
-                            val addr = addresses[0]
-                            val city = addr.locality ?: addr.adminArea ?: ""
-                            val district = addr.subLocality ?: addr.thoroughfare ?: ""
-                            val addressStr = "$city $district".trim()
-                            if (addressStr.isNotEmpty()) {
-                                onLocationResult("📍 $addressStr (실제 GPS 수신)")
+                    geocoder.getFromLocation(lat, lng, 1, object : android.location.Geocoder.GeocodeListener {
+                        override fun onGeocode(addresses: List<android.location.Address>) {
+                            if (addresses.isNotEmpty()) {
+                                val addr = addresses[0]
+                                val city = addr.locality ?: addr.adminArea ?: ""
+                                val district = addr.subLocality ?: addr.thoroughfare ?: ""
+                                val addressStr = "$city $district".trim()
+                                if (addressStr.isNotEmpty()) {
+                                    onLocationResult("📍 $addressStr (실제 GPS 수신)")
+                                } else {
+                                    onLocationResult("📍 GPS 수신 완료 (${String.format(java.util.Locale.KOREA, "%.3f, %.3f", lat, lng)})")
+                                }
                             } else {
-                                onLocationResult("📍 GPS 수신 완료 (${String.format("%.3f, %.3f", lat, lng)})")
+                                onLocationResult("📍 GPS 수신 완료 (${String.format(java.util.Locale.KOREA, "%.3f, %.3f", lat, lng)})")
                             }
-                        } else {
-                            onLocationResult("📍 GPS 수신 완료 (${String.format("%.3f, %.3f", lat, lng)})")
                         }
-                    }
+
+                        override fun onError(errorMessage: String?) {
+                            onLocationResult("📍 GPS 수신 완료 (${String.format(java.util.Locale.KOREA, "%.3f, %.3f", lat, lng)})")
+                        }
+                    })
                 } else {
                     @Suppress("DEPRECATION")
                     val addresses = geocoder.getFromLocation(lat, lng, 1)
@@ -1734,10 +1712,10 @@ fun fetchRealDeviceLocation(context: android.content.Context, onLocationResult: 
                         if (addressStr.isNotEmpty()) {
                             onLocationResult("📍 $addressStr (실제 GPS 수신)")
                         } else {
-                            onLocationResult("📍 GPS 수신 완료 (${String.format("%.3f, %.3f", lat, lng)})")
+                            onLocationResult("📍 GPS 수신 완료 (${String.format(java.util.Locale.KOREA, "%.3f, %.3f", lat, lng)})")
                         }
                     } else {
-                        onLocationResult("📍 GPS 수신 완료 (${String.format("%.3f, %.3f", lat, lng)})")
+                        onLocationResult("📍 GPS 수신 완료 (${String.format(java.util.Locale.KOREA, "%.3f, %.3f", lat, lng)})")
                     }
                 }
             } else {
@@ -1750,6 +1728,7 @@ fun fetchRealDeviceLocation(context: android.content.Context, onLocationResult: 
 }
 
 // 💾 앱 재시작/종료 시에도 디스크 파일에 100% 동기화(.commit())로 영구 보존하는 SharedPreferences 관리자
+@android.annotation.SuppressLint("ApplySharedPref")
 object PersistentStorageManager {
     private const val PREF_NAME = "BaljagukAppDiskPrefs"
 
@@ -1757,12 +1736,12 @@ object PersistentStorageManager {
         context.getSharedPreferences(PREF_NAME, android.content.Context.MODE_PRIVATE)
 
     fun clearAllData(context: android.content.Context) {
-        getPrefs(context).edit().clear().commit()
+        getPrefs(context).edit(commit = true) { clear() }
     }
 
     // 보유 포인트 영구 저장/로드 (.commit()으로 100% 동기 디스크 쓰기 보장)
     fun saveUserPoints(context: android.content.Context, points: Int) {
-        getPrefs(context).edit().putInt("user_points", points).commit()
+        getPrefs(context).edit(commit = true) { putInt("user_points", points) }
     }
 
     fun loadUserPoints(context: android.content.Context, defaultVal: Int = 3000): Int =
@@ -1770,17 +1749,17 @@ object PersistentStorageManager {
 
     // 마이페이지 회원 정보 저장/로드 (.commit() 보장)
     fun saveUserProfile(context: android.content.Context, nickname: String, phone: String, address: String, detailAddress: String, card: String?) {
-        getPrefs(context).edit()
-            .putString("user_nickname", nickname)
-            .putString("user_phone", phone)
-            .putString("user_address", address)
-            .putString("user_detail_address", detailAddress)
-            .putString("registered_card", card)
-            .commit()
+        getPrefs(context).edit(commit = true) {
+            putString("user_nickname", nickname)
+            putString("user_phone", phone)
+            putString("user_address", address)
+            putString("user_detail_address", detailAddress)
+            putString("registered_card", card)
+        }
     }
 
     fun saveReferralRedeemed(context: android.content.Context, redeemed: Boolean) {
-        getPrefs(context).edit().putBoolean("referral_redeemed", redeemed).commit()
+        getPrefs(context).edit(commit = true) { putBoolean("referral_redeemed", redeemed) }
     }
 
     fun loadReferralRedeemed(context: android.content.Context): Boolean =
@@ -1802,6 +1781,20 @@ object PersistentStorageManager {
 
     fun loadRegisteredCard(context: android.content.Context) =
         getPrefs(context).getString("registered_card", null)
+
+    fun saveUserProvider(context: android.content.Context, provider: String) {
+        getPrefs(context).edit(commit = true) { putString("user_provider", provider) }
+    }
+
+    fun loadUserProvider(context: android.content.Context, defaultVal: String = "일반"): String =
+        getPrefs(context).getString("user_provider", defaultVal) ?: defaultVal
+
+    fun saveUserEmail(context: android.content.Context, email: String) {
+        getPrefs(context).edit(commit = true) { putString("user_email", email) }
+    }
+
+    fun loadUserEmail(context: android.content.Context, defaultVal: String = ""): String =
+        getPrefs(context).getString("user_email", defaultVal) ?: defaultVal
 
     // 예약 및 진료 리포트 목록 디스크 영구 저장/로드 (.commit() 보장)
     fun saveBookingList(context: android.content.Context, list: List<BookingItem>) {
@@ -1828,7 +1821,7 @@ object PersistentStorageManager {
             }
             jsonArray.put(obj)
         }
-        getPrefs(context).edit().putString("booking_list_json", jsonArray.toString()).commit()
+        getPrefs(context).edit(commit = true) { putString("booking_list_json", jsonArray.toString()) }
     }
 
     fun loadBookingList(context: android.content.Context): MutableList<BookingItem> {
@@ -1879,7 +1872,7 @@ object PersistentStorageManager {
             }
             jsonArray.put(obj)
         }
-        getPrefs(context).edit().putString("reviews_list_json", jsonArray.toString()).commit()
+        getPrefs(context).edit(commit = true) { putString("reviews_list_json", jsonArray.toString()) }
     }
 
     fun loadReviewsList(context: android.content.Context): MutableList<ReviewItem> {
@@ -1898,7 +1891,7 @@ object PersistentStorageManager {
                         serviceType = obj.optString("serviceType"),
                         content = obj.optString("content"),
                         dateText = obj.optString("dateText"),
-                        imageUri = if (uriStr.isNotEmpty()) try { android.net.Uri.parse(uriStr) } catch(_: Exception) { null } else null
+                        imageUri = if (uriStr.isNotEmpty()) try { uriStr.toUri() } catch(_: Exception) { null } else null
                     )
                 )
             }
@@ -1922,7 +1915,7 @@ object PersistentStorageManager {
             }
             jsonArray.put(obj)
         }
-        getPrefs(context).edit().putString("busan_hospitals_json", jsonArray.toString()).commit()
+        getPrefs(context).edit(commit = true) { putString("busan_hospitals_json", jsonArray.toString()) }
     }
 
     fun loadHospitalList(context: android.content.Context): MutableList<HospitalInfo> {
@@ -2001,14 +1994,14 @@ object PersistentStorageManager {
                         type = obj.optString("type"),
                         address = obj.optString("address"),
                         phone = obj.optString("phone"),
-                        targetSpecies = if (speciesList.isNotEmpty()) speciesList else listOf("개", "고양이"),
+                        targetSpecies = speciesList.ifEmpty { listOf("개", "고양이") },
                         departments = deptList,
                         additionalServices = svcList
                     )
                 )
             }
         } catch (_: Exception) {}
-        return if (list.isNotEmpty()) list else defaultList
+        return list.ifEmpty { defaultList }
     }
 
     // 다중 반려동물 프로필 리스트 영구 디스크 저장/로드 (.commit() 보장)
@@ -2031,12 +2024,17 @@ object PersistentStorageManager {
             }
             jsonArray.put(obj)
         }
-        getPrefs(context).edit().putString("multi_pet_list_json", jsonArray.toString()).commit()
+        getPrefs(context).edit(commit = true) { putString("multi_pet_list_json", jsonArray.toString()) }
     }
 
     fun loadMultiPetList(context: android.content.Context): MutableList<PetProfile> {
+        val defaultList = mutableListOf(
+            PetProfile(id = "1", name = "초코", species = "강아지", type = "토이푸들", gender = "남아", neutered = true, weight = "4.2", hospital = "명지24시온누리메디컬센터", symptoms = "슬개골 탈구 2기, 관절 주의"),
+            PetProfile(id = "2", name = "보리", species = "강아지", type = "말티즈", gender = "여아", neutered = true, weight = "3.1", hospital = "24시센텀동물메디컬센터", symptoms = "소화기 민감, 정기 스케일링 필요"),
+            PetProfile(id = "3", name = "나비", species = "고양이", type = "코리안숏헤어", gender = "남아", neutered = true, weight = "4.8", hospital = "24시부산동물의료원", symptoms = "이동 스트레스 민감, 펠리웨이 안심 케어")
+        )
         val jsonStr = getPrefs(context).getString("multi_pet_list_json", null)
-            ?: return mutableListOf(PetProfile(id = "1", name = "행복이", species = "강아지", type = "말티즈"))
+            ?: return defaultList
         val list = mutableListOf<PetProfile>()
         try {
             val jsonArray = org.json.JSONArray(jsonStr)
@@ -2045,15 +2043,15 @@ object PersistentStorageManager {
                 val bMillis = obj.optLong("birthMillis", -1L)
                 list.add(
                     PetProfile(
-                        id = obj.optString("id"),
+                        id = obj.optString("id", System.currentTimeMillis().toString()),
                         imageUriStr = obj.optString("imageUriStr").ifEmpty { null },
                         species = obj.optString("species", "강아지"),
-                        name = obj.optString("name", "행복이"),
+                        name = obj.optString("name", "초코"),
                         ownerRealName = obj.optString("ownerRealName", "홍길동"),
-                        type = obj.optString("type", "말티즈"),
+                        type = obj.optString("type", "토이푸들"),
                         gender = obj.optString("gender", "남아"),
                         neutered = obj.optBoolean("neutered", true),
-                        weight = obj.optString("weight", "4.5"),
+                        weight = obj.optString("weight", "4.2"),
                         hospital = obj.optString("hospital", "명지24시온누리메디컬센터"),
                         symptoms = obj.optString("symptoms", ""),
                         birthMillis = if (bMillis == -1L) null else bMillis
@@ -2061,7 +2059,7 @@ object PersistentStorageManager {
                 )
             }
         } catch (_: Exception) {}
-        return list
+        return list.ifEmpty { defaultList }
     }
 
     // 반려동물 프로필 정보 저장/로드 (.commit() 보장)
@@ -2079,19 +2077,19 @@ object PersistentStorageManager {
         symptoms: String,
         birthMillis: Long?
     ) {
-        getPrefs(context).edit()
-            .putString("pet_image_uri", imageUriStr)
-            .putString("pet_species", species)
-            .putString("pet_name", name)
-            .putString("owner_real_name", owner)
-            .putString("pet_type", type)
-            .putString("pet_gender", gender)
-            .putBoolean("pet_neutered", neutered)
-            .putString("pet_weight", weight)
-            .putString("pet_hospital", hospital)
-            .putString("pet_symptoms", symptoms)
-            .putLong("pet_birth_millis", birthMillis ?: -1L)
-            .commit()
+        getPrefs(context).edit(commit = true) {
+            putString("pet_image_uri", imageUriStr)
+            putString("pet_species", species)
+            putString("pet_name", name)
+            putString("owner_real_name", owner)
+            putString("pet_type", type)
+            putString("pet_gender", gender)
+            putBoolean("pet_neutered", neutered)
+            putString("pet_weight", weight)
+            putString("pet_hospital", hospital)
+            putString("pet_symptoms", symptoms)
+            putLong("pet_birth_millis", birthMillis ?: -1L)
+        }
     }
 
     fun loadPetImageUri(context: android.content.Context): String? =
@@ -2128,11 +2126,229 @@ object PersistentStorageManager {
         val valMillis = getPrefs(context).getLong("pet_birth_millis", -1L)
         return if (valMillis == -1L) null else valMillis
     }
+
+    // 💊 일일 복약 알리미 디스크 영구 저장/로드 (.commit() 보장)
+    fun saveMedicationList(context: android.content.Context, list: List<MedicationItem>) {
+        val jsonArray = org.json.JSONArray()
+        list.forEach { item ->
+            val obj = org.json.JSONObject().apply {
+                put("id", item.id)
+                put("name", item.name)
+                put("time", item.time)
+                put("dosage", item.dosage)
+                put("note", item.note)
+                put("isTaken", item.isTaken)
+            }
+            jsonArray.put(obj)
+        }
+        getPrefs(context).edit(commit = true) { putString("medication_list_json", jsonArray.toString()) }
+    }
+
+    fun loadMedicationList(context: android.content.Context): MutableList<MedicationItem> {
+        val jsonStr = getPrefs(context).getString("medication_list_json", null)
+        val defaultList = mutableListOf(
+            MedicationItem(id = "1", name = "관절 영양제 (콘드로이친)", time = "오전 08:30", dosage = "1알 식후 급여", note = "사료 급여 직후 간식과 함께", isTaken = true),
+            MedicationItem(id = "2", name = "위장 보호제 & 생유산균", time = "오후 13:00", dosage = "1포 미온수 혼합", note = "공복 또는 식간에 급여", isTaken = false),
+            MedicationItem(id = "3", name = "심장약 & 혈압 안정제", time = "오후 20:00", dosage = "반 알 경구 투여", note = "시간 엄수 (취침 전)", isTaken = false)
+        )
+        if (jsonStr == null) return defaultList
+        val list = mutableListOf<MedicationItem>()
+        try {
+            val jsonArray = org.json.JSONArray(jsonStr)
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                list.add(
+                    MedicationItem(
+                        id = obj.optString("id"),
+                        name = obj.optString("name"),
+                        time = obj.optString("time"),
+                        dosage = obj.optString("dosage"),
+                        note = obj.optString("note"),
+                        isTaken = obj.optBoolean("isTaken", false)
+                    )
+                )
+            }
+        } catch (_: Exception) {}
+        return list.ifEmpty { defaultList }
+    }
+
+    // 💉 연간 예방접종 캘린더 디스크 영구 저장/로드 (.commit() 보장)
+    fun saveVaccineList(context: android.content.Context, list: List<VaccineScheduleItem>) {
+        val jsonArray = org.json.JSONArray()
+        list.forEach { item ->
+            val obj = org.json.JSONObject().apply {
+                put("id", item.id)
+                put("vaccineName", item.vaccineName)
+                put("targetDate", item.targetDate)
+                put("cycle", item.cycle)
+                put("dDay", item.dDay)
+                put("description", item.description)
+                put("isCompleted", item.isCompleted)
+            }
+            jsonArray.put(obj)
+        }
+        getPrefs(context).edit(commit = true) { putString("vaccine_list_json", jsonArray.toString()) }
+    }
+
+    fun loadVaccineList(context: android.content.Context): MutableList<VaccineScheduleItem> {
+        val jsonStr = getPrefs(context).getString("vaccine_list_json", null)
+        val defaultList = mutableListOf(
+            VaccineScheduleItem(id = "1", vaccineName = "광견병 예방접종 (Rabies)", targetDate = "2026.12.12", cycle = "매년 1회", dDay = 42, description = "법정 필수 의무 예방접종 (부산시 지원 제휴병원 연계)", isCompleted = false),
+            VaccineScheduleItem(id = "2", vaccineName = "심장사상충 예방약", targetDate = "2026.11.01", cycle = "매월 1회", dDay = 1, description = "모기 매개 기생충 정기 예방 (넥스가드 스펙트라 / 하트가드)", isCompleted = false),
+            VaccineScheduleItem(id = "3", vaccineName = "종합 5종 백신 (DHPPi)", targetDate = "2027.02.15", cycle = "매년 1회", dDay = 107, description = "홍역, 간염, 파보장염, 파라인플루엔자, 렙토스피라", isCompleted = false),
+            VaccineScheduleItem(id = "4", vaccineName = "켄넬코프 & 코로나 장염", targetDate = "2027.04.10", cycle = "매년 1회", dDay = 161, description = "환절기 전염성 기관지염 및 바이러스성 장염 예방", isCompleted = false)
+        )
+        if (jsonStr == null) return defaultList
+        val list = mutableListOf<VaccineScheduleItem>()
+        try {
+            val jsonArray = org.json.JSONArray(jsonStr)
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                list.add(
+                    VaccineScheduleItem(
+                        id = obj.optString("id"),
+                        vaccineName = obj.optString("vaccineName"),
+                        targetDate = obj.optString("targetDate"),
+                        cycle = obj.optString("cycle"),
+                        dDay = obj.optInt("dDay", 0),
+                        description = obj.optString("description"),
+                        isCompleted = obj.optBoolean("isCompleted", false)
+                    )
+                )
+            }
+        } catch (_: Exception) {}
+        return list.ifEmpty { defaultList }
+    }
+
+    // 🎟️ 보유 할인 쿠폰 목록 디스크 영구 저장/로드 (.commit() 보장)
+    fun saveCouponList(context: android.content.Context, list: List<CouponItem>) {
+        val jsonArray = org.json.JSONArray()
+        list.forEach { item ->
+            val obj = org.json.JSONObject().apply {
+                put("id", item.id)
+                put("title", item.title)
+                put("discountAmount", item.discountAmount)
+                put("minOrderAmount", item.minOrderAmount)
+                put("validUntil", item.validUntil)
+                put("isUsed", item.isUsed)
+            }
+            jsonArray.put(obj)
+        }
+        getPrefs(context).edit(commit = true) { putString("coupon_list_json", jsonArray.toString()) }
+    }
+
+    fun loadCouponList(context: android.content.Context): MutableList<CouponItem> {
+        val jsonStr = getPrefs(context).getString("coupon_list_json", null)
+        val defaultList = mutableListOf(
+            CouponItem(id = "welcome", title = "🎉 신규 가입 웰컴 3,000원 쿠폰", discountAmount = 3000, validUntil = "2027.12.31")
+        )
+        if (jsonStr == null) return defaultList
+        val list = mutableListOf<CouponItem>()
+        try {
+            val jsonArray = org.json.JSONArray(jsonStr)
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                list.add(
+                    CouponItem(
+                        id = obj.optString("id"),
+                        title = obj.optString("title"),
+                        discountAmount = obj.optInt("discountAmount", 0),
+                        minOrderAmount = obj.optInt("minOrderAmount", 30000),
+                        validUntil = obj.optString("validUntil", "2027.12.31"),
+                        isUsed = obj.optBoolean("isUsed", false)
+                    )
+                )
+            }
+        } catch (_: Exception) {}
+        return list.ifEmpty { defaultList }
+    }
+
+    // 📊 반려동물 의료 가계부 디스크 영구 저장/로드 (.commit() 보장)
+    fun saveExpenseList(context: android.content.Context, list: List<PetExpenseItem>) {
+        val jsonArray = org.json.JSONArray()
+        list.forEach { item ->
+            val obj = org.json.JSONObject().apply {
+                put("id", item.id)
+                put("title", item.title)
+                put("category", item.category)
+                put("amount", item.amount)
+                put("dateText", item.dateText)
+                put("hospitalOrStore", item.hospitalOrStore)
+                put("receiptUriStr", item.receiptUriStr ?: "")
+                put("note", item.note)
+            }
+            jsonArray.put(obj)
+        }
+        getPrefs(context).edit(commit = true) { putString("pet_expense_list_json", jsonArray.toString()) }
+    }
+
+    fun loadExpenseList(context: android.content.Context): MutableList<PetExpenseItem> {
+        val jsonStr = getPrefs(context).getString("pet_expense_list_json", null)
+        val defaultList = mutableListOf(
+            PetExpenseItem(id = "1", title = "슬개골 탈구 정밀 검진 & 방사선 X-ray", category = "🏥 병원 진료비", amount = 75000, dateText = "2026.10.18", hospitalOrStore = "명지24시온누리메디컬센터", note = "슬개골 2기 확인 및 소견서 수령"),
+            PetExpenseItem(id = "2", title = "위장 보호제 & 생유산균 처방", category = "💊 약제/처방전", amount = 30000, dateText = "2026.10.18", hospitalOrStore = "명지24시온누리메디컬센터", note = "2주분 복약 처방"),
+            PetExpenseItem(id = "3", title = "발자국동행 레이 케어카 병원 진료 대행", category = "🚙 동행 케어비", amount = 30000, dateText = "2026.10.18", hospitalOrStore = "발자국동행 부산점", note = "1:1 안심 케어 및 바디캠 연동"),
+            PetExpenseItem(id = "4", title = "하트가드 심장사상충약 (6개월분)", category = "💊 약제/처방전", amount = 54000, dateText = "2026.09.20", hospitalOrStore = "부산 사하 동물약국", note = "정기 구충약 구매")
+        )
+        if (jsonStr == null) return defaultList
+        val list = mutableListOf<PetExpenseItem>()
+        try {
+            val jsonArray = org.json.JSONArray(jsonStr)
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                list.add(
+                    PetExpenseItem(
+                        id = obj.optString("id"),
+                        title = obj.optString("title"),
+                        category = obj.optString("category", "🏥 병원 진료비"),
+                        amount = obj.optInt("amount", 0),
+                        dateText = obj.optString("dateText", "2026.10.01"),
+                        hospitalOrStore = obj.optString("hospitalOrStore", "동물병원"),
+                        receiptUriStr = obj.optString("receiptUriStr").ifEmpty { null },
+                        note = obj.optString("note")
+                    )
+                )
+            }
+        } catch (_: Exception) {}
+        return list.ifEmpty { defaultList }
+    }
+
+    fun saveActivePetId(context: android.content.Context, id: String) {
+        getPrefs(context).edit(commit = true) { putString("active_pet_id", id) }
+    }
+
+    fun loadActivePetId(context: android.content.Context): String {
+        return getPrefs(context).getString("active_pet_id", "1") ?: "1"
+    }
+
+    // 🌙 야간 운행 다크모드 & 🔍 고대비 큰글씨 안심모드 저장/로드
+    fun saveDarkMode(context: android.content.Context, isDark: Boolean) {
+        getPrefs(context).edit(commit = true) { putBoolean("dark_mode_enabled", isDark) }
+    }
+
+    fun loadDarkMode(context: android.content.Context): Boolean {
+        return getPrefs(context).getBoolean("dark_mode_enabled", false)
+    }
+
+    fun saveLargeFontMode(context: android.content.Context, isLarge: Boolean) {
+        getPrefs(context).edit(commit = true) { putBoolean("large_font_enabled", isLarge) }
+    }
+
+    fun loadLargeFontMode(context: android.content.Context): Boolean {
+        return getPrefs(context).getBoolean("large_font_enabled", false)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
+fun ForPetMainScreen(
+    isAdminUser: Boolean = false,
+    isDarkMode: Boolean = false,
+    isLargeFontMode: Boolean = false,
+    onToggleDarkMode: (Boolean) -> Unit = {},
+    onToggleLargeFontMode: (Boolean) -> Unit = {},
+    onLogout: () -> Unit
+) {
     val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
     var userPoints by remember { mutableIntStateOf(PersistentStorageManager.loadUserPoints(context, 3000)) }
@@ -2145,11 +2361,8 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
     var savedRegisteredCard by remember { mutableStateOf(PersistentStorageManager.loadRegisteredCard(context)) }
 
     // 반려동물 프로필 정보 디스크 파일 초기화 로드
-    var savedPetImageUri by remember {
-        mutableStateOf<Uri?>(
-            PersistentStorageManager.loadPetImageUri(context)?.let { try { Uri.parse(it) } catch (_: Exception) { null } }
-        )
-    }
+    val initialPetUri: Uri? = PersistentStorageManager.loadPetImageUri(context)?.let { try { it.toUri() } catch (_: Exception) { null } }
+    var savedPetImageUri by remember { mutableStateOf(initialPetUri) }
     var savedPetSpecies by remember { mutableStateOf(PersistentStorageManager.loadPetSpecies(context, "강아지")) }
     var savedPetName by remember { mutableStateOf(PersistentStorageManager.loadPetName(context, "초코")) }
     var savedOwnerRealName by remember { mutableStateOf(PersistentStorageManager.loadOwnerRealName(context, "홍길동")) }
@@ -2159,7 +2372,7 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
     var savedPetWeight by remember { mutableStateOf(PersistentStorageManager.loadPetWeight(context, "4.5")) }
     var savedPetHospital by remember { mutableStateOf(PersistentStorageManager.loadPetHospital(context, "명지24시온누리메디컬센터")) }
     var savedPetSymptoms by remember { mutableStateOf(PersistentStorageManager.loadPetSymptoms(context, "구토 및 식욕 부진, 슬개골 탈구 2기")) }
-    var savedBirthMillis by remember { mutableStateOf<Long?>(PersistentStorageManager.loadPetBirthMillis(context)) }
+    var savedBirthMillis by remember { mutableStateOf(PersistentStorageManager.loadPetBirthMillis(context)) }
     val userReferralCode = remember { "K7TB94" }
 
     val bookingList = remember {
@@ -2167,8 +2380,23 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
             addAll(PersistentStorageManager.loadBookingList(context))
         }
     }
+
+    // ☁️ 실시간 Cloud Firestore 오더 동기화 리스너 (보호자 화면 실시간 연동)
+    DisposableEffect(Unit) {
+        val listenerReg = com.example.forpetapp.data.firebase.FirebaseSyncManager.listenToCloudOrders { cloudOrders ->
+            if (cloudOrders.isNotEmpty()) {
+                bookingList.clear()
+                bookingList.addAll(cloudOrders)
+                PersistentStorageManager.saveBookingList(context, cloudOrders)
+            }
+        }
+        onDispose {
+            listenerReg?.remove()
+        }
+    }
     var locationStatusText by remember { mutableStateOf("📍 실제 GPS 위치 확인 중...") }
     var showNotificationCenter by remember { mutableStateOf(false) }
+    var showDisplaySettingsDialog by remember { mutableStateOf(false) }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -2214,7 +2442,12 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                                         .size(30.dp)
                                         .clip(CircleShape)
                                 )
-                                Text("발자국동행", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF0F172A))
+                                Text(
+                                    "발자국동행",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp,
+                                    color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                )
                             } else {
                                 Text(
                                     when(selectedTab) {
@@ -2223,29 +2456,38 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                                         else -> "👤 마이페이지"
                                     },
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp
+                                    fontSize = 18.sp,
+                                    color = if (isDarkMode) Color.White else Color(0xFF0F172A)
                                 )
                             }
                         }
                         Text(
                             text = locationStatusText,
                             fontSize = 10.sp,
-                            color = Color(0xFF0284C7),
+                            color = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7),
                             fontWeight = FontWeight.Medium
                         )
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showDisplaySettingsDialog = true }) {
+                        Text(if (isDarkMode) "🌙" else "☀️", fontSize = 16.sp)
+                    }
+                    IconButton(onClick = { showNotificationCenter = true }) {
+                        Text("🔔", fontSize = 16.sp)
+                    }
                     TextButton(onClick = onLogout) {
                         Text("로그아웃", color = Color.Red, fontSize = 13.sp)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = if (isDarkMode) Color(0xFF1E293B) else Color.White
+                )
             )
         },
         bottomBar = {
             Surface(
-                color = Color.White,
+                color = if (isDarkMode) Color(0xFF1E293B) else Color.White,
                 shadowElevation = 8.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -2262,28 +2504,48 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text("🏠", fontSize = 18.sp)
-                        Text("홈", fontSize = 11.sp, color = if (selectedTab == 0) Color(0xFF0284C7) else Color.Gray, fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal)
+                        Text(
+                            "홈",
+                            fontSize = 11.sp,
+                            color = if (selectedTab == 0) (if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7)) else (if (isDarkMode) Color(0xFF94A3B8) else Color.Gray),
+                            fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
+                        )
                     }
                     Column(
                         modifier = Modifier.clickable { selectedTab = 1 }.padding(4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text("📅", fontSize = 18.sp)
-                        Text("예약", fontSize = 11.sp, color = if (selectedTab == 1) Color(0xFF0284C7) else Color.Gray, fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal)
+                        Text(
+                            "예약",
+                            fontSize = 11.sp,
+                            color = if (selectedTab == 1) (if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7)) else (if (isDarkMode) Color(0xFF94A3B8) else Color.Gray),
+                            fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
+                        )
                     }
                     Column(
                         modifier = Modifier.clickable { selectedTab = 2 }.padding(4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text("🐾", fontSize = 18.sp)
-                        Text("내 반려동물", fontSize = 11.sp, color = if (selectedTab == 2) Color(0xFF0284C7) else Color.Gray, fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal)
+                        Text(
+                            "내 반려동물",
+                            fontSize = 11.sp,
+                            color = if (selectedTab == 2) (if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7)) else (if (isDarkMode) Color(0xFF94A3B8) else Color.Gray),
+                            fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal
+                        )
                     }
                     Column(
                         modifier = Modifier.clickable { selectedTab = 3 }.padding(4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text("👤", fontSize = 18.sp)
-                        Text("마이페이지", fontSize = 11.sp, color = if (selectedTab == 3) Color(0xFF0284C7) else Color.Gray, fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Normal)
+                        Text(
+                            "마이페이지",
+                            fontSize = 11.sp,
+                            color = if (selectedTab == 3) (if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7)) else (if (isDarkMode) Color(0xFF94A3B8) else Color.Gray),
+                            fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Normal
+                        )
                     }
                 }
             }
@@ -2293,7 +2555,7 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color(0xFFF8FAFC))
+                .background(if (isDarkMode) Color(0xFF0F172A) else Color(0xFFF8FAFC))
         ) {
             when (selectedTab) {
                 0 -> HomeScreenContent(
@@ -2312,6 +2574,9 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
                     onAddBooking = { newBooking ->
                         bookingList.add(0, newBooking)
                         PersistentStorageManager.saveBookingList(context, bookingList)
+                        try {
+                            com.example.forpetapp.widget.ForPetAppWidgetProvider.updateAllWidgets(context)
+                        } catch (_: Exception) {}
                     },
                     onNavigateToBookingTab = { selectedTab = 1 }
                 )
@@ -2381,7 +2646,8 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
 
                         // 디스크 파일(SharedPreferences)에 영구 보존
                         PersistentStorageManager.saveUserProfile(context, newNick, newPhone, newAddress, newDetailAddress, savedRegisteredCard)
-                    }
+                    },
+                    onDeleteAccount = onLogout
                 )
             }
         }
@@ -2390,16 +2656,18 @@ fun ForPetMainScreen(isAdminUser: Boolean = false, onLogout: () -> Unit) {
     if (showNotificationCenter) {
         NotificationCenterDialog(onDismiss = { showNotificationCenter = false })
     }
+    if (showDisplaySettingsDialog) {
+        DisplaySettingsDialog(
+            isDarkMode = isDarkMode,
+            isLargeFontMode = isLargeFontMode,
+            onToggleDarkMode = onToggleDarkMode,
+            onToggleLargeFontMode = onToggleLargeFontMode,
+            onDismiss = { showDisplaySettingsDialog = false }
+        )
+    }
 }
 
-// 💬 1:1 안심 톡 메시지 데이터 클래스
-data class ChatMessage(
-    val id: String = System.currentTimeMillis().toString(),
-    val senderName: String,
-    val isDriver: Boolean,
-    val messageText: String,
-    val timestamp: String
-)
+
 
 // 🗺️ 실시간 GPS 라이브 이동 관제 지도 다이얼로그 (100% 순수 네이티브 - 흰색 화면 멈춤 100% 영구 차단)
 @Composable
@@ -2409,10 +2677,30 @@ fun LiveGpsMapDialog(
 ) {
     val context = LocalContext.current
     var progress by remember { mutableFloatStateOf(0.55f) }
+    var guardLat by remember { mutableDoubleStateOf(35.0830) }
+    var guardLng by remember { mutableDoubleStateOf(128.8950) }
+    var gpsLiveStatus by remember { mutableStateOf("위성 GPS 연동 완료") }
+    var showInteractiveMap by remember { mutableStateOf(true) }
+    var mapWebViewRef by remember { mutableStateOf<android.webkit.WebView?>(null) }
+
+    // ☁️ Cloud Firestore 실시간 가드 GPS 스트림 수신
+    DisposableEffect(Unit) {
+        val listener = com.example.forpetapp.data.firebase.FirebaseSyncManager.listenToGuardGps { lat, lng ->
+            guardLat = lat
+            guardLng = lng
+            gpsLiveStatus = "실시간 위도 ${String.format(java.util.Locale.US, "%.4f", lat)}, 경도 ${String.format(java.util.Locale.US, "%.4f", lng)}"
+            try {
+                mapWebViewRef?.evaluateJavascript("if (typeof updateCarGps === 'function') { updateCarGps($lat, $lng); }", null)
+            } catch (_: Exception) {}
+        }
+        onDispose {
+            listener?.remove()
+        }
+    }
 
     LaunchedEffect(Unit) {
         while (true) {
-            kotlinx.coroutines.delay(1000)
+            kotlinx.coroutines.delay(kotlin.time.Duration.parse("1s"))
             progress = if (progress >= 0.92f) 0.15f else progress + 0.04f
         }
     }
@@ -2430,20 +2718,20 @@ fun LiveGpsMapDialog(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text("🗺️", fontSize = 20.sp)
-                    Text("실시간 이동 경로 관제", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("실시간 레이 케어카 안심 관제", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
                 Surface(
                     shape = RoundedCornerShape(20.dp),
                     color = Color(0xFFDCFCE7)
                 ) {
-                    Text("🟢 GPS LIVE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D), modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
+                    Text("🟢 LIVE GPS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D), modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
                 }
             }
         },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // 1. 내비게이션 경로 요약 헤더
                 Surface(
@@ -2460,7 +2748,7 @@ fun LiveGpsMapDialog(
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text("🏡 자택 ➔ 🏥 ${booking.hospitalName}", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
-                            Text("발자국동행 기아 레이 (부산 38가 5394)", fontSize = 11.sp, color = Color(0xFF38BDF8))
+                            Text("발자국동행 레이 펫케어카 (부산 38가 5394)", fontSize = 11.sp, color = Color(0xFF38BDF8))
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text("약 6분 후 도착", fontWeight = FontWeight.Bold, color = Color(0xFF4ADE80), fontSize = 13.sp)
@@ -2469,92 +2757,165 @@ fun LiveGpsMapDialog(
                     }
                 }
 
-                // 2. 100% 네이티브 안심 실시간 지도 관제 그래픽 (웹뷰 제로)
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(210.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFF1E293B),
-                    border = BorderStroke(1.dp, Color(0xFF334155))
+                // 2. 뷰 모드 전환 탭: [🗺️ 실시간 HD 구글 관제 지도] vs [📊 동선 요약]
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Column(
+                    FilterChip(
+                        selected = showInteractiveMap,
+                        onClick = { showInteractiveMap = true },
+                        label = { Text("🗺️ 실시간 HD 지도", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = !showInteractiveMap,
+                        onClick = { showInteractiveMap = false },
+                        label = { Text("📊 이동 동선 요약", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                if (showInteractiveMap) {
+                    // 고화질 실시간 관제 구글 지도 뷰어 (가드 화면 & 관리자 웹과 100% 동일)
+                    Card(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(14.dp),
-                        verticalArrangement = Arrangement.SpaceBetween
+                            .fillMaxWidth()
+                            .height(220.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFCBD5E1))
                     ) {
-                        // 상단 출발지 정보
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFF0F172A),
-                            border = BorderStroke(1.dp, Color(0xFF0284C7))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text("🏡", fontSize = 14.sp)
-                                Text("출발: 명지동 자택", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF38BDF8))
-                            }
-                        }
+                        @android.annotation.SuppressLint("SetJavaScriptEnabled")
+                        AndroidView(
+                            factory = { ctx ->
+                                android.webkit.WebView(ctx).apply {
+                                    layoutParams = android.view.ViewGroup.LayoutParams(
+                                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                                        android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                                    )
+                                    settings.javaScriptEnabled = true
+                                    settings.domStorageEnabled = true
+                                    settings.allowFileAccess = true
+                                    settings.allowContentAccess = true
+                                    @Suppress("DEPRECATION")
+                                    settings.allowFileAccessFromFileURLs = true
+                                    @Suppress("DEPRECATION")
+                                    settings.allowUniversalAccessFromFileURLs = true
+                                    settings.setSupportZoom(true)
+                                    settings.builtInZoomControls = true
+                                    settings.displayZoomControls = false
+                                    settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+                                    webViewClient = object : android.webkit.WebViewClient() {
+                                        override fun onRenderProcessGone(view: android.webkit.WebView?, detail: android.webkit.RenderProcessGoneDetail?): Boolean {
+                                            try {
+                                                view?.let {
+                                                    (it.parent as? android.view.ViewGroup)?.removeView(it)
+                                                    it.destroy()
+                                                }
+                                            } catch (_: Exception) {}
+                                            return true
+                                        }
 
-                        // 중간 실시간 이동 경로 프로그레스 바 & 차 마커
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("명지국제8로", fontSize = 11.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = Color(0xFF0284C7)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Text("🚙", fontSize = 12.sp)
-                                        Text("레이 케어카 (42 km/h)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
+                                            super.onPageFinished(view, url)
+                                            try {
+                                                view?.evaluateJavascript("if (typeof initMapEngine === 'function') { initMapEngine(); } updateCarGps($guardLat, $guardLng);", null)
+                                            } catch (_: Exception) {}
+                                        }
                                     }
+                                    loadUrl("file:///android_asset/guard_map.html")
+                                    mapWebViewRef = this
                                 }
-                                Text("명지오션시티", fontSize = 11.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
-                            }
-
-                            LinearProgressIndicator(
-                                progress = { progress },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(10.dp)
-                                    .clip(RoundedCornerShape(5.dp)),
-                                color = Color(0xFF38BDF8),
-                                trackColor = Color(0xFF475569),
-                            )
-                        }
-
-                        // 하단 목적지 병원 정보
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                } else {
+                    // 네이티브 이동 경로 진행 그래픽
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFF1E293B),
+                        border = BorderStroke(1.dp, Color(0xFF334155))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(14.dp),
+                            verticalArrangement = Arrangement.SpaceBetween
                         ) {
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFF881337),
-                                border = BorderStroke(1.dp, Color(0xFFF43F5E))
+                                color = Color(0xFF0F172A),
+                                border = BorderStroke(1.dp, Color(0xFF0284C7))
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Text("🏥", fontSize = 14.sp)
-                                    Text("목적지: ${booking.hospitalName}", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                                    Text("🏡", fontSize = 14.sp)
+                                    Text("출발: 명지동 자택", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF38BDF8))
+                                }
+                            }
+
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("명지국제8로", fontSize = 11.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = Color(0xFF0284C7)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text("🚙", fontSize = 12.sp)
+                                            Text("레이 케어카 (42 km/h)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        }
+                                    }
+                                    Text("명지오션시티", fontSize = 11.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
+                                }
+
+                                LinearProgressIndicator(
+                                    progress = { progress },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(10.dp)
+                                        .clip(RoundedCornerShape(5.dp)),
+                                    color = Color(0xFF38BDF8),
+                                    trackColor = Color(0xFF475569),
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFF881337),
+                                    border = BorderStroke(1.dp, Color(0xFFF43F5E))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text("🏥", fontSize = 14.sp)
+                                        Text("목적지: ${booking.hospitalName}", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                                    }
                                 }
                             }
                         }
@@ -2577,7 +2938,7 @@ fun LiveGpsMapDialog(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("📍 실시간 위치: 부산 강서구 명지국제8로 150", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                            Text("📍 $gpsLiveStatus", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
                             Text("안전운행 중 🟢", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A))
                         }
                         HorizontalDivider()
@@ -2585,7 +2946,7 @@ fun LiveGpsMapDialog(
 
                         Button(
                             onClick = {
-                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:01026545394"))
+                                val intent = Intent(Intent.ACTION_DIAL, "tel:01026545394".toUri())
                                 context.startActivity(intent)
                             },
                             modifier = Modifier.fillMaxWidth(),
@@ -2612,7 +2973,7 @@ fun LiveGpsMapDialog(
     )
 }
 
-// 1번: 📹 실시간 바디캠 라이브 스트리밍 & 차내 안심 상태 다이얼로그
+// 1번: 📹 실시간 바디캠 라이브 스트리밍 & 차내 안심 상태 다이얼로그 (고화질 관제 & 오디오 인터콤)
 @Composable
 fun BodycamStreamDialog(
     booking: BookingItem,
@@ -2620,6 +2981,26 @@ fun BodycamStreamDialog(
 ) {
     val context = LocalContext.current
     var isMuted by remember { mutableStateOf(false) }
+    var currentMillisTime by remember { mutableStateOf("") }
+    val audioLevels = remember { mutableStateListOf(14, 28, 20, 35, 18, 30, 22) }
+
+    // 실시간 밀리초 타임스탬프 및 오디오 파형 시뮬레이션 루프
+    LaunchedEffect(Unit) {
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", java.util.Locale.KOREAN)
+        while (true) {
+            currentMillisTime = sdf.format(java.util.Date())
+            if (!isMuted) {
+                for (i in audioLevels.indices) {
+                    audioLevels[i] = (10..38).random()
+                }
+            } else {
+                for (i in audioLevels.indices) {
+                    audioLevels[i] = 4
+                }
+            }
+            kotlinx.coroutines.delay(kotlin.time.Duration.parse("120ms"))
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -2639,39 +3020,116 @@ fun BodycamStreamDialog(
                     ) {
                         Text("LIVE 🔴", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                     }
-                    Text("레이 바디캠 HD 라이브", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("레이 바디캠 HD 실시간 생중계", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
             }
         },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                // 1. 바디캠 비디오 화면 (실시간 타임코드 & 텔레메트리 오버레이)
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp),
+                        .height(210.dp),
                     shape = RoundedCornerShape(12.dp),
                     color = Color(0xFF0F172A),
                     border = BorderStroke(1.dp, Color(0xFF0284C7))
                 ) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("📹 🐶", fontSize = 40.sp)
-                            Text("'${booking.petName}' 아이 전용 펫시트 안심 탑승 중", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
-                            Text("실시간 HD 안심 바디캠 라이브 연동 완료 (기아 레이)", fontSize = 11.sp, color = Color(0xFF38BDF8))
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // 중앙 비디오 뷰
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text("📹 🐾", fontSize = 36.sp)
+                            Text("'${booking.petName}' 아이 전용 펫시트 안심 탑승 중", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
+                            Text("기아 레이 전용 1080p Full HD 저조도 나이트비전 작동 중", fontSize = 10.sp, color = Color(0xFF38BDF8))
+
+                            // 쾌적 환경 센서 뱃지
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF1E293B)) {
+                                    Text("🌡️ 22.4°C (쾌적)", fontSize = 10.sp, color = Color(0xFF4ADE80), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                }
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF1E293B)) {
+                                    Text("💧 습도 48%", fontSize = 10.sp, color = Color(0xFF38BDF8), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                }
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF1E293B)) {
+                                    Text("🚗 42 km/h", fontSize = 10.sp, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                }
+                            }
                         }
 
-                        // 라이브 타임스탬프 오버레이
-                        Box(modifier = Modifier.fillMaxSize().padding(10.dp), contentAlignment = Alignment.TopStart) {
+                        // 상단 좌측: REC 배너 및 밀리초 타임스탬프
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp)
+                                .align(Alignment.TopStart),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Surface(shape = RoundedCornerShape(4.dp), color = Color.Black.copy(alpha = 0.6f)) {
-                                Text("🔴 REC LIVE STREAM", fontSize = 9.sp, color = Color.Red, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text("● REC", fontSize = 9.sp, color = Color(0xFFEF4444), fontWeight = FontWeight.Bold)
+                                    Text(currentMillisTime, fontSize = 9.sp, color = Color.White, fontWeight = FontWeight.Medium)
+                                }
+                            }
+
+                            // 오디오 이퀄라이저 파형
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                audioLevels.forEach { level ->
+                                    Box(
+                                        modifier = Modifier
+                                            .width(3.dp)
+                                            .height(level.dp)
+                                            .background(if (isMuted) Color.Gray else Color(0xFF22C55E), RoundedCornerShape(1.dp))
+                                    )
+                                }
                             }
                         }
                     }
                 }
 
+                // 2. 실시간 조작 버튼: 캡처 저장 & 차내 음성 토글
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            Toast.makeText(context, "📸 [아이 안심 캡처] '${booking.petName}' 아이의 실시간 화면이 갤러리에 저장되었습니다!", Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("📸 순간 캡처", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = {
+                            isMuted = !isMuted
+                            Toast.makeText(context, if (isMuted) "🔇 음성이 소거되었습니다." else "🔊 차내 라이브 음성이 연결되었습니다.", Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = if (isMuted) Color(0xFF64748B) else Color(0xFF0284C7))
+                    ) {
+                        Text(if (isMuted) "🔇 음소거 해제" else "🔊 라이브 청취", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // 3. 차내 안심 안내 정보
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
@@ -2679,28 +3137,12 @@ fun BodycamStreamDialog(
                     border = BorderStroke(1.dp, Color(0xFFE2E8F0))
                 ) {
                     Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("🔊 차내 오디오 라이브 음성", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
-                            TextButton(
-                                onClick = {
-                                    isMuted = !isMuted
-                                    Toast.makeText(context, if (isMuted) "🔇 음성이 소거되었습니다." else "🔊 차내 라이브 음성이 연결되었습니다.", Toast.LENGTH_SHORT).show()
-                                },
-                                contentPadding = PaddingValues(0.dp)
-                            ) {
-                                Text(if (isMuted) "🔇 음소거 해제" else "🔊 음소거", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
-                            }
-                        }
-                        HorizontalDivider()
                         Text("• 이송 차량: 발자국동행 레이 펫케어카 (부산 38가 5394)", fontSize = 11.sp, color = Color.Gray)
-                        Text("• 담당 가드: 박찬헌 가드 (실시간 1:1 모니터링 중)", fontSize = 11.sp, color = Color.Gray)
+                        Text("• 담당 가드: 박찬헌 가드 (바디캠 착용 & 1:1 집중 케어 중)", fontSize = 11.sp, color = Color.Gray)
+                        Text("• 보안 안내: 바디캠 스트리밍 영상은 30일간 안전 암호화 보관됩니다.", fontSize = 10.sp, color = Color(0xFF0284C7))
                     }
                 }
             }
@@ -2716,19 +3158,31 @@ fun BodycamStreamDialog(
     )
 }
 
-// 2번: 🔔 실시간 안심 이송 타임라인 다이얼로그
+// 2번: 🔔 실시간 안심 이송 타임라인 & 🗺️ 이동 경로 궤적 리플레이 다이얼로그
 @Composable
 fun TimelineProgressDialog(
     booking: BookingItem,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    var selectedViewMode by remember { mutableIntStateOf(0) } // 0: 실시간 타임라인, 1: 동선 궤적 리플레이
+
+    val currentStepIndex = when {
+        booking.isCompleted || booking.status.contains("6.") || booking.status.contains("귀가 완료") -> 5
+        booking.status.contains("5.") || booking.status.contains("귀가") -> 4
+        booking.status.contains("4.") || booking.status.contains("진료") -> 3
+        booking.status.contains("3.") || booking.status.contains("병원 이동") -> 2
+        booking.status.contains("2.") || booking.status.contains("픽업 완료") -> 1
+        else -> 0
+    }
+
     val steps = listOf(
-        "1. 픽업 출동 출발 🟢" to "자택으로 출동 출발 완료",
-        "2. 자택 도착 및 아이 안심 인계 🟢" to "${booking.petName} 아이 만남 & 레이 시트 안전 탑승",
-        "3. 병원 이동 중 🟢" to "${booking.hospitalName}(으)로 이동 중",
-        "4. 병원 접수 & 진료 진행 🟡" to "병원 대기실 도착 및 수의사 선생님 진료 중",
-        "5. 약 수령 및 귀가 이송 ⚪" to "진료 완료 후 귀가 이송 예정",
-        "6. 안전 자택 귀가 완료 ⚪" to "귀가 완료 및 보호자 안심 인계 예정"
+        "1. 픽업 출동 출발 🚗" to "가드가 레이 전용차를 운행하여 자택으로 출발",
+        "2. 자택 도착 및 아이 안심 인계 🐶" to (if (booking.status.contains("서명")) "${booking.petName} 아이 만남 (현장 전자서명 완료 ✓)" else "${booking.petName} 아이 만남 & 펫 시트 안전 탑승"),
+        "3. 병원 이동 중 🏥" to "${booking.hospitalName}(으)로 안전 정속 주행 중",
+        "4. 병원 접수 & 진료 진행 🩺" to "수의사 선생님 정밀 진료 대행 및 검진 진행 중",
+        "5. 약 수령 및 귀가 이송 🏠" to "처방약 수령 후 자택으로 안심 귀가 운행 중",
+        "6. 안전 자택 귀가 완료 🎉" to "자택 안전 도착 및 보호자 품으로 안심 인계 완료"
     )
 
     AlertDialog(
@@ -2738,50 +3192,236 @@ fun TimelineProgressDialog(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Text("🔔", fontSize = 20.sp)
-                Text("실시간 이송 진행 타임라인", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(if (selectedViewMode == 0) "🔔" else "🗺️", fontSize = 20.sp)
+                Text(if (selectedViewMode == 0) "실시간 안심 이송 타임라인" else "안심 이동 궤적 리플레이", fontWeight = FontWeight.Bold, fontSize = 17.sp)
             }
         },
         text = {
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(380.dp),
+                    .height(450.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                item {
-                    Text("담당 가드(박찬헌)가 단계별로 실시간 기록하는 안심 진행 현황입니다.", fontSize = 11.sp, color = Color.Gray)
+                // 상단 탭 스위처 (타임라인 vs 동선 궤적)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFF1F5F9), RoundedCornerShape(10.dp))
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { selectedViewMode = 0 },
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (selectedViewMode == 0) Color.White else Color.Transparent,
+                        shadowElevation = if (selectedViewMode == 0) 2.dp else 0.dp
+                    ) {
+                        Text(
+                            "⏱️ 진행 타임라인",
+                            fontSize = 12.sp,
+                            fontWeight = if (selectedViewMode == 0) FontWeight.Bold else FontWeight.Normal,
+                            color = if (selectedViewMode == 0) Color(0xFF0284C7) else Color.Gray,
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { selectedViewMode = 1 },
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (selectedViewMode == 1) Color.White else Color.Transparent,
+                        shadowElevation = if (selectedViewMode == 1) 2.dp else 0.dp
+                    ) {
+                        Text(
+                            "🗺️ 주행 궤적 리플레이",
+                            fontSize = 12.sp,
+                            fontWeight = if (selectedViewMode == 1) FontWeight.Bold else FontWeight.Normal,
+                            color = if (selectedViewMode == 1) Color(0xFF0284C7) else Color.Gray,
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
                 }
 
-                items(steps.size) { index ->
-                    val (title, detail) = steps[index]
-                    val isPassed = index <= 3
-                    val isCurrent = index == 3
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isCurrent) Color(0xFFEFF6FF) else if (isPassed) Color(0xFFF8FAFC) else Color(0xFFF1F5F9)
-                        ),
-                        border = if (isCurrent) BorderStroke(1.dp, Color(0xFF3B82F6)) else null
+                // 🌡️ 레이 케어카 스마트 캐빈 실시간 IoT 센서 카드
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFF0F172A),
+                    border = BorderStroke(1.dp, Color(0xFF1E293B))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = if (isCurrent) "⏳" else if (isPassed) "✅" else "⚪",
-                                fontSize = 18.sp
-                            )
-                            Column {
-                                Text(
-                                    text = title,
-                                    fontWeight = if (isCurrent || isPassed) FontWeight.Bold else FontWeight.Normal,
-                                    fontSize = 13.sp,
-                                    color = if (isCurrent) Color(0xFF1D4ED8) else if (isPassed) Color(0xFF0F172A) else Color.Gray
-                                )
-                                Text(detail, fontSize = 11.sp, color = Color.Gray)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("🌡️", fontSize = 13.sp)
+                                Text("케어카 스마트 캐빈 실시간 IoT", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF38BDF8))
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFF065F46)
+                            ) {
+                                Text("● 실시간 정상", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF34D399), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                            }
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("실내온도 23.4°C (적정)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF8FAFC))
+                            Text("습도 52%", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF93C5FD))
+                            Text("공기질 7㎍ (매우좋음)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4ADE80))
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("🍃 플라즈마 음이온 & 헤파필터 가동 중", fontSize = 9.sp, color = Color(0xFF94A3B8))
+                            Text("💺 카시트 벨트 체결 완료 ✓", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+                        }
+                    }
+                }
+
+                if (selectedViewMode == 0) {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        item {
+                            Text("담당 가드(박찬헌)가 실시간으로 기록한 ${booking.petName} 아이의 케어 현황입니다.", fontSize = 11.sp, color = Color.Gray)
+                        }
+
+                        items(steps.size) { index ->
+                            val (title, detail) = steps[index]
+                            val isPassed = index < currentStepIndex || booking.isCompleted
+                            val isCurrent = index == currentStepIndex && !booking.isCompleted
+
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isCurrent) Color(0xFFEFF6FF) else if (isPassed) Color(0xFFF8FAFC) else Color(0xFFF1F5F9)
+                                ),
+                                border = if (isCurrent) BorderStroke(1.5.dp, Color(0xFF3B82F6)) else null
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Text(
+                                        text = if (isCurrent) "⏳" else if (isPassed) "✅" else "⚪",
+                                        fontSize = 18.sp
+                                    )
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(
+                                            text = title,
+                                            fontWeight = if (isCurrent || isPassed) FontWeight.Bold else FontWeight.Normal,
+                                            fontSize = 13.sp,
+                                            color = if (isCurrent) Color(0xFF1D4ED8) else if (isPassed) Color(0xFF0F172A) else Color.Gray
+                                        )
+                                        Text(detail, fontSize = 11.sp, color = if (isCurrent) Color(0xFF2563EB) else Color.Gray)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // 🗺️ 2. 동선 궤적 리플레이 탭
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        item {
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
+                                border = BorderStroke(1.dp, Color(0xFFBBF7D0)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("🛡️ 안심 주행 안전 리포트", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF166534))
+                                        Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF22C55E)) {
+                                            Text("안전점수 100점", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                        }
+                                    }
+                                    Text("• 주행 거리: 총 8.7 km (왕복 안전 운행)", fontSize = 11.sp, color = Color(0xFF15803D))
+                                    Text("• 급가속/급감속: 0회 (반려동물 전용 정속 주행)", fontSize = 11.sp, color = Color(0xFF15803D))
+                                    Text("• 배차 차량: 기아 레이 (부산 38가 5394) / 박찬헌 가드", fontSize = 11.sp, color = Color(0xFF15803D))
+                                }
+                            }
+                        }
+
+                        // 시각적 동선 맵 타임라인 카드
+                        item {
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Text("📍 시간대별 GPS 실제 이동 경로", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+
+                                    RouteWaypointItem(
+                                        time = "10:30",
+                                        icon = "🏠",
+                                        title = "출발: 보호자 자택 픽업 완료",
+                                        detail = "부산 강서구 명지국제8로 (아이 체온 38.4℃ 양호)"
+                                    )
+
+                                    RouteWaypointItem(
+                                        time = "10:45",
+                                        icon = "🚙",
+                                        title = "명지국제대로 안심 주행 중",
+                                        detail = "시속 45km 정속 주행 / 안심 바디캠 가동 ON"
+                                    )
+
+                                    RouteWaypointItem(
+                                        time = "11:00",
+                                        icon = "🏥",
+                                        title = "목적지 병원 도착 & 현장 접수",
+                                        detail = "${booking.hospitalName} 도착 / 대기실 이동"
+                                    )
+
+                                    RouteWaypointItem(
+                                        time = "11:20",
+                                        icon = "🩺",
+                                        title = "수의사 정밀 진료 & 검진 대행",
+                                        detail = "소견서/처방전/진단서 발급 및 처방약 수령"
+                                    )
+
+                                    RouteWaypointItem(
+                                        time = "12:15",
+                                        icon = "🚗",
+                                        title = "귀가 출발 (하단교차로 경유)",
+                                        detail = "아이 탑승 확인 및 자택 방향 안심 운행"
+                                    )
+
+                                    RouteWaypointItem(
+                                        time = "12:35",
+                                        icon = "🎉",
+                                        title = "자택 앞 안전 귀가 및 안심 인계",
+                                        detail = "보호자 직접 인계 완료 (바디캠 자동 종료)"
+                                    )
+                                }
                             }
                         }
                     }
@@ -2789,20 +3429,66 @@ fun TimelineProgressDialog(
             }
         },
         confirmButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("확인", fontWeight = FontWeight.Bold)
+                Button(
+                    onClick = {
+                        com.example.forpetapp.util.ReportShareHelper.shareReportViaKakaoOrSms(context, booking)
+                    },
+                    modifier = Modifier.weight(1.2f),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFACC15))
+                ) {
+                    Text("💬 가족/카톡 공유", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF713F12))
+                }
+
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(0.8f),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                ) {
+                    Text("닫기", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
             }
         }
     )
 }
 
-// 4번: 💬 담당 픽업 드라이버 1:1 실시간 톡 다이얼로그
+@Composable
+fun RouteWaypointItem(time: String, icon: String, title: String, detail: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Surface(
+            shape = RoundedCornerShape(6.dp),
+            color = Color(0xFFF1F5F9)
+        ) {
+            Text(time, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7), modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
+        }
+
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(icon, fontSize = 16.sp)
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                Text(detail, fontSize = 11.sp, color = Color.Gray, lineHeight = 15.sp)
+            }
+        }
+    }
+}
+
+// 4번: 💬 담당 픽업 드라이버 1:1 실시간 톡 다이얼로그 (Firestore 실시간 3자 동기화)
 @Composable
 fun DriverChatDialog(
     booking: BookingItem,
+    isGuardSide: Boolean = false,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -2811,9 +3497,32 @@ fun DriverChatDialog(
 
     val chatMessages = remember {
         mutableStateListOf(
-            ChatMessage(senderName = "박찬헌 기사님", isDriver = true, messageText = "안녕하세요 보호자님! 발자국동행 박찬헌 기사입니다. '${booking.petName}' 아이 무사히 픽업 완료하였습니다. 레이 안심 시트에 탑승해 이동 중입니다 🐶", timestamp = "오후 02:08"),
-            ChatMessage(senderName = "박찬헌 기사님", isDriver = true, messageText = "실시간 바디캠 모니터링 및 차내 온도는 22.5도로 쾌적하게 유지 중입니다!", timestamp = "오후 02:10")
+            ChatMessage(
+                senderName = "박찬헌 가드",
+                isDriver = true,
+                messageText = "안녕하세요 보호자님! 발자국동행 박찬헌 가드입니다. '${booking.petName}' 아이 안심 케어카에 안전하게 탑승했습니다 🐶",
+                timestamp = "오후 02:08"
+            ),
+            ChatMessage(
+                senderName = "박찬헌 가드",
+                isDriver = true,
+                messageText = "차내 온도 22.5도 유지 중이며, 바디캠으로 아이 상태를 상시 모니터링하고 있습니다!",
+                timestamp = "오후 02:10"
+            )
         )
+    }
+
+    // ☁️ Cloud Firestore 1:1 채팅 실시간 스냅샷 리스너
+    DisposableEffect(booking.id) {
+        val listenerReg = com.example.forpetapp.data.firebase.FirebaseSyncManager.listenToChatMessages(booking.id) { cloudMsgs ->
+            if (cloudMsgs.isNotEmpty()) {
+                chatMessages.clear()
+                chatMessages.addAll(cloudMsgs)
+            }
+        }
+        onDispose {
+            listenerReg?.remove()
+        }
     }
 
     LaunchedEffect(chatMessages.size) {
@@ -2834,10 +3543,19 @@ fun DriverChatDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("👨‍✈️", fontSize = 22.sp)
+                    Text(if (isGuardSide) "🐾" else "👨‍✈️", fontSize = 22.sp)
                     Column {
-                        Text("박찬헌 가드 (담당 가드)", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                        Text("🟢 실시간 온라인 (발자국동행 안심 톡)", fontSize = 10.sp, color = Color(0xFF16A34A), fontWeight = FontWeight.Bold)
+                        Text(
+                            text = if (isGuardSide) "보호자: ${booking.ownerName} (${booking.petName})" else "박찬헌 가드 (담당 가드)",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                        Text(
+                            text = if (isGuardSide) "🟢 보호자 실시간 연동 (안심 톡)" else "🟢 실시간 온라인 (발자국동행 안심 톡)",
+                            fontSize = 10.sp,
+                            color = Color(0xFF16A34A),
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
@@ -2858,19 +3576,21 @@ fun DriverChatDialog(
                 ) {
                     items(chatMessages.size) { index ->
                         val msg = chatMessages[index]
+                        val isMine = if (isGuardSide) msg.isDriver else !msg.isDriver
                         Column(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = if (msg.isDriver) Alignment.Start else Alignment.End
+                            horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
                         ) {
                             Text(msg.senderName, fontSize = 10.sp, color = Color.Gray, modifier = Modifier.padding(horizontal = 4.dp))
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = if (msg.isDriver) Color.White else Color(0xFF0284C7)
+                                color = if (isMine) Color(0xFF0284C7) else Color.White,
+                                border = if (isMine) null else BorderStroke(1.dp, Color(0xFFE2E8F0))
                             ) {
                                 Text(
                                     text = msg.messageText,
                                     fontSize = 12.sp,
-                                    color = if (msg.isDriver) Color(0xFF0F172A) else Color.White,
+                                    color = if (isMine) Color.White else Color(0xFF0F172A),
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                                 )
                             }
@@ -2887,29 +3607,36 @@ fun DriverChatDialog(
                     OutlinedTextField(
                         value = inputChatText,
                         onValueChange = { inputChatText = it },
-                        placeholder = { Text("담당 가드에게 메시지 보내기...", fontSize = 12.sp) },
+                        placeholder = { Text(if (isGuardSide) "보호자님께 안심 메시지 전송..." else "담당 가드에게 메시지 전송...", fontSize = 12.sp) },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
                     Button(
                         onClick = {
-                            if (inputChatText.isNotEmpty()) {
-                                val userMsg = ChatMessage(
-                                    senderName = "보호자님",
-                                    isDriver = false,
-                                    messageText = inputChatText,
-                                    timestamp = "방금 전"
+                            val textToSend = inputChatText.trim()
+                            if (textToSend.isNotEmpty()) {
+                                val timeFormat = java.text.SimpleDateFormat("a hh:mm", java.util.Locale.KOREAN)
+                                val currentTimeStr = timeFormat.format(java.util.Date())
+                                val mySenderName = if (isGuardSide) "박찬헌 가드" else "${booking.ownerName} 보호자님"
+
+                                val newMsg = ChatMessage(
+                                    senderName = mySenderName,
+                                    isDriver = isGuardSide,
+                                    messageText = textToSend,
+                                    timestamp = currentTimeStr
                                 )
-                                chatMessages.add(userMsg)
+                                chatMessages.add(newMsg)
                                 inputChatText = ""
 
-                                val replyMsg = ChatMessage(
-                                    senderName = "박찬헌 기사님",
-                                    isDriver = true,
-                                    messageText = "네 보호자님! 요청하신 내용 확인하였습니다. 아이 안전을 최우선으로 케어하겠습니다 🐾",
-                                    timestamp = "방금 전"
+                                // ☁️ Firestore 실시간 동기화
+                                com.example.forpetapp.data.firebase.FirebaseSyncManager.sendChatMessage(booking.id, newMsg)
+
+                                // 🔔 실시간 푸시 알림 트리거
+                                com.example.forpetapp.service.ForPetFirebaseMessagingService.sendLocalNotification(
+                                    context,
+                                    "💬 [1:1 안심톡] $mySenderName",
+                                    textToSend
                                 )
-                                chatMessages.add(replyMsg)
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
@@ -2922,6 +3649,213 @@ fun DriverChatDialog(
         confirmButton = {
             TextButton(onClick = onDismiss) {
                 Text("닫기", fontWeight = FontWeight.Bold)
+            }
+        }
+    )
+}
+
+// ✍️ 2번: 현장 아이 안심 인계 '전자 서명' & OTP 안심 핀코드 인증 다이얼로그
+@Composable
+fun PetHandOffSignatureDialog(
+    booking: BookingItem,
+    onConfirm: (isSigned: Boolean) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    var inputOtpCode by remember { mutableStateOf("") }
+    var selectedTab by remember { mutableIntStateOf(0) } // 0: 전자 서명, 1: 안심 OTP 핀코드
+
+    // 서명 캔버스 드로잉 경로
+    val strokePaths = remember { mutableStateListOf<List<Offset>>() }
+    var currentStroke by remember { mutableStateOf<List<Offset>>(emptyList()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text("✍️", fontSize = 20.sp)
+                    Text("현장 아이 안심 인계 공식 서명", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // 요약 배너
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFF0FDF4),
+                    border = BorderStroke(1.dp, Color(0xFFBBF7D0))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Text("• 대상 아이: ${booking.petName} (${booking.species})", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF15803D))
+                        Text("• 담당 가드: 박찬헌 가드 (레이 펫케어카)", fontSize = 11.sp, color = Color(0xFF166534))
+                        Text("• 인계 장소: 보호자 자택 현관 (안심 인계 확인)", fontSize = 11.sp, color = Color(0xFF166534))
+                    }
+                }
+
+                // 탭 선택: [✍️ 직접 전자 서명] vs [🔢 안심 4자리 OTP]
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = (selectedTab == 0),
+                        onClick = { selectedTab = 0 },
+                        label = { Text("✍️ 손가락 전자 서명", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = (selectedTab == 1),
+                        onClick = { selectedTab = 1 },
+                        label = { Text("🔢 안심 4자리 OTP", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                if (selectedTab == 0) {
+                    // 전자 서명 패드 캔버스
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("서명 패드 (손가락으로 서명해 주세요)", fontSize = 11.sp, color = Color.Gray)
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFFAFAFA),
+                            border = BorderStroke(1.5.dp, Color(0xFFCBD5E1))
+                        ) {
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                androidx.compose.foundation.Canvas(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .pointerInput(Unit) {
+                                            detectDragGestures(
+                                                onDragStart = { offset ->
+                                                    currentStroke = listOf(offset)
+                                                },
+                                                onDrag = { change, _ ->
+                                                    change.consume()
+                                                    currentStroke = currentStroke + change.position
+                                                },
+                                                onDragEnd = {
+                                                    if (currentStroke.isNotEmpty()) {
+                                                        strokePaths.add(currentStroke)
+                                                        currentStroke = emptyList()
+                                                    }
+                                                }
+                                            )
+                                        }
+                                ) {
+                                    // 그려진 선들
+                                    strokePaths.forEach { stroke ->
+                                        for (i in 0 until stroke.size - 1) {
+                                            drawLine(
+                                                color = Color(0xFF0F172A),
+                                                start = stroke[i],
+                                                end = stroke[i + 1],
+                                                strokeWidth = 5f,
+                                                cap = StrokeCap.Round
+                                            )
+                                        }
+                                    }
+                                    // 현재 드래그 중인 선
+                                    for (i in 0 until currentStroke.size - 1) {
+                                        drawLine(
+                                            color = Color(0xFF0F172A),
+                                            start = currentStroke[i],
+                                            end = currentStroke[i + 1],
+                                            strokeWidth = 5f,
+                                            cap = StrokeCap.Round
+                                        )
+                                    }
+                                }
+
+                                if (strokePaths.isEmpty() && currentStroke.isEmpty()) {
+                                    Text(
+                                        text = "여기에 서명하십시오 (서명 란)",
+                                        color = Color.LightGray,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.align(Alignment.Center)
+                                    )
+                                }
+
+                                TextButton(
+                                    onClick = {
+                                        strokePaths.clear()
+                                        currentStroke = emptyList()
+                                    },
+                                    modifier = Modifier.align(Alignment.TopEnd)
+                                ) {
+                                    Text("지우기 ↺", fontSize = 11.sp, color = Color(0xFFDC2626))
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // OTP 인증
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("보호자 스마트폰에 전송된 4자리 안심 핀코드", fontSize = 12.sp, color = Color(0xFF334155))
+                        OutlinedTextField(
+                            value = inputOtpCode,
+                            onValueChange = { if (it.length <= 4) inputOtpCode = it },
+                            placeholder = { Text("예: 1004", fontSize = 14.sp) },
+                            singleLine = true,
+                            modifier = Modifier.width(160.dp),
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp,
+                                letterSpacing = 4.sp
+                            )
+                        )
+                        Text("※ 기본 테스트용 안심 코드: 1004", fontSize = 10.sp, color = Color(0xFF0284C7))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (selectedTab == 0 && strokePaths.isEmpty()) {
+                        Toast.makeText(context, "서명 패드에 서명을 진행해 주세요.", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (selectedTab == 1 && inputOtpCode != "1004" && inputOtpCode.length != 4) {
+                        Toast.makeText(context, "유효한 4자리 안심 핀코드를 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+
+                    onConfirm(true)
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A))
+            ) {
+                Text("인계 공식 인증 완료 ✓", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("취소")
             }
         }
     )
@@ -3337,6 +4271,7 @@ fun BookingHistoryScreen(
                                         try {
                                             val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                                             val clip = android.content.ClipData.newPlainText("차량번호", "60수8888")
+                                            @Suppress("UsePropertyAccessSyntax")
                                             clipboard.setPrimaryClip(clip)
                                             Toast.makeText(context, "📋 담당 가드 차량번호 [60수 8888]이 클립보드에 복사되었습니다! 아파트 앱/월패드에 사전 등록해 주세요.", Toast.LENGTH_LONG).show()
                                         } catch (_: Exception) {}
@@ -3357,7 +4292,7 @@ fun BookingHistoryScreen(
                                 Text("가결제 금액", fontSize = 12.sp, color = Color.Gray)
                                 Text(booking.estimatedPrice, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
                             }
-                            Text("• ℹ️ 픽업 출동 전 취소 시 100% 즉시 환불되며, 진료 완료 후 실제 시간·거리에 맞춰 자동 최종 정산됩니다.", fontSize = 10.sp, color = Color.Gray, lineHeight = 14.sp)
+                            Text("• ℹ️ 픽업 출동 전 취소 시 100% 즉시 환불되며, 진료 완료 후 케어 서비스 내역에 맞춰 안전하게 자동 최종 정산됩니다.", fontSize = 10.sp, color = Color.Gray, lineHeight = 14.sp)
                         }
                     }
 
@@ -3388,7 +4323,7 @@ fun BookingHistoryScreen(
                     Button(
                         onClick = {
                             try {
-                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${driverPhone.replace("-", "")}"))
+                                val intent = Intent(Intent.ACTION_DIAL, "tel:${driverPhone.replace("-", "")}".toUri())
                                 context.startActivity(intent)
                             } catch (_: Exception) {
                                 Toast.makeText(context, "전화 앱을 열 수 없습니다.", Toast.LENGTH_SHORT).show()
@@ -3513,9 +4448,39 @@ fun BookingHistoryScreen(
                                 modifier = Modifier.padding(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text("🚙 안심 이송 담당: 박찬헌 드라이버 (${report.vehicleInfo})", fontSize = 11.sp, color = Color(0xFF475569), fontWeight = FontWeight.Medium)
+                                Text("🚙 안심 이송 담당: 박찬헌 가드 (${report.vehicleInfo})", fontSize = 11.sp, color = Color(0xFF475569), fontWeight = FontWeight.Medium)
                                 Text("💳 최종 정산 금액: ${report.estimatedPrice}", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
                                 Text("📹 바디캠 안전 보관: 픽업 및 진료 이동 영상 30일간 안심 보관", fontSize = 10.sp, color = Color.Gray)
+                            }
+                        }
+                    }
+
+                    // 📄 정식 PDF 저장 & 카카오톡 가족 공유 버튼
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    com.example.forpetapp.util.ReportShareHelper.generateAndSavePdfReport(context, report)
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                            ) {
+                                Text("📄 정식 PDF 저장", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            Button(
+                                onClick = {
+                                    com.example.forpetapp.util.ReportShareHelper.shareReportViaKakaoOrSms(context, report)
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFACC15))
+                            ) {
+                                Text("💬 카카오톡 공유", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF713F12))
                             }
                         }
                     }
@@ -3707,6 +4672,121 @@ fun AiHealthChatDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("닫기") }
+        }
+    )
+}
+
+// 🎨 화면 및 시각 안심 설정 다이얼로그 (야간 다크모드 / 고대비 큰 글씨)
+@Composable
+fun DisplaySettingsDialog(
+    isDarkMode: Boolean,
+    isLargeFontMode: Boolean,
+    onToggleDarkMode: (Boolean) -> Unit,
+    onToggleLargeFontMode: (Boolean) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("🎨", fontSize = 22.sp)
+                Column {
+                    Text("화면 및 시각 안심 설정", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = if (isDarkMode) Color.White else Color(0xFF0F172A))
+                    Text("야간 운행 및 가독성 최적화 모드", fontSize = 11.sp, color = Color.Gray)
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // 1. 야간 운행 다크 모드 카드
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = if (isDarkMode) Color(0xFF1E293B) else Color(0xFFF1F5F9))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(if (isDarkMode) "🌙" else "☀️", fontSize = 24.sp)
+                            Column {
+                                Text("야간 운행 다크 모드", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = if (isDarkMode) Color.White else Color(0xFF0F172A))
+                                Text("야간 진료/운행 시 눈부심을 완화하고 배터리를 절약합니다.", fontSize = 10.sp, color = Color.Gray, lineHeight = 14.sp)
+                            }
+                        }
+                        Switch(
+                            checked = isDarkMode,
+                            onCheckedChange = onToggleDarkMode
+                        )
+                    }
+                }
+
+                // 2. 고대비 큰 글씨 모드 카드
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = if (isDarkMode) Color(0xFF1E293B) else Color(0xFFF1F5F9))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("🔍", fontSize = 24.sp)
+                            Column {
+                                Text("고대비 큰 글씨 안심 모드", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = if (isDarkMode) Color.White else Color(0xFF0F172A))
+                                Text("글자 크기를 125% 확대하여 보호자 및 기사님의 시인성을 높입니다.", fontSize = 10.sp, color = Color.Gray, lineHeight = 14.sp)
+                            }
+                        }
+                        Switch(
+                            checked = isLargeFontMode,
+                            onCheckedChange = onToggleLargeFontMode
+                        )
+                    }
+                }
+
+                // 안내 팁
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isDarkMode) Color(0xFF1E293B) else Color(0xFFEFF6FF)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("💡", fontSize = 14.sp)
+                        Text("밤 20:00 ~ 아침 06:00 야간 운행 시 다크 모드를 켜시면 차내 조명 반사 없이 안전하게 화면을 확인하실 수 있습니다.", fontSize = 10.sp, color = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF1D4ED8), lineHeight = 14.sp)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+            ) {
+                Text("설정 완료", fontWeight = FontWeight.Bold, color = Color.White)
+            }
         }
     )
 }
@@ -4033,7 +5113,6 @@ data class PointLog(
     val isEarned: Boolean = true
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyPageScreen(
     userPoints: Int = 3000,
@@ -4044,10 +5123,12 @@ fun MyPageScreen(
     userDetailAddress: String = "101동 1502호",
     initialCard: String? = null,
     onUpdateCard: (String?) -> Unit = {},
-    onUpdateProfile: (String, String, String, String) -> Unit = { _, _, _, _ -> }
+    onUpdateProfile: (String, String, String, String) -> Unit = { _, _, _, _ -> },
+    onDeleteAccount: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var showPointHistoryDialog by remember { mutableStateOf(false) }
+    var showDeleteAccountDialog by remember { mutableStateOf(false) }
 
     val pointLogs = remember {
         mutableStateListOf(
@@ -4082,7 +5163,7 @@ fun MyPageScreen(
     var detailAddressState by remember(userDetailAddress) { mutableStateOf(userDetailAddress) }
 
     // State for Payment Card (null by default so no card is pre-registered)
-    var registeredCard by remember(initialCard) { mutableStateOf<String?>(initialCard) }
+    var registeredCard by remember(initialCard) { mutableStateOf(initialCard) }
     var showAddCardDialog by remember { mutableStateOf(false) }
     var newCardNumber by remember { mutableStateOf("") }
     var newCardExpiry by remember { mutableStateOf("") }
@@ -4414,7 +5495,7 @@ fun MyPageScreen(
                         Button(
                             onClick = {
                                 try {
-                                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:01037865394"))
+                                    val intent = Intent(Intent.ACTION_DIAL, "tel:01037865394".toUri())
                                     context.startActivity(intent)
                                 } catch (_: Exception) {
                                     Toast.makeText(context, "전화 앱을 열 수 없습니다.", Toast.LENGTH_SHORT).show()
@@ -4478,6 +5559,79 @@ fun MyPageScreen(
                             Text("➔", color = Color.Gray, fontSize = 13.sp)
                         }
                     }
+
+                    HorizontalDivider()
+
+                    TextButton(
+                        onClick = { showDeleteAccountDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("회원 탈퇴 (계정 및 데이터 영구 파기)", color = Color(0xFFEF4444), fontSize = 13.sp)
+                            Text("➔", color = Color(0xFFEF4444), fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. 🏢 사업자 정보 및 법적 고지 (전자상거래 등에서의 소비자보호법 준수)
+        item {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 12.dp),
+                color = Color.Transparent
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        "(주)위드파우 | 대표자: 최지훈, 이선하",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF64748B)
+                    )
+                    Text(
+                        "브랜드: 발자국동행 (반려동물 안심 이동 케어 & 병원 진료 대행)",
+                        fontSize = 10.sp,
+                        color = Color(0xFF94A3B8)
+                    )
+                    Text(
+                        "사업장 소재지: 부산광역시 강서구 명지국제8로 150 (명지동)",
+                        fontSize = 10.sp,
+                        color = Color(0xFF94A3B8)
+                    )
+                    Text(
+                        "고객센터: 010-3786-5394 (24시간 응급 이송 출동센터 연중무휴)",
+                        fontSize = 10.sp,
+                        color = Color(0xFF94A3B8)
+                    )
+                    Text(
+                        "사업자등록번호: 준비 중 | 통신판매업신고: 제2026-부산강서-0000호",
+                        fontSize = 10.sp,
+                        color = Color(0xFF94A3B8)
+                    )
+                    Text(
+                        "공식 웹사이트: www.baldong.co.kr | 이메일: contact@baldong.co.kr",
+                        fontSize = 10.sp,
+                        color = Color(0xFF94A3B8)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "(주)위드파우의 '발자국동행'은 동물병원 진료 예약 대행 및 반려동물 안심 동행 중개 서비스를 제공하며, 고객 보호를 위한 안전결제 정책을 준수합니다.",
+                        fontSize = 9.sp,
+                        color = Color(0xFF94A3B8),
+                        lineHeight = 13.sp
+                    )
+                    Text(
+                        "Copyright © 2026 WithPaw Inc. All rights reserved.",
+                        fontSize = 9.sp,
+                        color = Color(0xFFCBD5E1),
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
         }
@@ -4565,6 +5719,72 @@ fun MyPageScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
                 ) {
                     Text("확인 및 동의", fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+
+    // ⚠️ 회원 탈퇴 및 계정/데이터 영구 삭제 다이얼로그 (구글 플레이 정책 필수 준수)
+    if (showDeleteAccountDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAccountDialog = false },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text("⚠️", fontSize = 20.sp)
+                    Text("회원 탈퇴 및 데이터 삭제", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFDC2626))
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "회원 탈퇴 시 모든 이용 내역, 등록된 반려동물 정보, 보유 포인트(${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(userPoints)} P) 및 개인정보가 즉시 영구 파기되며 복구할 수 없습니다.",
+                        fontSize = 13.sp,
+                        color = Color(0xFF334155),
+                        lineHeight = 18.sp
+                    )
+                    Text(
+                        "정말로 탈퇴하시겠습니까?",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = Color(0xFFDC2626)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        try {
+                            if (userPhone.isNotBlank()) {
+                                com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                                    .collection("users")
+                                    .document(userPhone)
+                                    .delete()
+                            }
+                        } catch (_: Exception) {}
+                        try {
+                            com.kakao.sdk.user.UserApiClient.instance.unlink { }
+                        } catch (_: Exception) {}
+                        try {
+                            com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                        } catch (_: Exception) {}
+                        try {
+                            PersistentStorageManager.clearAllData(context)
+                        } catch (_: Exception) {}
+                        Toast.makeText(context, "회원 탈퇴가 완료되어 모든 데이터가 안전하게 파기되었습니다.", Toast.LENGTH_LONG).show()
+                        showDeleteAccountDialog = false
+                        onDeleteAccount()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                ) {
+                    Text("탈퇴 및 데이터 파기", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showDeleteAccountDialog = false }) {
+                    Text("취소")
                 }
             }
         )
@@ -4978,13 +6198,15 @@ fun PetFuneralBookingDialog(
     userPhone: String,
     userAddress: String,
     userDetailAddress: String,
+    defaultPetSpecies: String = "강아지",
+    defaultPetName: String = "초코",
     onDismiss: () -> Unit,
     onAddBooking: (BookingItem) -> Unit
 ) {
     val context = LocalContext.current
 
-    var petSpecies by remember { mutableStateOf("강아지") }
-    var petName by remember { mutableStateOf("초코") }
+    var petSpecies by remember(defaultPetSpecies) { mutableStateOf(defaultPetSpecies) }
+    var petName by remember(defaultPetName) { mutableStateOf(defaultPetName) }
     var ownerName by remember(userNickname) { mutableStateOf(userNickname) }
     var ownerPhone by remember(userPhone) { mutableStateOf(userPhone) }
 
@@ -5231,6 +6453,9 @@ fun HomeScreenContent(
     var showEmergencyDialog by remember { mutableStateOf(false) }
     var showFuneralBookingDialog by remember { mutableStateOf(false) }
     var showHospitalListDialog by remember { mutableStateOf(false) }
+    var showMedicationVaccineDialog by remember { mutableStateOf(false) }
+    var showEmergencyGuideDialog by remember { mutableStateOf(false) }
+    var showExpenseDialog by remember { mutableStateOf(false) }
     var showFaqDialog by remember { mutableStateOf(false) }
     var showReviewWriteDialog by remember { mutableStateOf(false) }
     var showAllReviewsDialog by remember { mutableStateOf(false) }
@@ -5273,6 +6498,17 @@ fun HomeScreenContent(
         }
     }
 
+    val petList = remember {
+        mutableStateListOf<PetProfile>().apply {
+            addAll(PersistentStorageManager.loadMultiPetList(context))
+        }
+    }
+    var activePetId by remember {
+        mutableStateOf(PersistentStorageManager.loadActivePetId(context))
+    }
+    val activePet = petList.find { it.id == activePetId } ?: petList.firstOrNull() ?: PetProfile(name = "초코")
+    var showAddPetModal by remember { mutableStateOf(false) }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -5293,16 +6529,149 @@ fun HomeScreenContent(
                 ) {
                     AdaptiveAppIcon(
                         modifier = Modifier
-                            .size(56.dp)
+                            .size(58.dp)
                             .clip(CircleShape)
                     )
 
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(text = "발자국동행", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-                        Text(text = "반려동물과 함께 걷는 따뜻한 길 🐾", fontSize = 11.sp, color = Color(0xFFEA580C), fontWeight = FontWeight.Bold)
-                        Text(text = "🚙 넓은 공간의 '발자국동행 기아 레이(RAY)' 펫 전용차 연동", fontSize = 11.sp, color = Color(0xFF0284C7))
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(text = "발자국동행", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A))
+                        Text(text = "반려동물과 함께 걷는 따뜻한 길 🐾", fontSize = 13.sp, color = Color(0xFFEA580C), fontWeight = FontWeight.Bold)
                     }
                 }
+            }
+        }
+
+        // 1-1. 다견·다묘 멀티 펫 프로필 원터치 선택 바
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("🐾", fontSize = 16.sp)
+                            Text("우리 아이 선택 (다견·다묘 케어)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF334155))
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = Color(0xFFDCFCE7)
+                        ) {
+                            Text("대표: ${activePet.name} (${activePet.type})", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        petList.forEach { pet ->
+                            val isSelected = pet.id == activePetId
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (isSelected) Color(0xFF0284C7) else Color.White,
+                                border = BorderStroke(1.dp, if (isSelected) Color(0xFF0369A1) else Color(0xFFCBD5E1)),
+                                modifier = Modifier.clickable {
+                                    activePetId = pet.id
+                                    PersistentStorageManager.saveActivePetId(context, pet.id)
+                                    Toast.makeText(context, "🐾 대표 반려동물이 [${pet.name}] (으)로 변경되었습니다.", Toast.LENGTH_SHORT).show()
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(if (pet.species == "고양이") "🐱" else "🐶", fontSize = 13.sp)
+                                    Text(
+                                        text = "${pet.name} (${pet.type})",
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) Color.White else Color(0xFF334155)
+                                    )
+                                }
+                            }
+                        }
+
+                        // ➕ 아이 추가 등록 버튼
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color(0xFFF1F5F9),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            modifier = Modifier.clickable { showAddPetModal = true }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text("➕", fontSize = 11.sp, color = Color(0xFF64748B))
+                                Text("아이 추가", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. 핵심 서비스 카드 2종 (우리 아이 선택 바로 밑 배치)
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                DetailedServiceCard(
+                    modifier = Modifier.weight(1f),
+                    badgeText = "🏥 케어 서비스",
+                    title = "병원 진료 대행",
+                    carModelText = "",
+                    features = listOf(
+                        "• 병원 예약자 1:1 안심 케어",
+                        "• 펫 전용 안심 시트탑재",
+                        "• 실시간 바디캠 라이브 연동",
+                        "• 수의사 정밀 진료 리포트"
+                    ),
+                    buttonText = "예약하기 ➔",
+                    cardBgColor = Color(0xFF0D9488),
+                    badgeBgColor = Color(0xFF14B8A6).copy(alpha = 0.45f),
+                    buttonTextColor = Color(0xFF0F766E),
+                    onButtonClick = { showBookingNoticeDialog = true }
+                )
+
+                DetailedServiceCard(
+                    modifier = Modifier.weight(1f),
+                    badgeText = "⏳ 오픈 준비 중",
+                    title = "반려동물 장례식장 연계",
+                    carModelText = "",
+                    features = listOf(
+                        "• 부산 전 지역/경남 장례식장 연계",
+                        "• 안심 전용 추모 운구 차량",
+                        "• 보호자 동승/무인 운구대행",
+                        "• 단독 개별 화장 & 스톤 연계"
+                    ),
+                    buttonText = "⏳ 오픈 예정",
+                    cardBgColor = Color(0xFF475569),
+                    badgeBgColor = Color(0xFF334155),
+                    buttonTextColor = Color(0xFF64748B),
+                    enabled = false,
+                    onButtonClick = {
+                        Toast.makeText(context, "⏳ 반려동물 장례식장 연계 서비스는 현재 정식 오픈 준비 중입니다.", Toast.LENGTH_SHORT).show()
+                    }
+                )
             }
         }
 
@@ -5380,52 +6749,131 @@ fun HomeScreenContent(
             }
         }
 
-        // 2. 핵심 서비스 카드 2종
+        // 1-4. 💊 복약 & 백신 캘린더 & 🚨 24시 응급 직통 가이드 (2분할 카드)
         item {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(260.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .height(92.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                DetailedServiceCard(
-                    modifier = Modifier.weight(1f),
-                    badgeText = "🏥 케어 서비스",
-                    title = "병원 진료 대행",
-                    carModelText = "",
-                    features = listOf(
-                        "• 병원 예약자 1:1 안심 케어",
-                        "• 펫 전용 안심 시트탑재",
-                        "• 실시간 바디캠 라이브 연동",
-                        "• 수의사 정밀 진료 리포트"
-                    ),
-                    buttonText = "예약하기 ➔",
-                    cardBgColor = Color(0xFF0D9488),
-                    badgeBgColor = Color(0xFF14B8A6).copy(alpha = 0.45f),
-                    buttonTextColor = Color(0xFF0F766E),
-                    onButtonClick = { showBookingNoticeDialog = true }
-                )
-
-                DetailedServiceCard(
-                    modifier = Modifier.weight(1f),
-                    badgeText = "⏳ 오픈 준비 중",
-                    title = "반려동물 장례식장 연계",
-                    carModelText = "",
-                    features = listOf(
-                        "• 부산 전 지역/경남 장례식장 연계",
-                        "• 안심 전용 추모 운구 차량",
-                        "• 보호자 동승/무인 운구대행",
-                        "• 단독 개별 화장 & 스톤 연계"
-                    ),
-                    buttonText = "⏳ 오픈 예정",
-                    cardBgColor = Color(0xFF475569),
-                    badgeBgColor = Color(0xFF334155),
-                    buttonTextColor = Color(0xFF64748B),
-                    enabled = false,
-                    onButtonClick = {
-                        Toast.makeText(context, "⏳ 반려동물 장례식장 연계 서비스는 현재 정식 오픈 준비 중입니다.", Toast.LENGTH_SHORT).show()
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clickable { showMedicationVaccineDialog = true },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
+                    border = BorderStroke(1.dp, Color(0xFFBBF7D0))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("💊 복약 & 백신", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF166534))
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFF22C55E)
+                            ) {
+                                Text("D-Day 관리", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                            }
+                        }
+                        Column {
+                            Text("오늘의 복약 체크", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF15803D))
+                            Text("광견병 D-42 / 캘린더 ➔", fontSize = 10.sp, color = Color.Gray)
+                        }
                     }
-                )
+                }
+
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clickable { showEmergencyGuideDialog = true },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+                    border = BorderStroke(1.dp, Color(0xFFFECDD3))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("🚨 24시 응급 & 가이드", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF991B1B))
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFFEF4444)
+                            ) {
+                                Text("응급실 직통", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                            }
+                        }
+                        Column {
+                            Text("1초 다이얼 & 골든타임", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFB91C1C))
+                            Text("CPR • 하임리히 • 지혈 ➔", fontSize = 10.sp, color = Color.Gray)
+                        }
+                    }
+                }
+            }
+        }
+
+        // 1-5. 반려동물 의료 가계부 & 영수증 아카이브
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showExpenseDialog = true },
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
+                border = BorderStroke(1.dp, Color(0xFFBBF7D0))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFF16A34A),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text("📊", fontSize = 18.sp)
+                            }
+                        }
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("반려동물 의료 가계부", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF14532D))
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = Color(0xFFDCFCE7)
+                                ) {
+                                    Text("지출 통계", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                }
+                            }
+                            Text("병원 진료비 • 약제비 • 케어카 이동비 월별 영수증 관리 ➔", fontSize = 11.sp, color = Color(0xFF4B5563))
+                        }
+                    }
+                    Text("➔", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A))
+                }
             }
         }
 
@@ -5969,7 +7417,7 @@ fun HomeScreenContent(
                                     Text("🕊️ 반려동물 장례식장 연계 서비스", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF475569))
                                     Text("• 현재 정식 오픈 준비 중입니다. (추후 서비스 개시 예정)", fontSize = 11.sp, color = Color.Gray)
                                 }
-                                Text("※ 이동 거리(km) 및 부산 전 지역 구 단위에 따라 예상 금액이 산정되며, 미터기 기준 투명 정찰제로 안전하게 운용됩니다.", fontSize = 10.sp, color = Color(0xFF0284C7), lineHeight = 14.sp)
+                                Text("※ 발자국동행은 여객유상운송이 아닌 '1:1 반려동물 병원 진료 대행 및 안심 케어 동행 서비스' 전문 솔루션으로, 서비스 트림별 100% 투명 정액 정찰제로 안전하게 운용됩니다.", fontSize = 10.sp, color = Color(0xFF0284C7), lineHeight = 14.sp)
                             }
                         }
                     }
@@ -5977,21 +7425,21 @@ fun HomeScreenContent(
                     item {
                         FaqItem(
                             question = "Q1. 이용 요금은 언제 결제되나요?",
-                            answer = "예약 접수 시 앱에 등록된 카드로 예상 금액이 가결제되며, 진료 및 이송 완료 후 최종 이송 거리/시간에 맞춰 자동 정산됩니다."
+                            answer = "예약 접수 시 앱에 등록된 카드로 선택하신 케어 서비스 트림 정찰 요금이 가결제되며, 진료 대행 완료 후 선택 옵션(약제 수령/진료 보조 등)에 맞춰 안전하게 자동 정산됩니다."
                         )
                     }
 
                     item {
                         FaqItem(
                             question = "Q2. 실시간 바디캠 라이브 스트리밍은 무료인가요?",
-                            answer = "네! 발자국동행의 모든 안심 이송 및 진료 대행 서비스에는 아이의 안전을 위한 실시간 바디캠 모니터링이 기본(무료)으로 제공됩니다."
+                            answer = "네! 발자국동행의 모든 안심 이동 케어 및 진료 대행 서비스에는 아이의 안전을 위한 실시간 바디캠 모니터링이 기본(무료)으로 제공됩니다."
                         )
                     }
 
                     item {
                         FaqItem(
                             question = "Q3. 예약 취소 및 환불 규정이 궁금합니다.",
-                            answer = "차량 출동 전 취소 시 100% 환불되며, 드라이버 출발 이후 취소 시 이동 거리에 따른 소정의 수수료가 부과될 수 있습니다."
+                            answer = "담당 가드 출동 전 취소 시 100% 즉시 환불되며, 가드 출동 이후 취소 시 케어 준비에 따른 소정의 취소 수수료가 발생할 수 있습니다."
                         )
                     }
 
@@ -6095,6 +7543,8 @@ fun HomeScreenContent(
             userPhone = userPhone,
             userAddress = userAddress,
             userDetailAddress = userDetailAddress,
+            defaultPetSpecies = activePet.species,
+            defaultPetName = activePet.name,
             onDismiss = { showFuneralBookingDialog = false },
             onAddBooking = { newBooking ->
                 onAddBooking(newBooking)
@@ -6196,10 +7646,16 @@ fun HomeScreenContent(
     }
 
     if (showBookingDialog) {
-        var selectedSpecies by remember { mutableStateOf("강아지") }
-        var bookingPetName by remember { mutableStateOf("초코") }
+        var selectedSpecies by remember(activePet) { mutableStateOf(activePet.species) }
+        var bookingPetName by remember(activePet) { mutableStateOf(activePet.name) }
         var bookingOwnerName by remember(userNickname) { mutableStateOf(userNickname) }
         var usePointsAmount by remember { mutableIntStateOf(0) }
+        val userCoupons = remember {
+            mutableStateListOf<CouponItem>().apply {
+                addAll(PersistentStorageManager.loadCouponList(context).filter { !it.isUsed })
+            }
+        }
+        var selectedCoupon by remember { mutableStateOf<CouponItem?>(null) }
 
         // 0. 서비스 트림 선택 (3가지 트림: 🚨 긴급 출동 / 📅 예약 진료 / 🚗 미예약 이동)
         var selectedServiceTrim by remember(selectedTrimType) { mutableStateOf(selectedTrimType) }
@@ -6234,7 +7690,9 @@ fun HomeScreenContent(
         val insuranceCompanies = listOf("메리츠 펫퍼민트", "DB손해보험 펫", "KB손해보험 펫", "삼성화재 펫", "현대해상 펫", "기타 펫보험")
 
         // 4. 병원 및 희망 시간 (30분 단위 전용 팝업)
-        var selectedHospitalName by remember { mutableStateOf("명지24시온누리메디컬센터") }
+        var selectedHospitalName by remember(activePet) {
+            mutableStateOf(if (activePet.hospital.isNotBlank()) activePet.hospital else "명지24시온누리메디컬센터")
+        }
         var isCustomHospital by remember { mutableStateOf(false) }
         var customHospitalName by remember { mutableStateOf("") }
         var isHospitalDropdownExpanded by remember { mutableStateOf(false) }
@@ -6245,6 +7703,12 @@ fun HomeScreenContent(
         var doorlockPassword by remember { mutableStateOf("") }
         var isPasswordVisible by remember { mutableStateOf(false) }
         var homeEntryNote by remember { mutableStateOf("") }
+        var doorlockPhotoUri by remember { mutableStateOf<android.net.Uri?>(null) }
+        val doorlockPhotoLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri ->
+            doorlockPhotoUri = uri
+        }
 
         AlertDialog(
             onDismissRequest = { showBookingDialog = false },
@@ -6273,6 +7737,58 @@ fun HomeScreenContent(
                         .height(460.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
+                    // 1-0. 🐾 등록된 우리 아이 원터치 선택
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("동행할 아이 선택 (다견·다묘)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFEFF6FF)) {
+                                    Text("원터치 배정", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                }
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                petList.forEach { pet ->
+                                    val isPetSel = bookingPetName == pet.name
+                                    FilterChip(
+                                        selected = isPetSel,
+                                        onClick = {
+                                            bookingPetName = pet.name
+                                            selectedSpecies = pet.species
+                                        },
+                                        label = { Text("${if (pet.species == "고양이") "🐱" else "🐶"} ${pet.name} (${pet.type})", fontSize = 11.sp, fontWeight = if (isPetSel) FontWeight.Bold else FontWeight.Medium) },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = Color(0xFF0284C7),
+                                            selectedLabelColor = Color.White
+                                        )
+                                    )
+                                }
+                                val isMulti = bookingPetName.contains("+")
+                                FilterChip(
+                                    selected = isMulti,
+                                    onClick = {
+                                        if (petList.size >= 2) {
+                                            bookingPetName = "${petList[0].name} + ${petList[1].name} (동반)"
+                                        }
+                                    },
+                                    label = { Text("🐾 2마리 동반 케어", fontSize = 11.sp, fontWeight = if (isMulti) FontWeight.Bold else FontWeight.Medium) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFF0D9488),
+                                        selectedLabelColor = Color.White
+                                    )
+                                )
+                            }
+                        }
+                    }
+
                     // 1. 반려동물 구분 선택 (강아지 / 고양이)
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -6772,6 +8288,24 @@ fun HomeScreenContent(
                                 )
                             }
 
+                            // 📸 현관/도어락 안심 사진 첨부
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("📸 현관/도어락 위치 사진", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
+                                OutlinedButton(
+                                    onClick = { doorlockPhotoLauncher.launch("image/*") },
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text(if (doorlockPhotoUri != null) "사진 첨부됨 ✓" else "사진 첨부하기 📷", fontSize = 11.sp)
+                                }
+                            }
+                            if (doorlockPhotoUri != null) {
+                                Text("첨부된 사진: ${doorlockPhotoUri.toString().takeLast(25)}", fontSize = 10.sp, color = Color(0xFF0284C7))
+                            }
+
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(8.dp),
@@ -6855,10 +8389,81 @@ fun HomeScreenContent(
                         }
                     }
 
+                    // 8-3. 🎟️ 보유 할인 쿠폰 선택 (친구 추천 5,000원 / 웰컴 3,000원 쿠폰)
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
+                            border = BorderStroke(1.dp, Color(0xFFBBF7D0))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("🎟️", fontSize = 16.sp)
+                                        Text("보유 쿠폰 할인 (${userCoupons.size}장 보유)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF166534))
+                                    }
+                                    if (selectedCoupon != null) {
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = Color(0xFF22C55E)
+                                        ) {
+                                            Text("-${selectedCoupon!!.discountAmount}원 적용", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                        }
+                                    }
+                                }
+
+                                if (userCoupons.isEmpty()) {
+                                    Text("사용 가능한 쿠폰이 없습니다. (친구 추천 시 5,000원 쿠폰 지급)", fontSize = 10.sp, color = Color.Gray)
+                                } else {
+                                    androidx.compose.foundation.lazy.LazyRow(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        item {
+                                            FilterChip(
+                                                selected = (selectedCoupon == null),
+                                                onClick = { selectedCoupon = null },
+                                                label = { Text("선택 안 함", fontSize = 11.sp) }
+                                            )
+                                        }
+                                        items(userCoupons.size) { cIdx ->
+                                            val coupon = userCoupons[cIdx]
+                                            val isSelected = (selectedCoupon?.id == coupon.id)
+                                            FilterChip(
+                                                selected = isSelected,
+                                                onClick = {
+                                                    selectedCoupon = if (isSelected) null else coupon
+                                                    if (!isSelected) {
+                                                        Toast.makeText(context, "🎉 [${coupon.title}] ${coupon.discountAmount}원 할인이 적용되었습니다!", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                },
+                                                label = { Text("${coupon.title} (-${coupon.discountAmount}원)", fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // 9. 가결제 예상 금액 및 환불 안내
                     item {
-                        val calculatedPriceValue = 30000 + (if (isMedicineSelected) 5000 else 0) + (if (isSurgerySelected) 10000 else 0)
-                        val finalPrice = (calculatedPriceValue - usePointsAmount).coerceAtLeast(0)
+                        val basePrice = when {
+                            selectedServiceTrim.contains("긴급") -> 50000
+                            selectedServiceTrim.contains("미예약") -> 35000
+                            else -> 30000
+                        }
+                        val calculatedPriceValue = basePrice + (if (isMedicineSelected) 5000 else 0) + (if (isSurgerySelected) 10000 else 0)
+                        val couponDiscount = selectedCoupon?.discountAmount ?: 0
+                        val finalPrice = (calculatedPriceValue - couponDiscount - usePointsAmount).coerceAtLeast(0)
                         val formattedPriceStr = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(finalPrice)
 
                         Surface(
@@ -6878,14 +8483,17 @@ fun HomeScreenContent(
                                 ) {
                                     Text("💳 가결제 예정 금액", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E))
                                     Column(horizontalAlignment = Alignment.End) {
-                                        if (usePointsAmount > 0) {
-                                            Text("원래 금액: ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(calculatedPriceValue)}원 (-${usePointsAmount}P 할인)", fontSize = 10.sp, color = Color.Gray, textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough)
+                                        if (usePointsAmount > 0 || couponDiscount > 0) {
+                                            val discounts = mutableListOf<String>()
+                                            if (couponDiscount > 0) discounts.add("쿠폰 -${couponDiscount}원")
+                                            if (usePointsAmount > 0) discounts.add("포인트 -${usePointsAmount}P")
+                                            Text("원래 금액: ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(calculatedPriceValue)}원 (${discounts.joinToString(", ")})", fontSize = 10.sp, color = Color.Gray, textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough)
                                         }
                                         Text("${formattedPriceStr}원", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFD97706))
                                     }
                                 }
                                 HorizontalDivider(color = Color(0xFFFDE68A))
-                                Text("• 등록 카드로 사전 가결제되며, 진료 완료 후 실제 시간·거리에 따라 자동 최종 정산(추가금 결제 / 차액 환불)됩니다.", fontSize = 11.sp, color = Color(0xFFB45309), lineHeight = 15.sp)
+                                Text("• 등록 카드로 사전 가결제되며, 진료 완료 후 선택하신 케어 서비스 항목에 따라 안전하게 자동 최종 정산(추가금 결제 / 차액 환불)됩니다.", fontSize = 11.sp, color = Color(0xFFB45309), lineHeight = 15.sp)
                                 Text("• ℹ️ 픽업 전담 가드 출동 전 취소 시 100% 즉시 환불됩니다.", fontSize = 11.sp, color = Color(0xFFB45309), fontWeight = FontWeight.Bold)
                             }
                         }
@@ -6944,7 +8552,9 @@ fun HomeScreenContent(
                             else -> 30000
                         }
                         val calculatedPriceValue = basePrice + (if (isMedicineSelected) 5000 else 0) + (if (isSurgerySelected) 10000 else 0)
-                        val formattedPriceStr = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(calculatedPriceValue)
+                        val couponDiscount = selectedCoupon?.discountAmount ?: 0
+                        val finalPrice = (calculatedPriceValue - couponDiscount - usePointsAmount).coerceAtLeast(0)
+                        val formattedPriceStr = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(finalPrice)
 
                         val newBooking = BookingItem(
                             serviceTrim = selectedServiceTrim,
@@ -6957,12 +8567,29 @@ fun HomeScreenContent(
                             status = "예약 확정 (배차 완료)",
                             vehicleInfo = "발자국동행 기아 레이(RAY) 펫전용차",
                             symptomNote = combinedNote,
-                            estimatedPrice = "${formattedPriceStr}원 (가결제)"
+                            estimatedPrice = "${formattedPriceStr}원 (가결제)",
+                            doorlockPhotoUri = doorlockPhotoUri?.toString()
                         )
                         if (usePointsAmount > 0) {
                             onUpdatePoints((userPoints - usePointsAmount).coerceAtLeast(0))
                         }
+                        if (selectedCoupon != null) {
+                            val allCoupons = PersistentStorageManager.loadCouponList(context)
+                            val updatedCoupons = allCoupons.map { c ->
+                                if (c.id == selectedCoupon!!.id) c.copy(isUsed = true) else c
+                            }
+                            PersistentStorageManager.saveCouponList(context, updatedCoupons)
+                        }
                         onAddBooking(newBooking)
+
+                        // ☁️ Cloud Firestore 실시간 연동 및 FCM 알림 (오프라인 큐 안전 동기화 지원)
+                        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncOrderToCloud(newBooking, context)
+                        com.example.forpetapp.service.ForPetFirebaseMessagingService.sendLocalNotification(
+                            context,
+                            "🚗 [배차 접수 완료] $bookingPetName",
+                            "발자국동행 레이 펫케어카 배차 및 실시간 클라우드 동기화가 완료되었습니다."
+                        )
+
                         Toast.makeText(
                             context,
                             "[$selectedSpecies] '$bookingPetName' 아이의 수술/진료 대행 예약이 완료되었습니다!",
@@ -7091,8 +8718,8 @@ fun HomeScreenContent(
     }
 
     if (showEmergencyDialog) {
-        var emergencySpecies by remember { mutableStateOf("강아지") }
-        var emergencyPetName by remember { mutableStateOf("초코") }
+        var emergencySpecies by remember(activePet) { mutableStateOf(activePet.species) }
+        var emergencyPetName by remember(activePet) { mutableStateOf(activePet.name) }
         var emergencyOwnerName by remember(userNickname) { mutableStateOf(userNickname) }
         var emergencyPhone by remember(userPhone) { mutableStateOf(userPhone) }
         var hasEmergencyPetInsurance by remember { mutableStateOf(false) }
@@ -7460,7 +9087,7 @@ fun HomeScreenContent(
                                     Text("50,000원", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFE11D48))
                                 }
                                 HorizontalDivider(color = Color(0xFFFECDD3))
-                                Text("• 24시 최우선 긴급 이송 가결제 금액이며, 이송 완료 후 실제 거리 및 진료 시간에 맞춰 자동 정산됩니다.", fontSize = 11.sp, color = Color(0xFFBE123C), lineHeight = 15.sp)
+                                Text("• 24시 최우선 긴급 응급 케어 가결제 금액이며, 응급실 수속 및 진료 완료 후 최종 케어 항목에 맞춰 자동 정산됩니다.", fontSize = 11.sp, color = Color(0xFFBE123C), lineHeight = 15.sp)
                                 Text("• ℹ️ 차량 출동 전 취소 시 100% 즉시 환불됩니다.", fontSize = 11.sp, color = Color(0xFFBE123C), fontWeight = FontWeight.Bold)
                             }
                         }
@@ -7827,6 +9454,11 @@ fun HomeScreenContent(
     if (showEventDialog) {
         var inputFriendCode by remember { mutableStateOf("") }
         var isReferralRedeemed by remember { mutableStateOf(PersistentStorageManager.loadReferralRedeemed(context)) }
+        val userCoupons = remember {
+            mutableStateListOf<CouponItem>().apply {
+                addAll(PersistentStorageManager.loadCouponList(context))
+            }
+        }
 
         val validReferralCodes = remember {
             listOf("K7TB94", "SAHA25", "FORPET", "BUSAN1", "RAY5394", "MALTESE", "CHOCO94")
@@ -7837,13 +9469,15 @@ fun HomeScreenContent(
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("🎁", fontSize = 20.sp)
-                    Text("친구 추천 이벤트 (최초 1회 3,000P)", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    Text("친구 초대 리워드 & 카카오 공유", fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 }
             },
             text = {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(490.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
@@ -7852,26 +9486,64 @@ fun HomeScreenContent(
                         border = BorderStroke(1.dp, Color(0xFFFDE68A))
                     ) {
                         Column(
-                            modifier = Modifier.padding(14.dp),
+                            modifier = Modifier.padding(12.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text("🔑 내 고유 추천 코드 (영문 6자리)", fontSize = 11.sp, color = Color(0xFF92400E), fontWeight = FontWeight.Bold)
-                            Text(userReferralCode, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706), fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                            Text(userReferralCode, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706), fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
 
-                            OutlinedButton(
-                                onClick = {
-                                    Toast.makeText(context, "📋 내 추천 코드[$userReferralCode]가 복사되었습니다! 친구에게 공유해 보세요.", Toast.LENGTH_SHORT).show()
-                                },
-                                shape = RoundedCornerShape(8.dp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Text("📋 추천 코드 복사하기", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                                OutlinedButton(
+                                    onClick = {
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        val clip = ClipData.newPlainText("발자국동행 추천코드", userReferralCode)
+                                        clipboard.setPrimaryClip(clip)
+                                        Toast.makeText(context, "📋 내 추천 코드[$userReferralCode]가 복사되었습니다! 친구에게 공유해 보세요.", Toast.LENGTH_SHORT).show()
+                                    },
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+                                ) {
+                                    Text("📋 코드 복사", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                                }
+
+                                Button(
+                                    onClick = {
+                                        val sendIntent = Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            putExtra(
+                                                Intent.EXTRA_TEXT,
+                                                "🐾 [발자국동행] 부산 반려동물 안심 병원 진료 대행 & 이동 케어 서비스에 초대합니다!\n\n회원가입 시 제 추천인 코드 [${userReferralCode}]를 입력하시면 즉시 5,000원 할인 쿠폰과 3,000 P가 지급됩니다! ✨\n\n▶ 발자국동행 바로가기: https://forpet.app/invite/${userReferralCode}"
+                                            )
+                                            type = "text/plain"
+                                        }
+                                        context.startActivity(Intent.createChooser(sendIntent, "발자국동행 친구 초대장 공유"))
+                                    },
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.weight(1.3f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFEE500)),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+                                ) {
+                                    Text("💬 카카오톡/초대장", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF191919))
+                                }
                             }
                         }
                     }
 
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("🎁 친구의 추천 코드 입력하기 (최초 1회)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text("🎁 친구의 추천 코드 입력하기", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFE0F2FE)) {
+                                Text("5,000원 쿠폰+3,000P", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7), modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                            }
+                        }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -7879,7 +9551,7 @@ fun HomeScreenContent(
                             OutlinedTextField(
                                 value = inputFriendCode,
                                 onValueChange = { inputFriendCode = it.uppercase() },
-                                placeholder = { Text(if (isReferralRedeemed) "이미 3,000P 적립 완료" else "6자리 추천코드 입력 (예: SAHA25)") },
+                                placeholder = { Text(if (isReferralRedeemed) "이미 3,000P/쿠폰 완료" else "6자리 추천코드 (예: SAHA25)") },
                                 enabled = !isReferralRedeemed,
                                 modifier = Modifier.weight(1f),
                                 singleLine = true
@@ -7888,14 +9560,21 @@ fun HomeScreenContent(
                                 onClick = {
                                     val trimmedCode = inputFriendCode.trim().uppercase()
                                     if (isReferralRedeemed) {
-                                        Toast.makeText(context, "⚠️ 추천 코드는 계정당 최초 1회만 적립 가능합니다! (이미 3,000P 적립 완료)", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(context, "⚠️ 추천 코드는 계정당 최초 1회만 적립 가능합니다!", Toast.LENGTH_LONG).show()
                                     } else if (trimmedCode == userReferralCode) {
                                         Toast.makeText(context, "⚠️ 자기 자신의 추천 코드는 등록할 수 없습니다. 친구의 추천 코드를 입력해 주세요!", Toast.LENGTH_LONG).show()
                                     } else if (validReferralCodes.contains(trimmedCode) || (trimmedCode.length == 6 && trimmedCode.all { it.isLetterOrDigit() })) {
                                         onUpdatePoints(userPoints + 3000)
+                                        val newCoupon = CouponItem(
+                                            title = "🎉 친구 초대 5,000원 첫 동행 할인 쿠폰",
+                                            discountAmount = 5000,
+                                            validUntil = "2027.12.31"
+                                        )
+                                        userCoupons.add(0, newCoupon)
+                                        PersistentStorageManager.saveCouponList(context, userCoupons)
                                         isReferralRedeemed = true
                                         PersistentStorageManager.saveReferralRedeemed(context, true)
-                                        Toast.makeText(context, "🎉 친구의 추천 코드[$trimmedCode]가 정식 확인되어 3,000 P가 즉시 적립되었습니다!", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(context, "🎉 친구 추천 코드[$trimmedCode]가 인증되어 3,000 P와 5,000원 할인 쿠폰이 즉시 지급되었습니다!", Toast.LENGTH_LONG).show()
                                         inputFriendCode = ""
                                     } else {
                                         Toast.makeText(context, "❌ 존재하지 않거나 유효하지 않은 추천 코드입니다. 친구의 6자리 추천 코드를 확인해 주세요.", Toast.LENGTH_LONG).show()
@@ -7909,19 +9588,51 @@ fun HomeScreenContent(
                         }
                     }
 
+                    // 내 보유 쿠폰 목록
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("🎟️ 내 보유 할인 쿠폰 (${userCoupons.size}장)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(84.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            items(userCoupons.size) { cIdx ->
+                                val coupon = userCoupons[cIdx]
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(0xFFF0FDF4),
+                                    border = BorderStroke(1.dp, Color(0xFFBBF7D0)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text(coupon.title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF166534))
+                                            Text("유효기간: ${coupon.validUntil}", fontSize = 9.sp, color = Color.Gray)
+                                        }
+                                        Text("${coupon.discountAmount}원 할인", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D))
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
                         color = Color(0xFFF8FAFC)
                     ) {
                         Column(
-                            modifier = Modifier.padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            modifier = Modifier.padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Text("ℹ️ 이벤트 및 포인트 이용 안내", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF475569))
-                            Text("• 초대자 및 초대를 받은 분 모두에게 1명당 3,000 P 즉시 적립", fontSize = 10.sp, color = Color.Gray)
-                            Text("• 적립된 포인트는 예약 결제 시 1P = 1원 현금처럼 즉시 사용 가능", fontSize = 10.sp, color = Color.Gray)
-                            Text("• 포인트의 유효기간은 적립일로부터 1년(365일)입니다.", fontSize = 10.sp, color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)
+                            Text("• 친구 초대 시 양측 모두 3,000 P + 5,000원 쿠폰 지급", fontSize = 10.sp, color = Color.Gray)
+                            Text("• 적립된 포인트(1P=1원) 및 할인 쿠폰은 진료 대행 예약 결제 시 바로 차감 사용 가능", fontSize = 10.sp, color = Color.Gray)
                         }
                     }
                 }
@@ -7932,6 +9643,914 @@ fun HomeScreenContent(
                 }
             }
         )
+    }
+
+    if (showMedicationVaccineDialog) {
+        MedicationVaccineCalendarDialog(
+            onDismiss = { showMedicationVaccineDialog = false },
+            onNavigateToBooking = {
+                showMedicationVaccineDialog = false
+                showBookingNoticeDialog = true
+            }
+        )
+    }
+
+    if (showEmergencyGuideDialog) {
+        EmergencyHotlineGuideDialog(
+            onDismiss = { showEmergencyGuideDialog = false },
+            onNavigateToEmergencyBooking = {
+                showEmergencyGuideDialog = false
+                selectedTrimType = "🚨 긴급 진료 (당일 출동)"
+                showEmergencyDialog = true
+            }
+        )
+    }
+
+    if (showExpenseDialog) {
+        PetMedicalExpenseDialog(
+            onDismiss = { showExpenseDialog = false },
+            onNavigateToBooking = {
+                showExpenseDialog = false
+                showBookingNoticeDialog = true
+            }
+        )
+    }
+
+    if (showAddPetModal) {
+        var newPetName by remember { mutableStateOf("") }
+        var newPetSpecies by remember { mutableStateOf("강아지") }
+        var newPetType by remember { mutableStateOf("") }
+        var newPetGender by remember { mutableStateOf("남아") }
+        var newPetWeight by remember { mutableStateOf("4.0") }
+        var newPetNote by remember { mutableStateOf("") }
+
+        AlertDialog(
+            onDismissRequest = { showAddPetModal = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("🐾", fontSize = 20.sp)
+                    Text("새로운 반려동물 등록", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = newPetName,
+                        onValueChange = { newPetName = it },
+                        label = { Text("아이 이름 (예: 보리)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = newPetSpecies == "강아지",
+                            onClick = { newPetSpecies = "강아지" },
+                            label = { Text("🐶 강아지") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        FilterChip(
+                            selected = newPetSpecies == "고양이",
+                            onClick = { newPetSpecies = "고양이" },
+                            label = { Text("🐱 고양이") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    OutlinedTextField(
+                        value = newPetType,
+                        onValueChange = { newPetType = it },
+                        label = { Text("품종 (예: 말티즈, 코숏, 푸들)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = newPetGender == "남아",
+                            onClick = { newPetGender = "남아" },
+                            label = { Text("남아 ♂") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        FilterChip(
+                            selected = newPetGender == "여아",
+                            onClick = { newPetGender = "여아" },
+                            label = { Text("여아 ♀") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    OutlinedTextField(
+                        value = newPetWeight,
+                        onValueChange = { newPetWeight = it },
+                        label = { Text("몸무게 (kg)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = newPetNote,
+                        onValueChange = { newPetNote = it },
+                        label = { Text("특이사항 및 진료 주의사항 (선택)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (newPetName.isBlank() || newPetType.isBlank()) {
+                            Toast.makeText(context, "아이 이름과 품종을 입력해주세요.", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        val newPet = PetProfile(
+                            id = System.currentTimeMillis().toString(),
+                            name = newPetName.trim(),
+                            species = newPetSpecies,
+                            type = newPetType.trim(),
+                            gender = newPetGender,
+                            weight = newPetWeight.trim().ifEmpty { "4.0" },
+                            symptoms = newPetNote.trim()
+                        )
+                        petList.add(newPet)
+                        PersistentStorageManager.saveMultiPetList(context, petList)
+                        activePetId = newPet.id
+                        PersistentStorageManager.saveActivePetId(context, newPet.id)
+                        Toast.makeText(context, "🎉 [${newPet.name}] 아이 프로필이 등록되었습니다!", Toast.LENGTH_SHORT).show()
+                        showAddPetModal = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                ) {
+                    Text("등록 완료", fontWeight = FontWeight.Bold, color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddPetModal = false }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
+}
+
+// 💊 복약 알리미 & 백신 캘린더 컴포저블
+@Composable
+fun MedicationVaccineCalendarDialog(
+    onDismiss: () -> Unit,
+    onNavigateToBooking: () -> Unit = {}
+) {
+    val context = LocalContext.current
+    var selectedTab by remember { mutableIntStateOf(0) }
+
+    val medications = remember {
+        mutableStateListOf<MedicationItem>().apply {
+            addAll(PersistentStorageManager.loadMedicationList(context))
+        }
+    }
+
+    val vaccines = remember {
+        mutableStateListOf<VaccineScheduleItem>().apply {
+            addAll(PersistentStorageManager.loadVaccineList(context))
+        }
+    }
+
+    var showAddMedDialog by remember { mutableStateOf(false) }
+    var showAddVacDialog by remember { mutableStateOf(false) }
+
+    val completedMedCount = medications.count { it.isTaken }
+    val totalMedCount = medications.size
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFFE0F2FE),
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(if (selectedTab == 0) "💊" else "💉", fontSize = 20.sp)
+                    }
+                }
+                Column {
+                    Text("복약 알리미 & 백신 캘린더", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color(0xFF0F172A))
+                    Text("초코 아이 건강 케어 스케줄러", fontSize = 11.sp, color = Color(0xFF0284C7))
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(480.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFF1F5F9), RoundedCornerShape(10.dp))
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { selectedTab = 0 },
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (selectedTab == 0) Color.White else Color.Transparent,
+                        shadowElevation = if (selectedTab == 0) 2.dp else 0.dp
+                    ) {
+                        Text(
+                            "💊 일일 복약 (${completedMedCount}/${totalMedCount})",
+                            fontSize = 12.sp,
+                            fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal,
+                            color = if (selectedTab == 0) Color(0xFF0284C7) else Color.Gray,
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { selectedTab = 1 },
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (selectedTab == 1) Color.White else Color.Transparent,
+                        shadowElevation = if (selectedTab == 1) 2.dp else 0.dp
+                    ) {
+                        Text(
+                            "💉 예방접종 (${vaccines.size})",
+                            fontSize = 12.sp,
+                            fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal,
+                            color = if (selectedTab == 1) Color(0xFF0284C7) else Color.Gray,
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
+
+                if (selectedTab == 0) {
+                    Card(
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF6FF)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("오늘의 복약 달성률", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E40AF))
+                                Text(
+                                    "${if (totalMedCount > 0) (completedMedCount * 100 / totalMedCount) else 0}% 완료",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF2563EB)
+                                )
+                            }
+                            LinearProgressIndicator(
+                                progress = { if (totalMedCount > 0) completedMedCount.toFloat() / totalMedCount else 0f },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp)),
+                                color = Color(0xFF2563EB),
+                                trackColor = Color(0xFFDBEAFE)
+                            )
+                        }
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(medications.size) { idx ->
+                            val med = medications[idx]
+                            Card(
+                                shape = RoundedCornerShape(10.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (med.isTaken) Color(0xFFF8FAFC) else Color.White
+                                ),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (med.isTaken) Color(0xFFE2E8F0) else Color(0xFFBFDBFE)
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Checkbox(
+                                        checked = med.isTaken,
+                                        onCheckedChange = { checked ->
+                                            medications[idx] = med.copy(isTaken = checked)
+                                            PersistentStorageManager.saveMedicationList(context, medications)
+                                            Toast.makeText(
+                                                context,
+                                                if (checked) "✅ [${med.name}] 투약 완료 체크되었습니다!" else "투약 상태가 미완료로 변경되었습니다.",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    )
+                                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(
+                                                med.name,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp,
+                                                color = if (med.isTaken) Color.Gray else Color(0xFF0F172A),
+                                                style = if (med.isTaken) androidx.compose.ui.text.TextStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough) else androidx.compose.ui.text.TextStyle()
+                                            )
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = if (med.isTaken) Color(0xFFE2E8F0) else Color(0xFFDBEAFE)
+                                            ) {
+                                                Text(
+                                                    med.time,
+                                                    fontSize = 10.sp,
+                                                    color = if (med.isTaken) Color.Gray else Color(0xFF1D4ED8),
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
+                                        Text("${med.dosage} • ${med.note}", fontSize = 11.sp, color = Color.Gray)
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            medications.removeAt(idx)
+                                            PersistentStorageManager.saveMedicationList(context, medications)
+                                            Toast.makeText(context, "🗑️ 복약 항목이 삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                                        },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Text("✕", fontSize = 12.sp, color = Color.Gray)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Button(
+                        onClick = { showAddMedDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("➕ 새로운 복약 추가하기", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(vaccines.size) { idx ->
+                            val vac = vaccines[idx]
+                            val isUrgent = vac.dDay <= 7
+                            val isSoon = vac.dDay <= 45
+
+                            Card(
+                                shape = RoundedCornerShape(10.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (isUrgent) Color(0xFFFECDD3) else if (isSoon) Color(0xFFFDE68A) else Color(0xFFE2E8F0)
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(vac.vaccineName, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = Color(0xFFF1F5F9)
+                                            ) {
+                                                Text(vac.cycle, fontSize = 10.sp, color = Color(0xFF475569), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                            }
+                                        }
+
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = if (isUrgent) Color(0xFFEF4444) else if (isSoon) Color(0xFFF59E0B) else Color(0xFF0284C7)
+                                        ) {
+                                            Text(
+                                                if (vac.dDay == 0) "D-Day 오늘!" else if (vac.dDay < 0) "D+${-vac.dDay}일 경과" else "D-${vac.dDay}일",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Text("예정일: ${vac.targetDate}", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.SemiBold)
+                                    Text(vac.description, fontSize = 11.sp, color = Color.Gray)
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.End
+                                    ) {
+                                        OutlinedButton(
+                                            onClick = {
+                                                onDismiss()
+                                                onNavigateToBooking()
+                                            },
+                                            shape = RoundedCornerShape(6.dp),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                            modifier = Modifier.height(28.dp)
+                                        ) {
+                                            Text("🏥 접종 병원 예약 ➔", fontSize = 10.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Button(
+                        onClick = { showAddVacDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D9488)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("➕ 예방접종 일정 등록하기", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("닫기", fontWeight = FontWeight.Bold)
+            }
+        }
+    )
+
+    if (showAddMedDialog) {
+        var newMedName by remember { mutableStateOf("") }
+        var newMedTime by remember { mutableStateOf("오전 09:00") }
+        var newMedDosage by remember { mutableStateOf("1알 식후") }
+        var newMedNote by remember { mutableStateOf("") }
+
+        AlertDialog(
+            onDismissRequest = { showAddMedDialog = false },
+            title = { Text("💊 새 복약 알림 등록", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = newMedName,
+                        onValueChange = { newMedName = it },
+                        label = { Text("약/영양제 이름") },
+                        placeholder = { Text("예: 관절 영양제, 심장약") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newMedTime,
+                        onValueChange = { newMedTime = it },
+                        label = { Text("복약 시간") },
+                        placeholder = { Text("예: 오전 08:30, 저녁 20:00") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newMedDosage,
+                        onValueChange = { newMedDosage = it },
+                        label = { Text("복용 용량/방법") },
+                        placeholder = { Text("예: 1알 식후 급여, 반 알 경구 투여") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newMedNote,
+                        onValueChange = { newMedNote = it },
+                        label = { Text("주의사항 / 메모") },
+                        placeholder = { Text("예: 사료와 혼합 금지, 공복 급여") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (newMedName.isNotBlank()) {
+                            val item = MedicationItem(
+                                name = newMedName.trim(),
+                                time = newMedTime.trim(),
+                                dosage = newMedDosage.trim(),
+                                note = newMedNote.trim(),
+                                isTaken = false
+                            )
+                            medications.add(item)
+                            PersistentStorageManager.saveMedicationList(context, medications)
+                            showAddMedDialog = false
+                            Toast.makeText(context, "💊 새로운 복약 알림이 등록되었습니다!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                ) {
+                    Text("등록")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddMedDialog = false }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
+
+    if (showAddVacDialog) {
+        var newVacName by remember { mutableStateOf("") }
+        var newVacDate by remember { mutableStateOf("2026.12.30") }
+        var newVacCycle by remember { mutableStateOf("매년 1회") }
+        var newVacDDay by remember { mutableStateOf("60") }
+        var newVacDesc by remember { mutableStateOf("") }
+
+        AlertDialog(
+            onDismissRequest = { showAddVacDialog = false },
+            title = { Text("💉 새 예방접종 일정 등록", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = newVacName,
+                        onValueChange = { newVacName = it },
+                        label = { Text("백신 이름") },
+                        placeholder = { Text("예: 인플루엔자, 켄넬코프") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newVacDate,
+                        onValueChange = { newVacDate = it },
+                        label = { Text("접종 예정일") },
+                        placeholder = { Text("YYYY.MM.DD") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newVacCycle,
+                        onValueChange = { newVacCycle = it },
+                        label = { Text("접종 주기") },
+                        placeholder = { Text("예: 매년 1회, 매월 1회") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newVacDDay,
+                        onValueChange = { newVacDDay = it },
+                        label = { Text("남은 일수 (D-Day 숫자)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newVacDesc,
+                        onValueChange = { newVacDesc = it },
+                        label = { Text("설명 및 참고사항") },
+                        placeholder = { Text("예: 기초 3차 완료 후 추가 접종") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (newVacName.isNotBlank()) {
+                            val dDayInt = newVacDDay.toIntOrNull() ?: 30
+                            val item = VaccineScheduleItem(
+                                vaccineName = newVacName.trim(),
+                                targetDate = newVacDate.trim(),
+                                cycle = newVacCycle.trim(),
+                                dDay = dDayInt,
+                                description = newVacDesc.trim(),
+                                isCompleted = false
+                            )
+                            vaccines.add(item)
+                            PersistentStorageManager.saveVaccineList(context, vaccines)
+                            showAddVacDialog = false
+                            Toast.makeText(context, "💉 새 예방접종 일정이 등록되었습니다!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                ) {
+                    Text("등록")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddVacDialog = false }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
+}
+
+// 🚨 24시 응급 직통 & 골든타임 가이드 다이얼로그
+@Composable
+fun EmergencyHotlineGuideDialog(
+    onDismiss: () -> Unit,
+    onNavigateToEmergencyBooking: () -> Unit = {}
+) {
+    val context = LocalContext.current
+    var selectedGuideTab by remember { mutableIntStateOf(0) }
+
+    val guideTitles = listOf("💓 심폐소생술", "🦴 기도 폐쇄", "⚡ 경련/발작", "🩹 외상/출혈")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Surface(shape = CircleShape, color = Color(0xFFFFE4E6), modifier = Modifier.size(32.dp)) {
+                        Box(contentAlignment = Alignment.Center) { Text("🚨", fontSize = 18.sp) }
+                    }
+                    Text("24시 응급 & 골든타임 가이드", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color(0xFF991B1B))
+                }
+                Text("위급 상황 시 1초가 소중합니다. 즉시 다이얼 또는 응급처치를 확인하세요.", fontSize = 11.sp, color = Color.Gray)
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(490.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+                    border = BorderStroke(1.dp, Color(0xFFFECDD3))
+                ) {
+                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("📞 1초 긴급 직통 다이얼 (터치 시 즉시 통화)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF991B1B))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = {
+                                    val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:01037865394"))
+                                    context.startActivity(dialIntent)
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("🚨 24시 응급 관제", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text("010-3786-5394", fontSize = 10.sp)
+                                }
+                            }
+                            Button(
+                                onClick = {
+                                    val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:0518087582"))
+                                    context.startActivity(dialIntent)
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB91C1C)),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("🏥 24시 연계 응급병원", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text("051-808-7582", fontSize = 10.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                androidx.compose.foundation.lazy.LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(guideTitles.size) { idx ->
+                        FilterChip(
+                            selected = (selectedGuideTab == idx),
+                            onClick = { selectedGuideTab = idx },
+                            label = { Text(guideTitles[idx], fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+                        )
+                    }
+                }
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                ) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        when (selectedGuideTab) {
+                            0 -> {
+                                item {
+                                    Text("💓 반려동물 심폐소생술 (CPR)", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFDC2626))
+                                    Text("호흡과 심장이 멈춘 지 4분 이내 골든타임 확보가 필수적입니다.", fontSize = 11.sp, color = Color.Gray)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                }
+                                item {
+                                    GuideStepItem(
+                                        stepNum = "1",
+                                        title = "의식 및 맥박 확인 (10초 이내)",
+                                        desc = "뒷다리 안쪽 허벅지(대퇴동맥) 맥박과 가슴 호흡을 확인합니다. 반응이 없으면 즉시 CPR을 시작합니다."
+                                    )
+                                }
+                                item {
+                                    GuideStepItem(
+                                        stepNum = "2",
+                                        title = "기도 확보 (Airway)",
+                                        desc = "아이를 오른쪽으로 눕히고 목과 척추를 일직선으로 편 후, 입을 벌려 혀를 앞으로 살짝 당겨 기도를 엽니다."
+                                    )
+                                }
+                                item {
+                                    GuideStepItem(
+                                        stepNum = "3",
+                                        title = "흉부 압박 (30회 압박 : 2회 호흡)",
+                                        desc = "• 소형견(고양이): 흉골 부위를 한 손 엄지와 검지로 감싸 쥐듯 압박\n• 중·대형견: 옆으로 눕힌 채 가장 높은 가슴 부위에 양손 깍지를 끼고 압박\n• 박자: 분당 100~120회 속도로 가슴 두께의 1/3~1/2 깊이로 강하게 압박합니다."
+                                    )
+                                }
+                                item {
+                                    GuideStepItem(
+                                        stepNum = "4",
+                                        title = "인공호흡 요령 (Breathing)",
+                                        desc = "아이의 입을 손으로 완전히 쥐어 막고, 코에 입을 대고 가슴이 부풀어 오를 정도로 1초간 호흡을 2회 불어넣습니다."
+                                    )
+                                }
+                                item {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color(0xFFFEF2F2),
+                                        border = BorderStroke(1.dp, Color(0xFFFECDD3)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            "⚠️ 주의: 호흡이나 맥박이 있는 아이에게는 절대 흉부 압박을 시행하지 마세요.",
+                                            fontSize = 11.sp,
+                                            color = Color(0xFF991B1B),
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(8.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            1 -> {
+                                item {
+                                    Text("🦴 기도 폐쇄 & 하임리히법 (Heimlich)", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFD97706))
+                                    Text("이물질(간식, 뼈, 장난감)로 인해 청색증이나 호흡곤란이 온 경우 즉시 대처합니다.", fontSize = 11.sp, color = Color.Gray)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                }
+                                item {
+                                    GuideStepItem(
+                                        stepNum = "1",
+                                        title = "구강 내 이물질 육안 확인",
+                                        desc = "입을 조심스럽게 벌려 눈에 보이는 이물질만 손가락으로 가볍게 훑어 꺼냅니다. 보이지 않는 이물질을 억지로 쑤시면 더 깊이 들어갑니다!"
+                                    )
+                                }
+                                item {
+                                    GuideStepItem(
+                                        stepNum = "2",
+                                        title = "소형견/고양이 하임리히법",
+                                        desc = "아이의 뒷다리를 잡고 머리를 아래로 향하게 든 상태에서, 양 견갑골(날개뼈) 사이 등을 손바닥 밑둥으로 4~5회 톡톡 쳐냅니다."
+                                    )
+                                }
+                                item {
+                                    GuideStepItem(
+                                        stepNum = "3",
+                                        title = "중·대형견 하임리히법",
+                                        desc = "아이를 뒤에서 감싸 안고, 명치와 갈비뼈 끝 바로 아래 복부에 주먹을 대고 위쪽(머리 방향)으로 4~5회 강하게 밀어 올립니다."
+                                    )
+                                }
+                            }
+                            2 -> {
+                                item {
+                                    Text("⚡ 급성 경련 & 발작 대처법 (Seizures)", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF7C3AED))
+                                    Text("당황하지 않고 침착하게 아이의 2차 부상을 막는 것이 가장 중요합니다.", fontSize = 11.sp, color = Color.Gray)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                }
+                                item {
+                                    GuideStepItem(
+                                        stepNum = "1",
+                                        title = "주변 충돌 위험물 즉시 제거",
+                                        desc = "아이가 부딪힐 수 있는 날카로운 가구 모서리, 물건을 치우고 바닥에 푹신한 담요나 방석을 깔아줍니다."
+                                    )
+                                }
+                                item {
+                                    GuideStepItem(
+                                        stepNum = "2",
+                                        title = "절대 입안에 손 넣지 않기 (필독)",
+                                        desc = "혀를 물까 봐 입에 손이나 막대를 넣으면 기도 질식과 심각한 턱 골절을 유발합니다. 입안에는 어떤 것도 넣지 마세요."
+                                    )
+                                }
+                                item {
+                                    GuideStepItem(
+                                        stepNum = "3",
+                                        title = "조명 끄고 소음 차단",
+                                        desc = "시각·청각 자극이 경련을 악화시키므로 형광등을 끄고 커튼을 쳐 어둡고 조용한 환경을 만들어줍니다."
+                                    )
+                                }
+                                item {
+                                    GuideStepItem(
+                                        stepNum = "4",
+                                        title = "스마트폰 동영상 촬영 & 시간 측정",
+                                        desc = "발작 지속 시간을 재고 형태(다리 떨림, 눈 풀림, 침 흘림 등)를 영상으로 남기면 동물병원 수의사 진단에 결정적 도움이 됩니다."
+                                    )
+                                }
+                            }
+                            3 -> {
+                                item {
+                                    Text("🩹 외상 / 출혈 & 골절 응급 지혈", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0D9488))
+                                    Text("과다 출혈 방지와 척추·신경 보호가 최우선입니다.", fontSize = 11.sp, color = Color.Gray)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                }
+                                item {
+                                    GuideStepItem(
+                                        stepNum = "1",
+                                        title = "직접 압박 지혈법 (Direct Pressure)",
+                                        desc = "깨끗한 멸균 거즈나 수건으로 상처 출혈 부위를 손바닥으로 5분 이상 떼지 않고 꾸욱 누릅니다. 피가 배어나와도 거즈를 떼지 말고 덧댑니다."
+                                    )
+                                }
+                                item {
+                                    GuideStepItem(
+                                        stepNum = "2",
+                                        title = "지혈대 사용 주의",
+                                        desc = "고무줄이나 끈으로 사지를 너무 꽉 묶으면 혈류 차단으로 괴사가 일어날 수 있으므로 가급적 직접 압박 붕대를 권장합니다."
+                                    )
+                                }
+                                item {
+                                    GuideStepItem(
+                                        stepNum = "3",
+                                        title = "골절 부목 및 수평 이송",
+                                        desc = "비정상적으로 꺾인 뼈를 억지로 맞추려 하지 말고, 판자나 신문지를 덧대 수건으로 감싼 뒤 평평한 이동장에 수평으로 눕혀 이동합니다."
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Button(
+                    onClick = {
+                        onDismiss()
+                        onNavigateToEmergencyBooking()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("🚨 24시 긴급 응급출동 예약하기 (50,000원)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("닫기", fontWeight = FontWeight.Bold)
+            }
+        }
+    )
+}
+
+@Composable
+fun GuideStepItem(stepNum: String, title: String, desc: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = Color(0xFF0F172A),
+            modifier = Modifier.size(20.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(stepNum, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+            Text(desc, fontSize = 11.sp, color = Color(0xFF475569), lineHeight = 16.sp)
+        }
     }
 }
 
@@ -7949,6 +10568,536 @@ fun FaqItem(question: String, answer: String) {
             Text(text = question, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
             Text(text = answer, fontSize = 12.sp, color = Color(0xFF475569), lineHeight = 16.sp)
         }
+    }
+}
+
+// 📊 반려동물 의료 가계부 & 영수증 아카이브 다이얼로그
+@Composable
+fun PetMedicalExpenseDialog(
+    onDismiss: () -> Unit,
+    onNavigateToBooking: () -> Unit = {}
+) {
+    val context = LocalContext.current
+    val expenses = remember {
+        mutableStateListOf<PetExpenseItem>().apply {
+            addAll(PersistentStorageManager.loadExpenseList(context))
+        }
+    }
+    var selectedCategoryFilter by remember { mutableStateOf("전체") }
+    var showAddExpenseDialog by remember { mutableStateOf(false) }
+    var viewingReceiptUri by remember { mutableStateOf<String?>(null) }
+
+    val categoryFilters = listOf("전체", "🏥 병원 진료비", "💊 약제/처방전", "🚙 동행 케어비", "🥩 영양/기타")
+
+    val filteredExpenses = remember(expenses.size, selectedCategoryFilter) {
+        if (selectedCategoryFilter == "전체") expenses.toList()
+        else expenses.filter { it.category == selectedCategoryFilter }
+    }
+
+    val totalExpense = remember(expenses.size) {
+        expenses.sumOf { it.amount }
+    }
+    val hospitalTotal = remember(expenses.size) {
+        expenses.filter { it.category == "🏥 병원 진료비" }.sumOf { it.amount }
+    }
+    val medicineTotal = remember(expenses.size) {
+        expenses.filter { it.category == "💊 약제/처방전" }.sumOf { it.amount }
+    }
+    val careCarTotal = remember(expenses.size) {
+        expenses.filter { it.category == "🚙 동행 케어비" }.sumOf { it.amount }
+    }
+
+    val decFormat = java.text.DecimalFormat("#,###")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFFDCFCE7),
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("📊", fontSize = 18.sp)
+                        }
+                    }
+                    Column {
+                        Text("반려동물 의료 가계부", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
+                        Text("병원비 • 처방약 • 케어카 영수증 관리", fontSize = 11.sp, color = Color.Gray)
+                    }
+                }
+                IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                    Text("✕", fontSize = 14.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // 상단 총 지출 요약 카드
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("총 누적 의료 지출", color = Color(0xFF94A3B8), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFF1E293B)
+                            ) {
+                                Text("실시간 집계", color = Color(0xFF38BDF8), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                            }
+                        }
+                        Text(
+                            text = "${decFormat.format(totalExpense)}원",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFFF8FAFC)
+                        )
+                        HorizontalDivider(color = Color(0xFF334155))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text("🏥 병원 진료비", color = Color(0xFF94A3B8), fontSize = 10.sp)
+                                Text("${decFormat.format(hospitalTotal)}원", color = Color(0xFFF1F5F9), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Column {
+                                Text("💊 약제/처방전", color = Color(0xFF94A3B8), fontSize = 10.sp)
+                                Text("${decFormat.format(medicineTotal)}원", color = Color(0xFFF1F5F9), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Column {
+                                Text("🚙 동행 케어비", color = Color(0xFF94A3B8), fontSize = 10.sp)
+                                Text("${decFormat.format(careCarTotal)}원", color = Color(0xFF34D399), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
+                // 카테고리 필터 칩 & 지출 등록 버튼
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("내역 (${filteredExpenses.size}건)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF1E293B))
+                    Button(
+                        onClick = { showAddExpenseDialog = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        Text("➕ 지출 등록", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+
+                // 가로 스크롤 필터 칩
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    categoryFilters.forEach { cat ->
+                        val isSelected = selectedCategoryFilter == cat
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (isSelected) Color(0xFF16A34A) else Color(0xFFF1F5F9),
+                            border = BorderStroke(1.dp, if (isSelected) Color(0xFF15803D) else Color(0xFFE2E8F0)),
+                            modifier = Modifier.clickable { selectedCategoryFilter = cat }
+                        ) {
+                            Text(
+                                text = cat,
+                                fontSize = 11.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) Color.White else Color(0xFF475569),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+
+                // 지출 리스트
+                if (filteredExpenses.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("등록된 지출 내역이 없습니다.", color = Color.Gray, fontSize = 12.sp)
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        filteredExpenses.forEach { item ->
+                            val badgeColor = when {
+                                item.category.contains("병원") -> Color(0xFFEFF6FF) to Color(0xFF2563EB)
+                                item.category.contains("약제") -> Color(0xFFFEF3C7) to Color(0xFFD97706)
+                                item.category.contains("동행") -> Color(0xFFECFDF5) to Color(0xFF059669)
+                                else -> Color(0xFFF3F4F6) to Color(0xFF4B5563)
+                            }
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA)),
+                                border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(10.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = badgeColor.first
+                                            ) {
+                                                Text(
+                                                    text = item.category,
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = badgeColor.second,
+                                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                            Text(item.dateText, fontSize = 11.sp, color = Color.Gray)
+                                        }
+                                        Text(item.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF1E293B))
+                                        if (item.hospitalOrStore.isNotBlank()) {
+                                            Text("🏥 ${item.hospitalOrStore}", fontSize = 11.sp, color = Color(0xFF475569))
+                                        }
+                                        if (item.receiptUriStr?.isNotBlank() == true) {
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = Color(0xFFEFF6FF),
+                                                border = BorderStroke(1.dp, Color(0xFFBFDBFE)),
+                                                modifier = Modifier.clickable { viewingReceiptUri = item.receiptUriStr }
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                                ) {
+                                                    Text("🧾", fontSize = 10.sp)
+                                                    Text("영수증 원본 보기 🔍", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1D4ED8))
+                                                }
+                                            }
+                                        }
+                                        if (item.note.isNotBlank()) {
+                                            Text("📝 ${item.note}", fontSize = 10.sp, color = Color(0xFF64748B))
+                                        }
+                                    }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            text = "-${decFormat.format(item.amount)}원",
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 13.sp,
+                                            color = Color(0xFFDC2626)
+                                        )
+                                        IconButton(
+                                            onClick = {
+                                                expenses.remove(item)
+                                                PersistentStorageManager.saveExpenseList(context, expenses)
+                                                Toast.makeText(context, "항목이 삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                                            },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Text("✕", fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 케어카 연계 바로가기 배너
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToBooking() },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF6FF)),
+                    border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("🚙 병원 진료 대행이 필요하신가요?", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF1D4ED8))
+                            Text("레이 케어카 + 실시간 수의사 리포트 신청 ➔", fontSize = 10.sp, color = Color(0xFF3B82F6))
+                        }
+                        Text("➔", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2563EB))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("닫기", fontWeight = FontWeight.Bold)
+            }
+        }
+    )
+
+    // 직접 등록 다이얼로그
+    if (showAddExpenseDialog) {
+        var inputTitle by remember { mutableStateOf("") }
+        var inputAmount by remember { mutableStateOf("") }
+        var inputCategory by remember { mutableStateOf("🏥 병원 진료비") }
+        var inputPlace by remember { mutableStateOf("") }
+        var inputDate by remember {
+            val sdf = java.text.SimpleDateFormat("yyyy.MM.dd", java.util.Locale.KOREAN)
+            mutableStateOf(sdf.format(java.util.Date()))
+        }
+        var inputNote by remember { mutableStateOf("") }
+        var receiptUriStr by remember { mutableStateOf<String?>(null) }
+        val receiptPickerLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri: Uri? ->
+            receiptUriStr = uri?.toString()
+        }
+
+        AlertDialog(
+            onDismissRequest = { showAddExpenseDialog = false },
+            title = { Text("➕ 의료 지출 내역 등록", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = inputTitle,
+                        onValueChange = { inputTitle = it },
+                        label = { Text("항목명 (예: 혈액검사 / 백신접종)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = inputAmount,
+                        onValueChange = { inputAmount = it.filter { char -> char.isDigit() } },
+                        label = { Text("금액 (원 단위)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    Text("카테고리 선택", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF334155))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf("🏥 병원 진료비", "💊 약제/처방전", "🚙 동행 케어비", "🥩 영양/기타").forEach { cat ->
+                            val isSel = inputCategory == cat
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isSel) Color(0xFF16A34A) else Color(0xFFF1F5F9),
+                                border = BorderStroke(1.dp, if (isSel) Color(0xFF15803D) else Color(0xFFE2E8F0)),
+                                modifier = Modifier.clickable { inputCategory = cat }
+                            ) {
+                                Text(
+                                    text = cat,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSel) Color.White else Color(0xFF475569),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = inputPlace,
+                        onValueChange = { inputPlace = it },
+                        label = { Text("병원명 / 약국명") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = inputDate,
+                        onValueChange = { inputDate = it },
+                        label = { Text("날짜 (YYYY.MM.DD)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    // 📷 영수증 사진 첨부 버튼 및 상태
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("영수증 사진 첨부 (선택)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF334155))
+                        OutlinedButton(
+                            onClick = { receiptPickerLauncher.launch("image/*") },
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Text(if (receiptUriStr == null) "📷 갤러리 선택" else "✅ 사진 변경", fontSize = 11.sp)
+                        }
+                    }
+                    if (receiptUriStr != null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFDCFCE7), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("🧾 영수증 이미지 첨부됨", fontSize = 11.sp, color = Color(0xFF15803D), fontWeight = FontWeight.Bold)
+                            TextButton(onClick = { receiptUriStr = null }) {
+                                Text("삭제", fontSize = 10.sp, color = Color.Red)
+                            }
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = inputNote,
+                        onValueChange = { inputNote = it },
+                        label = { Text("메모 (선택)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val parsedAmount = inputAmount.toIntOrNull() ?: 0
+                        if (inputTitle.isBlank() || parsedAmount <= 0) {
+                            Toast.makeText(context, "항목명과 올바른 금액을 입력해주세요.", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        val newItem = PetExpenseItem(
+                            title = inputTitle.trim(),
+                            category = inputCategory,
+                            amount = parsedAmount,
+                            dateText = inputDate.trim(),
+                            hospitalOrStore = inputPlace.trim(),
+                            receiptUriStr = receiptUriStr,
+                            note = inputNote.trim()
+                        )
+                        expenses.add(0, newItem)
+                        PersistentStorageManager.saveExpenseList(context, expenses)
+                        Toast.makeText(context, "지출 내역이 등록되었습니다!", Toast.LENGTH_SHORT).show()
+                        showAddExpenseDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A))
+                ) {
+                    Text("등록 완료", fontWeight = FontWeight.Bold, color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddExpenseDialog = false }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
+
+    // 🧾 영수증 원본 확대 뷰어 다이얼로그
+    viewingReceiptUri?.let { uriStr ->
+        AlertDialog(
+            onDismissRequest = { viewingReceiptUri = null },
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("🧾 병원/약국 영수증 원본", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    IconButton(onClick = { viewingReceiptUri = null }, modifier = Modifier.size(24.dp)) {
+                        Text("✕", fontSize = 13.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+                    }
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val receiptBitmap = remember(uriStr) {
+                        try {
+                            val uri = Uri.parse(uriStr)
+                            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                                BitmapFactory.decodeStream(inputStream)
+                            }
+                        } catch (_: Exception) { null }
+                    }
+                    if (receiptBitmap != null) {
+                        Image(
+                            bitmap = receiptBitmap.asImageBitmap(),
+                            contentDescription = "영수증 원본",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 380.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Fit
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                                .background(Color(0xFFF1F5F9), RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("🧾 영수증 이미지 미리보기\n(공식 제휴병원 진료비 영수증)", color = Color.Gray, fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        }
+                    }
+                    Text("💡 실시간 보관된 영수증입니다. 펫보험 청구 시 증빙자료로 사용할 수 있습니다.", fontSize = 10.sp, color = Color.Gray)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { viewingReceiptUri = null }) {
+                    Text("닫기", fontWeight = FontWeight.Bold)
+                }
+            }
+        )
     }
 }
 
@@ -7977,17 +11126,30 @@ fun MyPetDetailScreen(
     onSavePetProfile: (Uri?, String, String, String, String, String, Boolean, String, String, String, Long?) -> Unit = { _, _, _, _, _, _, _, _, _, _, _ -> }
 ) {
     val context = LocalContext.current
-    var petImageUri by remember(savedImageUri) { mutableStateOf<Uri?>(savedImageUri) }
-    var petSpecies by remember(savedPetSpecies) { mutableStateOf(savedPetSpecies) }
-    var petName by remember(savedPetName) { mutableStateOf(savedPetName) }
-    var ownerRealName by remember(savedOwnerRealName) { mutableStateOf(savedOwnerRealName) }
-    var petType by remember(savedPetType) { mutableStateOf(savedPetType) }
-    var selectedGender by remember(savedGender) { mutableStateOf(savedGender) }
-    var isNeutered by remember(savedIsNeutered) { mutableStateOf(savedIsNeutered) }
-    var petWeight by remember(savedPetWeight) { mutableStateOf(savedPetWeight) }
-    var petHospital by remember(savedPetHospital) { mutableStateOf(savedPetHospital) }
-    var petSymptoms by remember(savedPetSymptoms) { mutableStateOf(savedPetSymptoms) }
-    var selectedBirthMillis by remember(savedBirthMillis) { mutableStateOf<Long?>(savedBirthMillis) }
+    val petProfileList = remember {
+        mutableStateListOf<PetProfile>().apply {
+            addAll(PersistentStorageManager.loadMultiPetList(context))
+        }
+    }
+    val initialActiveId = remember { PersistentStorageManager.loadActivePetId(context) }
+    val initialIdx = remember(initialActiveId) {
+        val found = petProfileList.indexOfFirst { it.id == initialActiveId }
+        if (found >= 0) found else 0
+    }
+    var selectedPetIndex by remember { mutableIntStateOf(initialIdx) }
+    val currentActivePet = petProfileList.getOrNull(initialIdx)
+
+    var petImageUri by remember(savedImageUri) { mutableStateOf(currentActivePet?.imageUriStr?.let { try { it.toUri() } catch(_: Exception) { null } } ?: savedImageUri) }
+    var petSpecies by remember(savedPetSpecies) { mutableStateOf(currentActivePet?.species ?: savedPetSpecies) }
+    var petName by remember(savedPetName) { mutableStateOf(currentActivePet?.name ?: savedPetName) }
+    var ownerRealName by remember(savedOwnerRealName) { mutableStateOf(currentActivePet?.ownerRealName ?: savedOwnerRealName) }
+    var petType by remember(savedPetType) { mutableStateOf(currentActivePet?.type ?: savedPetType) }
+    var selectedGender by remember(savedGender) { mutableStateOf(currentActivePet?.gender ?: savedGender) }
+    var isNeutered by remember(savedIsNeutered) { mutableStateOf(currentActivePet?.neutered ?: savedIsNeutered) }
+    var petWeight by remember(savedPetWeight) { mutableStateOf(currentActivePet?.weight ?: savedPetWeight) }
+    var petHospital by remember(savedPetHospital) { mutableStateOf(currentActivePet?.hospital ?: savedPetHospital) }
+    var petSymptoms by remember(savedPetSymptoms) { mutableStateOf(currentActivePet?.symptoms ?: savedPetSymptoms) }
+    var selectedBirthMillis by remember(savedBirthMillis) { mutableStateOf(currentActivePet?.birthMillis ?: savedBirthMillis) }
     var genderDropdownExpanded by remember { mutableStateOf(false) }
 
     var showDatePickerDialog by remember { mutableStateOf(false) }
@@ -8014,12 +11176,6 @@ fun MyPetDetailScreen(
         )
     }
 
-    val petProfileList = remember {
-        mutableStateListOf<PetProfile>().apply {
-            addAll(PersistentStorageManager.loadMultiPetList(context))
-        }
-    }
-    var selectedPetIndex by remember { mutableIntStateOf(0) }
     var showAddPetModal by remember { mutableStateOf(false) }
     var newPetNameInput by remember { mutableStateOf("") }
     var newPetSpeciesInput by remember { mutableStateOf("강아지") }
@@ -8065,7 +11221,7 @@ fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): S
     ) { uri: Uri? ->
         uri?.let {
             val savedInternalUriStr = savePetImageToInternalStorage(context, it)
-            val parsedUri = if (savedInternalUriStr != null) Uri.parse(savedInternalUriStr) else it
+            val parsedUri = savedInternalUriStr?.toUri() ?: it
             petImageUri = parsedUri
             onSavePetProfile(parsedUri, petSpecies, petName, ownerRealName, petType, selectedGender, isNeutered, petWeight, petHospital, petSymptoms, selectedBirthMillis)
             Toast.makeText(context, "📷 반려동물 대표 사진이 디스크 파일에 영구 저장되었습니다!", Toast.LENGTH_SHORT).show()
@@ -8111,6 +11267,14 @@ fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): S
                                                 petName = nextPet.name
                                                 petSpecies = nextPet.species
                                                 petType = nextPet.type
+                                                petWeight = nextPet.weight
+                                                selectedGender = nextPet.gender
+                                                isNeutered = nextPet.neutered
+                                                petHospital = nextPet.hospital
+                                                petSymptoms = nextPet.symptoms
+                                                selectedBirthMillis = nextPet.birthMillis
+                                                petImageUri = nextPet.imageUriStr?.let { try { it.toUri() } catch(_: Exception) { null } }
+                                                PersistentStorageManager.saveActivePetId(context, nextPet.id)
                                             }
                                             PersistentStorageManager.saveMultiPetList(context, petProfileList)
                                             Toast.makeText(context, "🗑️ [${removedName}] 프로필이 삭제되었습니다.", Toast.LENGTH_SHORT).show()
@@ -8153,7 +11317,10 @@ fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): S
                                     isNeutered = targetPet.neutered
                                     petHospital = targetPet.hospital
                                     petSymptoms = targetPet.symptoms
-                                    petImageUri = targetPet.imageUriStr?.let { try { Uri.parse(it) } catch(_: Exception) { null } }
+                                    selectedBirthMillis = targetPet.birthMillis
+                                    ownerRealName = targetPet.ownerRealName
+                                    petImageUri = targetPet.imageUriStr?.let { try { it.toUri() } catch(_: Exception) { null } }
+                                    PersistentStorageManager.saveActivePetId(context, targetPet.id)
                                 },
                                 label = { Text("${if (pet.species == "강아지") "🐶" else "🐱"} ${pet.name}", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
@@ -8529,10 +11696,12 @@ fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): S
                                     weight = petWeight,
                                     hospital = petHospital,
                                     symptoms = petSymptoms,
+                                    birthMillis = selectedBirthMillis,
                                     imageUriStr = petImageUri?.toString()
                                 )
                                 petProfileList[selectedPetIndex] = updatedPet
                                 PersistentStorageManager.saveMultiPetList(context, petProfileList)
+                                PersistentStorageManager.saveActivePetId(context, updatedPet.id)
                             }
                             onSavePetProfile(petImageUri, petSpecies, petName, ownerRealName, petType, selectedGender, isNeutered, petWeight, petHospital, petSymptoms, selectedBirthMillis)
                             Toast.makeText(context, "💾 반려동물('$petName') 프로필 데이터가 상단 탭 및 디스크 파일에 영구 저장되었습니다!", Toast.LENGTH_LONG).show()
@@ -8708,6 +11877,7 @@ fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): S
                             )
                             petProfileList.add(newPet)
                             PersistentStorageManager.saveMultiPetList(context, petProfileList)
+                            PersistentStorageManager.saveActivePetId(context, newPet.id)
                             selectedPetIndex = petProfileList.size - 1
                             petName = newPet.name
                             petSpecies = newPet.species

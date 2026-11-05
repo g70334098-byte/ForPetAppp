@@ -7,12 +7,17 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:797590460763:android:95849f156161f738f9e27e",
+        "mobilesdk_app_id": "1:797590460763:android:8710f231ab2cca4cf9e27e",
         "android_client_info": {
-          "package_name": "com.example.forpetapp"
+          "package_name": "com.baldong.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "797590460763-ld3q8bklck0o75d92h53q8dh38s4gu9n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD3T4gWVuK2S_V9FCF8dMjVUPNmNg_tuL4"
@@ -20,7 +25,49 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "797590460763-ld3q8bklck0o75d92h53q8dh38s4gu9n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:797590460763:android:95849f156161f738f9e27e",
+        "android_client_info": {
+          "package_name": "com.example.forpetapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "797590460763-2heflmlas1rd5c9mkortes80ih01s139.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.forpetapp",
+            "certificate_hash": "1a0274710f7dc15e8f88bfd182155ff978d1bf73"
+          }
+        },
+        {
+          "client_id": "797590460763-ld3q8bklck0o75d92h53q8dh38s4gu9n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3T4gWVuK2S_V9FCF8dMjVUPNmNg_tuL4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "797590460763-ld3q8bklck0o75d92h53q8dh38s4gu9n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

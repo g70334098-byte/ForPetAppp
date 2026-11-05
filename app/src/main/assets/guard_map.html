@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>발자국동행 가드 실시간 관제 지도</title>
+    <link rel="stylesheet" href="leaflet.css" />
+    <script src="leaflet.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            position: relative;
+            background: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        #map {
+            width: 100vw;
+            height: 100vh;
+            min-height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #e2e8f0;
+        }
+        #loading-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+            color: #475569;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 20px;
+            border-radius: 24px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            pointer-events: none;
+        }
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            padding: 4px;
+        }
+        .leaflet-popup-content {
+            margin: 10px 12px;
+            line-height: 1.5;
+            font-size: 13px;
+        }
+        .custom-car-badge {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: #ffffff;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 12px;
+            box-shadow: 0 4px 12px rgba(2,132,199,0.45);
+            border: 2px solid #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+        .custom-hosp-badge {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #ffffff;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 12px;
+            box-shadow: 0 4px 12px rgba(220,38,38,0.45);
+            border: 2px solid #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+        .badge-sub {
+            background: #ffffff;
+            color: #dc2626;
+            font-size: 9px;
+            padding: 2px 5px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .badge-live {
+            background: #10b981;
+            color: #ffffff;
+            font-size: 9px;
+            padding: 2px 5px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-indicator">🗺️ 고화질 관제 지도를 불러오는 중...</div>
+    <div id="map"></div>
+    <script>
+        var map = null;
+        var markers = {};
+        var carLat = 35.0830000;
+        var carLng = 128.8950000;
+
+        function initMapEngine() {
+            if (map !== null) return;
+            if (typeof L === 'undefined') {
+                setTimeout(initMapEngine, 50);
+                return;
+            }
+            var mapElem = document.getElementById('map');
+            if (mapElem) {
+                var h = window.innerHeight || document.documentElement.clientHeight || 500;
+                var w = window.innerWidth || document.documentElement.clientWidth || 360;
+                if (!mapElem.style.height || mapElem.clientHeight === 0) {
+                    mapElem.style.height = h + 'px';
+                    mapElem.style.width = w + 'px';
+                }
+            }
+
+            try {
+                map = L.map('map', {
+                    zoomControl: false,
+                    attributionControl: false
+                }).setView([35.150, 128.980], 11);
+
+                L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+                // 관리자 포털과 100% 동일한 Google Maps HD 타일 레이어
+                L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                    maxZoom: 20
+                }).addTo(map);
+
+                // 1. 레이 케어카 마커 (실시간 GPS 연동)
+                var carIcon = L.divIcon({
+                    className: '',
+                    html: '<div class="custom-car-badge">' +
+                          '<span>🚙</span>' +
+                          '<span>레이 케어카 (38가 5394)</span>' +
+                          '<span class="badge-live">GPS LIVE</span>' +
+                          '</div>',
+                    iconSize: [190, 36],
+                    iconAnchor: [95, 18]
+                });
+                markers.car = L.marker([carLat, carLng], { icon: carIcon }).addTo(map);
+                markers.car.bindPopup(
+                    '<div style="min-width:210px;">' +
+                    '<b style="font-size:14px;color:#0284c7;">🚙 레이 케어카 (부산 38가 5394)</b><br>' +
+                    '👨‍✈️ <b>담당 가드:</b> 박찬헌 가드<br>' +
+                    '📍 <b>현재 위치:</b> 실시간 GPS 수신 중<br>' +
+                    '⚡ <b>운행 상태:</b> 1:1 안심 진료 대행 이송 중<br>' +
+                    '<span style="font-size:11px;color:#64748b;">(위도: ' + carLat.toFixed(6) + ', 경도: ' + carLng.toFixed(6) + ')</span>' +
+                    '</div>'
+                );
+
+                // 2. 부산 24시 동행동물의료센터 (부산 북구 덕천동 561-2)
+                var hosp1Icon = L.divIcon({
+                    className: '',
+                    html: '<div class="custom-hosp-badge">' +
+                          '<span>🏥</span>' +
+                          '<span>부산 24시 동행</span>' +
+                          '<span class="badge-sub">24시 응급</span>' +
+                          '</div>',
+                    iconSize: [170, 36],
+                    iconAnchor: [85, 36]
+                });
+                markers.hosp1 = L.marker([35.2289650, 129.0093850], { icon: hosp1Icon }).addTo(map);
+                markers.hosp1.bindPopup(
+                    '<div style="min-width:220px;">' +
+                    '<b style="font-size:14px;color:#dc2626;">🏥 부산 24시 동행동물의료센터</b><br>' +
+                    '📍 <b>주소:</b> 부산 북구 덕천동 561-2<br>' +
+                    '📞 <b>직통:</b> <a href="tel:050714817599" style="color:#0284c7;font-weight:bold;">0507-1481-7599 (전화걸기)</a><br>' +
+                    '🩺 <b>진료:</b> 내과, 외과, 정형외과, 안과, 24시 응급<br>' +
+                    '✨ 입원실, 미용실 완비' +
+                    '</div>'
+                );
+
+                // 3. 부산 24시 연산동물의료센터 (부산 연제구 연산동 1953-1)
+                var hosp2Icon = L.divIcon({
+                    className: '',
+                    html: '<div class="custom-hosp-badge">' +
+                          '<span>🏥</span>' +
+                          '<span>부산 24시 연산</span>' +
+                          '<span class="badge-sub">24시 응급</span>' +
+                          '</div>',
+                    iconSize: [170, 36],
+                    iconAnchor: [85, 36]
+                });
+                markers.hosp2 = L.marker([35.1818200, 129.0823500], { icon: hosp2Icon }).addTo(map);
+                markers.hosp2.bindPopup(
+                    '<div style="min-width:220px;">' +
+                    '<b style="font-size:14px;color:#dc2626;">🏥 부산 24시 연산동물의료센터</b><br>' +
+                    '📍 <b>주소:</b> 부산 연제구 연산동 1953-1<br>' +
+                    '📞 <b>직통:</b> <a href="tel:0517910175" style="color:#0284c7;font-weight:bold;">051-791-0175 (전화걸기)</a><br>' +
+                    '🩺 <b>진료:</b> 내과, 피부과, 안과, 치과, 외과, 정형외과<br>' +
+                    '🚗 건물 내 주차 가능, 입원실 운영' +
+                    '</div>'
+                );
+
+                // 4. 24시 이솔동물의료센터 (부산 사하구 하단동 534-7)
+                var hosp3Icon = L.divIcon({
+                    className: '',
+                    html: '<div class="custom-hosp-badge">' +
+                          '<span>🏥</span>' +
+                          '<span>24시 이솔동물</span>' +
+                          '<span class="badge-sub">24시 응급</span>' +
+                          '</div>',
+                    iconSize: [170, 36],
+                    iconAnchor: [85, 36]
+                });
+                markers.hosp3 = L.marker([35.1017800, 128.9664500], { icon: hosp3Icon }).addTo(map);
+                markers.hosp3.bindPopup(
+                    '<div style="min-width:220px;">' +
+                    '<b style="font-size:14px;color:#dc2626;">🏥 24시 이솔동물의료센터</b><br>' +
+                    '📍 <b>주소:</b> 부산 사하구 하단동 534-7<br>' +
+                    '📞 <b>직통:</b> <a href="tel:0517117566" style="color:#0284c7;font-weight:bold;">051-711-7566 (전화걸기)</a><br>' +
+                    '🩺 <b>진료:</b> 만성/호르몬/항암 내과, 슬개골/정형 외과, 24시 응급<br>' +
+                    '🚗 건물 뒤편 11면 주차장' +
+                    '</div>'
+                );
+
+                // 5. 23시 하단오거리동물병원 (부산 사하구 하단동 617-10)
+                var hosp4Icon = L.divIcon({
+                    className: '',
+                    html: '<div class="custom-hosp-badge">' +
+                          '<span>🏥</span>' +
+                          '<span>23시 하단오거리</span>' +
+                          '<span class="badge-sub">24시 응급</span>' +
+                          '</div>',
+                    iconSize: [170, 36],
+                    iconAnchor: [85, 36]
+                });
+                markers.hosp4 = L.marker([35.1051500, 128.9617800], { icon: hosp4Icon }).addTo(map);
+                markers.hosp4.bindPopup(
+                    '<div style="min-width:220px;">' +
+                    '<b style="font-size:14px;color:#dc2626;">🏥 23시 하단오거리동물병원</b><br>' +
+                    '📍 <b>주소:</b> 부산 사하구 하단동 617-10<br>' +
+                    '📞 <b>직통:</b> <a href="tel:0512917582" style="color:#0284c7;font-weight:bold;">051-291-7582 (전화걸기)</a><br>' +
+                    '🐾 <b>진료 대상:</b> 개, 고양이, 토끼, 고슴도치, 페릿, 파충류 등<br>' +
+                    '🚗 건물 뒷편 10대 주차 가능' +
+                    '</div>'
+                );
+
+                var loader = document.getElementById('loading-indicator');
+                if (loader) loader.style.display = 'none';
+
+                setTimeout(function() {
+                    if (map) { map.invalidateSize(); }
+                }, 250);
+            } catch (e) {
+                console.error("Map Engine error: " + e);
+            }
+        }
+
+        function focusLocation(key) {
+            if (!map) return;
+            if (key === 'car' && markers.car) {
+                map.flyTo([carLat, carLng], 15, { duration: 1 });
+                markers.car.openPopup();
+            } else if (key === 'hosp1' && markers.hosp1) {
+                map.flyTo([35.2289650, 129.0093850], 16, { duration: 1 });
+                markers.hosp1.openPopup();
+            } else if (key === 'hosp2' && markers.hosp2) {
+                map.flyTo([35.1818200, 129.0823500], 16, { duration: 1 });
+                markers.hosp2.openPopup();
+            } else if (key === 'hosp3' && markers.hosp3) {
+                map.flyTo([35.1017800, 128.9664500], 16, { duration: 1 });
+                markers.hosp3.openPopup();
+            } else if (key === 'hosp4' && markers.hosp4) {
+                map.flyTo([35.1051500, 128.9617800], 16, { duration: 1 });
+                markers.hosp4.openPopup();
+            } else {
+                var group = L.featureGroup([markers.car, markers.hosp1, markers.hosp2, markers.hosp3, markers.hosp4]);
+                map.fitBounds(group.getBounds().pad(0.15), { duration: 1 });
+            }
+        }
+
+        function updateCarGps(lat, lng) {
+            carLat = lat;
+            carLng = lng;
+            if (markers.car) {
+                markers.car.setLatLng([lat, lng]);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', initMapEngine);
+        window.addEventListener('load', initMapEngine);
+        setTimeout(initMapEngine, 200);
+    </script>
+</body>
+</html>

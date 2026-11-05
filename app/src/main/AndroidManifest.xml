@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -31,10 +31,18 @@
             android:exported="false"
             android:foregroundServiceType="location" />
 
+        <!-- 🔔 실시간 FCM 푸시 알림 수신 서비스 -->
+        <service
+            android:name=".service.ForPetFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="발자국동행"
             android:theme="@style/Theme.Forpetapp"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -55,6 +63,18 @@
                 <data android:host="oauth" android:scheme="kakaoa1f087e3d3c32d7724ebbcc750b89649" />
             </intent-filter>
         </activity>
+
+        <!-- 🐾 실시간 동행 케어 홈 화면 위젯 프로바이더 -->
+        <receiver
+            android:name=".widget.ForPetAppWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/forpet_widget_info" />
+        </receiver>
     </application>
 
 </manifest>

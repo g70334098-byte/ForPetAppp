@@ -1,16 +1,20 @@
+@file:Suppress("ApplySharedPref", "UseSharedPreferencesEdit", "SpellCheckingInspection")
+
 package com.example.forpetapp.service
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
-import android.content.Context
 import android.content.Intent
-import android.location.Location
+import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 
 /**
  * 📡 법인 가드 단말기 전용 24시간 백그라운드 GPS 위치 추적 포그라운드 서비스
@@ -24,18 +28,22 @@ class GuardGpsForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        startForegroundServiceNotification()
-        startContinuousGpsTracking()
+        try {
+            startForegroundServiceNotification()
+            startContinuousGpsTracking()
+        } catch (e: Exception) {
+            android.util.Log.e("GuardGpsService", "Service onCreate safe error catch: ${e.message}")
+        }
     }
 
     private fun startForegroundServiceNotification() {
         val channelId = "guard_gps_service_channel"
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as? NotificationManager
-        if (notificationManager != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) && (notificationManager != null)) {
             val channel = NotificationChannel(
                 channelId,
                 "발자국동행 가드 법인차량 24시간 GPS 관제",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_LOW,
             ).apply {
                 description = "가드 법인 단말기 실시간 구글맵 관제 연동"
             }
@@ -50,33 +58,77 @@ class GuardGpsForegroundService : Service() {
             .setOngoing(true)
             .build()
 
-        startForeground(1002, notification)
+        try {
+            val hasFineLocation = ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+            ) == PackageManager.PERMISSION_GRANTED
+            val hasCoarseLocation = ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION,
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) && (hasFineLocation || hasCoarseLocation)) {
+                startForeground(
+                    1002,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
+                )
+            } else {
+                startForeground(1002, notification)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("GuardGpsService", "startForeground safely caught: ${e.message}")
+        }
     }
 
     @Suppress("MissingPermission")
     private fun startContinuousGpsTracking() {
         try {
-            locationManager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager
-            locationListener = object : LocationListener {
-                override fun onLocationChanged(location: Location) {
-                    val lat = location.latitude
-                    val lng = location.longitude
-                    // 디스크/파이어베이스에 가드 실시간 좌표 24시간 영구 기록
-                    val pref = getSharedPreferences("BaljagukAppDiskPrefs", Context.MODE_PRIVATE)
-                    pref.edit()
-                        .putString("guard_last_lat", lat.toString())
-                        .putString("guard_last_lng", lng.toString())
-                        .putLong("guard_last_gps_time", System.currentTimeMillis())
-                        .commit()
-                }
+            val hasFineLocation = ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+            ) == PackageManager.PERMISSION_GRANTED
+            val hasCoarseLocation = ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION,
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (!hasFineLocation && !hasCoarseLocation) {
+                return
             }
 
-            locationManager?.requestLocationUpdates(
-                LocationManager.GPS_PROVIDER,
-                10000L, // 10초 주기
-                5f,     // 5m 이동 주기
-                locationListener!!
-            )
+            locationManager = getSystemService(LOCATION_SERVICE) as? LocationManager
+            locationListener = LocationListener { location ->
+                val lat = location.latitude
+                val lng = location.longitude
+                // 디스크/파이어베이스에 가드 실시간 좌표 24시간 영구 기록
+                val pref = getSharedPreferences("BaljagukAppDiskPrefs", MODE_PRIVATE)
+                pref.edit(commit = true) {
+                    putString("guard_last_lat", lat.toString())
+                    putString("guard_last_lng", lng.toString())
+                    putLong("guard_last_gps_time", System.currentTimeMillis())
+                }
+                try {
+                    com.example.forpetapp.data.firebase.FirebaseSyncManager.updateGuardLiveGps(lat, lng)
+                } catch (_: Exception) {}
+            }
+
+            if (locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true) {
+                locationManager?.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    10000L, // 10초 주기
+                    5f,     // 5m 이동 주기
+                    locationListener!!,
+                )
+            } else if (locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true) {
+                locationManager?.requestLocationUpdates(
+                    LocationManager.NETWORK_PROVIDER,
+                    10000L,
+                    5f,
+                    locationListener!!,
+                )
+            }
         } catch (_: Exception) {}
     }
 
@@ -88,6 +140,8 @@ class GuardGpsForegroundService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        locationListener?.let { locationManager?.removeUpdates(it) }
+        try {
+            locationListener?.let { locationManager?.removeUpdates(it) }
+        } catch (_: Exception) {}
     }
 }

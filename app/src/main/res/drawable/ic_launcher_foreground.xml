@@ -5,27 +5,29 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Main Pad -->
+    <!-- 발자국 메인 패드 (순백색) -->
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M54,58c-9,0 -18,7 -18,16c0,8 7,13 18,13c11,0 18,-5 18,-13c0,-9 -9,-16 -18,-16z" />
 
-    <!-- Top Left Toe -->
+    <!-- 메인 패드 중앙 웜 앰버 골드 안심 하트 -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M54,67 c-2,-2 -5,-2 -7,0 c-2,2 -2,5 0,7 l7,7 l7,-7 c2,-2 2,-5 0,-7 c-2,-2 -5,-2 -7,0z" />
+
+    <!-- 4개 발가락 (안심 발자국) -->
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M34,45c-3.5,0 -6.5,4 -6.5,8c0,4 3,7 6.5,7c3.5,0 6.5,-3 6.5,-7c0,-4 -3,-8 -6.5,-8z" />
 
-    <!-- Top Center-Left Toe -->
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M46,35c-3.5,0 -6.5,4 -6.5,8c0,4 3,7 6.5,7c3.5,0 6.5,-3 6.5,-7c0,-4 -3,-8 -6.5,-8z" />
 
-    <!-- Top Center-Right Toe -->
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M62,35c-3.5,0 -6.5,4 -6.5,8c0,4 3,7 6.5,7c3.5,0 6.5,-3 6.5,-7c0,-4 -3,-8 -6.5,-8z" />
 
-    <!-- Top Right Toe -->
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M74,45c-3.5,0 -6.5,4 -6.5,8c0,4 3,7 6.5,7c3.5,0 6.5,-3 6.5,-7c0,-4 -3,-8 -6.5,-8z" />

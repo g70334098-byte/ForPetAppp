@@ -4,7 +4,13 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- 발자국동행 시그니처 딥 스카이 블루 배경 -->
     <path
-        android:fillColor="#FAF9F6"
+        android:fillColor="#0284C7"
         android:pathData="M0,0h108v108h-108z" />
+
+    <!-- 은은한 소프트 원형 하이라이트 -->
+    <path
+        android:fillColor="#0369A1"
+        android:pathData="M54,14 a40,40 0 1,0 0.1,0 Z" />
 </vector>

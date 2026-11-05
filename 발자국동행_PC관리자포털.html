@@ -7,6 +7,9 @@
     <!-- 고화질 구글 지도 라이브러리 (마우스 휠 스크롤 줌 100% 활성화) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Firebase Cloud Firestore 실시간 연동 SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <style>
         :root {
             --bg-dark: #f8f6f0;        /* 따뜻한 감성 베이지/크림 관제 메인 배경 */
@@ -319,6 +322,34 @@
             color: #fff;
         }
 
+        /* 복수 가드 플릿 카드 스타일 */
+        .guard-fleet-card {
+            background: #ffffff;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 16px;
+            min-width: 220px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+            flex-shrink: 0;
+        }
+
+        .guard-fleet-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(2, 132, 199, 0.15);
+        }
+
+        .guard-fleet-card.active {
+            border-color: var(--primary);
+            background: #f0f9ff;
+            box-shadow: 0 6px 16px rgba(2, 132, 199, 0.2);
+        }
+
         /* 팝업 모달 */
         .modal-overlay {
             position: fixed;
@@ -396,9 +427,23 @@
                 <p>💡 어플 시작 시 필수 스마트폰 GPS 권한이 강제 호출되며, 가드 핸드폰 GPS 실시간 위치가 구글 지도의 고정 마커 핀으로 동기화됩니다.</p>
             </div>
 
-            <div class="live-clock">
-                <span>🔴 LIVE</span>
-                <span id="clock">2026-10-18 14:30:00</span>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <!-- 🚀 실시간 앱 버전 제어 배지 및 원클릭 강제 업데이트 버튼 -->
+                <div id="version-control-badge" style="background:#ffffff; border:1px solid #bae6fd; padding:8px 14px; border-radius:12px; font-size:12px; color:#0369a1; box-shadow:0 4px 10px rgba(0,0,0,0.03); display:flex; align-items:center; gap:8px;">
+                    <span>📱 앱 필수 버전:</span>
+                    <span id="current-min-version" style="font-weight:bold; color:#0284c7;">v1.0.9 (Code 10)</span>
+                    <button onclick="openVersionControlModal()" style="background:#0284c7; color:#ffffff; border:none; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer;">⚙️ 버전 설정</button>
+                </div>
+
+                <div id="db-status-badge" style="background:#ffffff; border:1px solid var(--border-color); padding:10px 16px; border-radius:12px; font-size:12px; font-weight:700; color:#0f172a; box-shadow:0 4px 10px rgba(0,0,0,0.03); display:flex; align-items:center; gap:8px;">
+                    <span>☁️ Cloud DB:</span>
+                    <span id="db-status-text" style="color:#f59e0b;">📡 연결 확인 중...</span>
+                </div>
+
+                <div class="live-clock">
+                    <span>🔴 LIVE</span>
+                    <span id="clock">실시간 관제 시계 가동 중...</span>
+                </div>
             </div>
         </div>
 
@@ -418,8 +463,8 @@
 
             <div class="kpi-card">
                 <div class="kpi-title">가동 레이 케어카</div>
-                <div class="kpi-value">1 대</div>
-                <div class="kpi-sub">🚙 부산 38가 5394 (박찬헌 가드 전담)</div>
+                <div class="kpi-value" id="kpi-guard-count">3 대</div>
+                <div class="kpi-sub" id="kpi-guard-sub">🚙 전담 가드 3명 배차 가동 중</div>
             </div>
 
             <div class="kpi-card">
@@ -460,7 +505,7 @@
         <!-- Tab 2: 👨‍✈️ 가드 실시간 GPS 위치 관제 패널 (Google Maps 기반 - 마우스 휠 줌 스크롤 100% 가동) -->
         <div id="panel-guard" class="content-panel" style="display:none;">
             <div class="panel-header">
-                <div class="panel-title">👨‍✈️ 가드 핸드폰 GPS 실시간 연동 구글 지도 관제 (마우스 휠 스크롤 줌 가능)</div>
+                <div class="panel-title">👨‍✈️ 복수 가드 케어카 플릿 & 실시간 스마트폰 GPS 지도 관제</div>
                 <div class="search-box">
                     <select id="guard-gps-selector" onchange="changeGuardGpsLocation(this.value)">
                         <option value="jakji">📍 [작지마을] 부산 강서구 작지마을 정류장 앞 (가드 핸드폰 GPS 100% 동기화)</option>
@@ -471,11 +516,25 @@
                         <option value="saha_eisol">📍 [하단동] 부산 사하구 하단동 534-7 24시 이솔동물의료센터 앞</option>
                         <option value="saha_hadan5">📍 [하단동] 부산 사하구 하단동 617-10 23시 하단오거리동물병원 앞</option>
                     </select>
-                    <button class="btn-action btn-green" onclick="alert('📡 박찬헌 가드의 스마트폰 GPS 위치 신호가 최신 상태로 100% 동기화되었습니다!')">📡 GPS 위치 갱신</button>
+                    <button class="btn-action btn-green" onclick="syncSelectedGuardGps()">📡 선택 가드 GPS 위치 갱신</button>
                     <button class="btn-action btn-gold" onclick="resetPinCoords()">📍 핀 위치 원복</button>
                 </div>
             </div>
-            <p style="font-size:12px; color:#0284c7; margin-top:-10px; margin-bottom:12px; font-weight:bold;">💡 핀을 마우스 왼쪽 버튼으로 누른 채 원하는 건물/주차장 지점으로 드래그하여 떨어뜨리면 그 위치로 영구 자동 저장됩니다.</p>
+            <p style="font-size:12px; color:#0284c7; margin-top:-10px; margin-bottom:12px; font-weight:bold;">💡 아래 가드 카드를 클릭하면 지도가 해당 가드의 레이 차량 위치로 즉시 밀착 이동하며, 지도 위의 마커 핀을 직접 마우스로 드래그하여 위치를 옮겨도 영구 저장됩니다.</p>
+
+            <!-- 🚘 복수 가드 채용 & 차량 플릿 선택 바 -->
+            <div style="margin-bottom: 16px; background: #f8f6f0; border: 1px solid var(--border-color); border-radius: 14px; padding: 14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <div style="font-size:14px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:8px;">
+                        <span>🚘 가동 케어카 플릿 & 전담 가드 목록 (클릭 시 해당 가드로 지도 이동)</span>
+                        <span id="guard-fleet-count" class="badge badge-blue">3명 가동 중</span>
+                    </div>
+                    <button class="btn-action btn-green" onclick="openAddGuardModal()">➕ 신규 가드 채용 & 차량 등록</button>
+                </div>
+                <div id="guard-fleet-list" style="display:flex; gap:12px; overflow-x:auto; padding-bottom:4px;">
+                    <!-- 가드 목록 동적 렌더링 -->
+                </div>
+            </div>
 
             <div class="guard-layout">
                 <!-- 공식 구글 맵(Google Maps) 실시간 HD 관제 지도 (마우스 휠 스크롤 줌 지원) -->
@@ -486,24 +545,29 @@
                 <!-- 우측 가드 정보 패널 -->
                 <div class="guard-sidebar">
                     <div class="guard-avatar-box">
-                        <div class="guard-avatar">👨‍✈️</div>
-                        <div>
-                            <h3 style="font-size:16px; color:#0f172a;">박찬헌 가드</h3>
-                            <p style="font-size:12px; color:#0284c7; font-weight:bold;">수석 안심 케어 코디네이터</p>
+                        <div class="guard-avatar" id="guard-detail-avatar">👨‍✈️</div>
+                        <div style="flex:1;">
+                            <h3 style="font-size:16px; color:#0f172a;" id="guard-detail-name">박찬헌 가드</h3>
+                            <p style="font-size:12px; color:#0284c7; font-weight:bold;" id="guard-detail-title">1호차 수석 안심 케어 코디네이터</p>
                         </div>
+                        <span class="badge badge-active" id="guard-detail-badge" style="font-size:10px;">🟢 LIVE 운행</span>
                     </div>
 
                     <div style="display:flex; flex-direction:column; gap:8px; font-size:13px; color:#0f172a;">
-                        <div>🚘 <b>담당 차량</b>: 기아 레이 펫전용차 (부산 38가 5394)</div>
-                        <div>📞 <b>직통 연락처</b>: <span style="color:#0284c7; font-weight:bold;">010-2654-5394</span></div>
+                        <div>🚘 <b>담당 차량</b>: <span id="guard-detail-car">기아 레이 (부산 38가 5394)</span></div>
+                        <div>📞 <b>직통 연락처</b>: <span style="color:#0284c7; font-weight:bold;" id="guard-detail-phone">010-2654-5394</span></div>
                         <div>📍 <b>핸드폰 실시간 GPS</b>: <b style="color:#d97706;" id="guard-gps-display">부산 강서구 작지마을 정류장 인근</b></div>
-                        <div>📹 <b>바디캠 송출</b>: <span class="badge badge-active">🔴 LIVE 바디캠 송출 중</span></div>
-                        <div>🌡️ <b>차내 실내 온도</b>: <span style="color:#d97706; font-weight:bold;">22.5 ℃ (쾌적 자동 유지 중)</span></div>
+                        <div>📹 <b>바디캠 송출</b>: <span class="badge badge-active" id="guard-detail-cam-status">🔴 LIVE 송출 중</span></div>
+                        <div>🌡️ <b>차내 실내 온도</b>: <span style="color:#d97706; font-weight:bold;" id="guard-detail-temp">22.5 ℃ (쾌적 자동 유지 중)</span></div>
                     </div>
 
                     <div style="margin-top:auto; display:flex; flex-direction:column; gap:8px;">
-                        <button class="btn-action" style="padding:12px; justify-content:center; font-size:13px;" onclick="alert('박찬헌 가드에게 직통 통화가 연결됩니다 (010-2654-5394)')">📞 가드 직통 무전/전화 연결</button>
-                        <button class="btn-action btn-gold" style="padding:10px; justify-content:center; font-size:12px;" onclick="openBodycamModal('ORD-01')">📹 바디캠 라이브 시청</button>
+                        <button class="btn-action" id="guard-btn-call" style="padding:10px; justify-content:center; font-size:12px;" onclick="callSelectedGuard()">📞 가드 직통 무전/전화 연결</button>
+                        <button class="btn-action btn-gold" id="guard-btn-bodycam" style="padding:10px; justify-content:center; font-size:12px;" onclick="openSelectedGuardBodycam()">📹 바디캠 라이브 시청</button>
+                        <div style="display:flex; gap:6px;">
+                            <button class="btn-action btn-gold" style="flex:1; padding:6px; justify-content:center; font-size:11px;" onclick="openEditSelectedGuardModal()">✏️ 가드 정보 수정</button>
+                            <button class="btn-action btn-danger" style="flex:1; padding:6px; justify-content:center; font-size:11px;" onclick="deleteSelectedGuard()">🗑️ 가드 삭제</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -514,8 +578,8 @@
                     <div style="display:flex; align-items:center; gap:10px;">
                         <span style="font-size: 20px;">📹</span>
                         <div>
-                            <b style="font-size:16px; color:#fff;">박찬헌 가드 - 안심 바디캠 라이브 실시간 수송 모니터링</b>
-                            <p style="font-size:11px; color:#94a3b8; margin-top:2px;">차내 레이 안심 세이프티 시트 및 아이('초코') 이송 상태 실시간 라이브 수신 중</p>
+                            <b style="font-size:16px; color:#fff;" id="bodycam-monitor-title">박찬헌 가드 - 안심 바디캠 라이브 실시간 수송 모니터링</b>
+                            <p style="font-size:11px; color:#94a3b8; margin-top:2px;" id="bodycam-monitor-sub">차내 레이 안심 세이프티 시트 및 아이 이송 상태 실시간 라이브 수신 중</p>
                         </div>
                     </div>
                     <span class="badge badge-active" style="font-size:12px; padding:6px 12px;">🔴 LIVE 바디캠 송출 중</span>
@@ -526,18 +590,18 @@
                     <img src="hero_visual.jpg" style="width:100%; height:100%; object-fit:cover; opacity:0.85;" alt="바디캠 실시간 라이브">
 
                     <div style="position:absolute; top:12px; left:12px; background:rgba(0,0,0,0.7); color:#4ade80; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:6px;">
-                        <span>🔴 CAM-01 [박찬헌 가드 바디캠]</span>
+                        <span id="bodycam-overlay-cam">🔴 CAM-01 [박찬헌 가드 바디캠]</span>
                         <span>|</span>
                         <span>LIVE STREAM</span>
                     </div>
 
-                    <div style="position:absolute; bottom:12px; left:12px; background:rgba(0,0,0,0.7); color:#fff; padding:6px 12px; border-radius:8px; font-size:11px;">
-                        🚘 레이 케어카 (부산 38가 5394) | 🌡️ 차내 온도: 22.5℃ | 🎙️ 음성 오디오 정상
+                    <div style="position:absolute; bottom:12px; left:12px; background:rgba(0,0,0,0.7); color:#fff; padding:6px 12px; border-radius:8px; font-size:11px;" id="bodycam-overlay-info">
+                        🚘 레이 케어카 (기아 레이 부산 38가 5394) | 🌡️ 차내 온도: 22.5℃ | 🎙️ 음성 오디오 정상
                     </div>
 
                     <div style="position:absolute; bottom:12px; right:12px; display:flex; gap:8px;">
                         <button class="btn-action" style="background:#0284c7; padding:6px 12px; font-size:11px;" onclick="alert('📸 바디캠 고화질 스냅샷 캡처가 관제 서버에 저장되었습니다.')">📸 스냅샷 캡처</button>
-                        <button class="btn-action btn-gold" style="padding:6px 12px; font-size:11px;" onclick="alert('🎙️ 박찬헌 가드 무전 스피커로 관제 음성이 송출됩니다.')">🔊 안심 무전 송출</button>
+                        <button class="btn-action btn-gold" style="padding:6px 12px; font-size:11px;" id="bodycam-btn-intercom" onclick="sendIntercomToSelectedGuard()">🔊 안심 무전 송출</button>
                     </div>
                 </div>
             </div>
@@ -772,16 +836,16 @@
             </div>
 
             <div style="position:relative; width:100%; height:320px; background:#1e293b; border-radius:12px; overflow:hidden; border:2px solid #334155; display:flex; align-items:center; justify-content:center;">
-                <img src="hero_visual.jpg" style="width:100%; height:100%; object-fit:cover; opacity:0.85;" alt="바디캠 실시간 라이브">
+                <img src="hero_visual.jpg" style="width:100%; height:100%; object-fit:cover; opacity:0.9;" alt="바디캠 실시간 라이브">
 
-                <div style="position:absolute; top:12px; left:12px; background:rgba(0,0,0,0.7); color:#4ade80; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:6px;">
+                <div style="position:absolute; top:12px; left:12px; background:rgba(0,0,0,0.8); color:#4ade80; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:6px;">
                     <span>🔴 CAM-01 [박찬헌 가드 전용 바디캠]</span>
                     <span>|</span>
                     <span>LIVE STREAM</span>
                 </div>
 
-                <div style="position:absolute; bottom:12px; left:12px; background:rgba(0,0,0,0.7); color:#fff; padding:6px 12px; border-radius:8px; font-size:11px;">
-                    🚘 레이 케어카 (부산 38가 5394) | 🌡️ 차내 온도: 22.5℃ | 🎙️ 음성 오디오 정상
+                <div style="position:absolute; bottom:12px; left:12px; background:rgba(0,0,0,0.8); color:#fff; padding:6px 12px; border-radius:8px; font-size:11px;">
+                    🚘 레이 케어카 (부산 38가 5394) | 🌡️ 실내 온도: 22.5 ℃ | 🎙️ 음성 정상 수신
                 </div>
 
                 <div style="position:absolute; bottom:12px; right:12px; display:flex; gap:8px;">
@@ -797,41 +861,109 @@
         </div>
     </div>
 
+    <!-- 6. 신규/수정 가드 채용 & 차량 등록 모달 -->
+    <div class="modal-overlay" id="guard-form-modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="guard-modal-title">👨‍✈️ 신규 케어가드 채용 & 차량 배차 등록</h3>
+                <span class="modal-close" onclick="closeModal('guard-form-modal')">✕</span>
+            </div>
+
+            <input type="hidden" id="edit-guard-id">
+
+            <div class="form-group">
+                <label>가드 성명</label>
+                <input type="text" id="form-guard-name" placeholder="예: 정민혁 가드">
+            </div>
+
+            <div class="form-group">
+                <label>직책 및 호차 구분</label>
+                <input type="text" id="form-guard-title" placeholder="예: 4호차 야간 응급 전담 가드">
+            </div>
+
+            <div class="form-group">
+                <label>배차 차량 번호 및 차종</label>
+                <input type="text" id="form-guard-car" placeholder="예: 기아 레이 (부산 41라 9920)">
+            </div>
+
+            <div class="form-group">
+                <label>가드 직통 휴대폰 연락처</label>
+                <input type="text" id="form-guard-phone" placeholder="예: 010-9988-1234">
+            </div>
+
+            <div class="form-group">
+                <label>기본 대기 거점 (주요 활동 지역)</label>
+                <select id="form-guard-location-preset" onchange="applyPresetLocationToGuard(this.value)">
+                    <option value="jakji">📍 [강서구 작지마을] 부산 강서구 작지마을 정류장 앞</option>
+                    <option value="myeongji">📍 [강서구 명지] 부산 강서구 명지국제8로 150 삼정그린코아</option>
+                    <option value="hadan">📍 [사하구 하단] 부산 사하구 낙동대로 550 하단역 자이</option>
+                    <option value="sasang">📍 [사상구 괘법] 부산 사상구 괘법동 사상역 센트럴</option>
+                    <option value="yeonsan">📍 [연제구 연산] 부산 연제구 연산동 1953-1 연산동물의료센터 앞</option>
+                    <option value="deokcheon">📍 [북구 덕천] 부산 북구 덕천동 561-2 동행동물의료센터 앞</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>현재 근무 상태</label>
+                <select id="form-guard-status">
+                    <option value="🟢 LIVE 운행">🟢 LIVE 운행 (1:1 안심 진료 대행)</option>
+                    <option value="🟡 거점 대기">🟡 거점 대기 (다음 배차 대기)</option>
+                    <option value="🔵 진료 동행">🔵 진료 동행 (동물병원 대기)</option>
+                </select>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-action btn-green" style="padding:10px 18px;" onclick="saveGuardForm()">💾 저장 및 플릿 반영</button>
+                <button class="btn-action btn-danger" style="padding:10px 18px;" onclick="closeModal('guard-form-modal')">취소</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // 시계 가동
+        // 시계 가동 (초단위 실시간 갱신)
         function updateClock() {
-            const now = new Date();
-            document.getElementById('clock').innerText = now.getFullYear() + '-' +
-                String(now.getMonth()+1).padStart(2,'0') + '-' +
-                String(now.getDate()).padStart(2,'0') + ' ' +
-                String(now.getHours()).padStart(2,'0') + ':' +
-                String(now.getMinutes()).padStart(2,'0') + ':' +
-                String(now.getSeconds()).padStart(2,'0');
+            try {
+                const now = new Date();
+                const clockElem = document.getElementById('clock');
+                if (clockElem) {
+                    clockElem.innerText = now.getFullYear() + '-' +
+                        String(now.getMonth()+1).padStart(2,'0') + '-' +
+                        String(now.getDate()).padStart(2,'0') + ' ' +
+                        String(now.getHours()).padStart(2,'0') + ':' +
+                        String(now.getMinutes()).padStart(2,'0') + ':' +
+                        String(now.getSeconds()).padStart(2,'0');
+                }
+            } catch (e) {
+                console.warn("updateClock error:", e);
+            }
         }
         setInterval(updateClock, 1000);
         updateClock();
+        window.updateClock = updateClock;
 
-        // 패널 스위칭
+        // 패널 스위칭 (왼쪽 메뉴 네비게이션)
         function switchPanel(panelName) {
-            document.getElementById('panel-orders').style.display = (panelName === 'orders') ? 'block' : 'none';
-            document.getElementById('panel-guard').style.display = (panelName === 'guard') ? 'block' : 'none';
-            document.getElementById('panel-users').style.display = (panelName === 'users') ? 'block' : 'none';
-            document.getElementById('panel-sales').style.display = (panelName === 'sales') ? 'block' : 'none';
+            try {
+                const panels = ['orders', 'guard', 'users', 'sales'];
+                panels.forEach(p => {
+                    const el = document.getElementById('panel-' + p);
+                    if (el) el.style.display = (p === panelName) ? 'block' : 'none';
+                    const menu = document.getElementById('menu-' + p);
+                    if (menu) menu.classList.toggle('active', p === panelName);
+                });
 
-            document.getElementById('menu-orders').classList.toggle('active', panelName === 'orders');
-            document.getElementById('menu-guard').classList.toggle('active', panelName === 'guard');
-            document.getElementById('menu-users').classList.toggle('active', panelName === 'users');
-            document.getElementById('menu-sales').classList.toggle('active', panelName === 'sales');
-
-            // ⚡ 탭 전환 시 구글 지도 크기 100% 재계산
-            if (panelName === 'guard') {
-                setTimeout(function() {
-                    if (googleMap) {
-                        googleMap.invalidateSize();
-                    }
-                }, 50);
+                if (panelName === 'guard') {
+                    setTimeout(function() {
+                        if (typeof googleMap !== 'undefined' && googleMap) {
+                            googleMap.invalidateSize();
+                        }
+                    }, 100);
+                }
+            } catch (err) {
+                console.error("switchPanel error:", err);
             }
         }
+        window.switchPanel = switchPanel;
 
         // 드래그 마커 핀 위경도 영구 저장 관리 시스템
         var defaultPinCoords = {
@@ -856,9 +988,342 @@
             }
         }
 
-        // 공식 구글 지도(Google Maps) HD 타일 엔진 가동 (마우스 휠 스크롤 줌 & 드래그 이동 저장 가동)
-        var googleMap, carMarker, hospitalMarker;
-        var currentGpsText = "부산 강서구 작지마을 정류장 인근";
+        // 공식 구글 지도(Google Maps) HD 타일 엔진 가동 & 복수 가드 플릿 마커 연동
+        var googleMap, hospitalMarker;
+        var guardMarkers = {};
+
+        // 복수 가드 플릿 기본 데이터
+        const defaultGuards = [
+            {
+                id: "guard_1",
+                name: "박찬헌 가드",
+                title: "1호차 수석 안심 케어 코디네이터",
+                car: "기아 레이 (부산 38가 5394)",
+                plate: "38가 5394",
+                phone: "010-2654-5394",
+                status: "🟢 LIVE 운행",
+                statusBadge: "badge-active",
+                locationName: "부산 강서구 작지마을 정류장 인근",
+                lat: 35.0830000,
+                lng: 128.8950000,
+                temp: "22.5 ℃",
+                color: "#0284c7",
+                bodycamCam: "CAM-01 [박찬헌 가드 전용 바디캠]",
+                assignedPet: "아이('초코')"
+            },
+            {
+                id: "guard_2",
+                name: "김동현 가드",
+                title: "2호차 안심 전문 케어가드",
+                car: "기아 레이 (부산 39나 1024)",
+                plate: "39나 1024",
+                phone: "010-4821-1024",
+                status: "🟢 LIVE 운행",
+                statusBadge: "badge-active",
+                locationName: "부산 사하구 하단역 4번 출구 앞",
+                lat: 35.1064000,
+                lng: 128.9605000,
+                temp: "22.8 ℃",
+                color: "#10b981",
+                bodycamCam: "CAM-02 [김동현 가드 전용 바디캠]",
+                assignedPet: "아이('해피')"
+            },
+            {
+                id: "guard_3",
+                name: "이진우 가드",
+                title: "3호차 응급 수송 전문 가드",
+                car: "기아 레이 (부산 40다 5821)",
+                plate: "40다 5821",
+                phone: "010-9152-5821",
+                status: "🟡 거점 대기",
+                statusBadge: "badge-pending",
+                locationName: "부산 강서구 명지국제8로 150 삼정그린코아 앞",
+                lat: 35.0934000,
+                lng: 128.9105000,
+                temp: "22.0 ℃",
+                color: "#d97706",
+                bodycamCam: "CAM-03 [이진우 가드 전용 바디캠]",
+                assignedPet: "다음 배차 대기 중"
+            }
+        ];
+
+        let guardsData = JSON.parse(localStorage.getItem('baljaguk_guards')) || defaultGuards;
+        let selectedGuardId = guardsData[0] ? guardsData[0].id : "guard_1";
+
+        function persistGuards() {
+            try {
+                localStorage.setItem('baljaguk_guards', JSON.stringify(guardsData));
+            } catch (e) {
+                console.warn("Storage save error:", e);
+            }
+            renderGuardFleetBar();
+            renderGuardMarkersOnMap();
+        }
+
+        function createGuardCarIcon(guard, isSelected) {
+            const glow = isSelected ? 'box-shadow: 0 0 0 4px #38bdf8, 0 8px 24px rgba(0,0,0,0.5); transform: scale(1.08);' : 'box-shadow: 0 6px 16px rgba(0,0,0,0.35);';
+            return L.divIcon({
+                className: 'custom-car-marker-' + guard.id,
+                html: `<div style="background: linear-gradient(135deg, ${guard.color || '#0284c7'}, #0f172a); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; border: 2.5px solid #ffffff; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; ${glow}" onclick="selectGuard('${guard.id}')">
+                           <span style="font-size: 18px;">🚙</span>
+                           <span>${guard.name} (${guard.plate || '케어카'})</span>
+                           <span style="background: #10b981; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">LIVE</span>
+                       </div>`,
+                iconSize: [210, 40],
+                iconAnchor: [105, 20]
+            });
+        }
+
+        function renderGuardMarkersOnMap() {
+            if (!googleMap) return;
+            // 기존 가드 마커 제거 후 재배치
+            Object.keys(guardMarkers).forEach(id => {
+                if (guardMarkers[id]) googleMap.removeLayer(guardMarkers[id]);
+            });
+            guardMarkers = {};
+
+            guardsData.forEach(guard => {
+                const isSelected = (guard.id === selectedGuardId);
+                const marker = L.marker([guard.lat, guard.lng], {
+                    icon: createGuardCarIcon(guard, isSelected),
+                    draggable: true,
+                    zIndexOffset: isSelected ? 1000 : 100
+                }).addTo(googleMap);
+
+                marker.on('click', function() {
+                    selectGuard(guard.id);
+                });
+
+                marker.on('dragend', function(e) {
+                    var pos = e.target.getLatLng();
+                    guard.lat = pos.lat;
+                    guard.lng = pos.lng;
+                    persistGuards();
+                    updateGuardDetailPanel(guard);
+                    alert(`💾 [${guard.name}] 마커 핀 위치가 이동 저장되었습니다!\n(위도: ${pos.lat.toFixed(6)}, 경도: ${pos.lng.toFixed(6)})`);
+                });
+
+                guardMarkers[guard.id] = marker;
+            });
+        }
+
+        function selectGuard(guardId) {
+            selectedGuardId = guardId;
+            const guard = guardsData.find(g => g.id === guardId) || guardsData[0];
+            if (!guard) return;
+
+            renderGuardFleetBar();
+
+            if (googleMap) {
+                googleMap.setView([guard.lat, guard.lng], 15, { animate: true });
+                renderGuardMarkersOnMap();
+            }
+
+            updateGuardDetailPanel(guard);
+            updateBodycamMonitor(guard);
+        }
+
+        function updateGuardDetailPanel(guard) {
+            const avatar = document.getElementById('guard-detail-avatar');
+            if (avatar) {
+                avatar.style.background = guard.color || "#0284c7";
+            }
+            const nameEl = document.getElementById('guard-detail-name');
+            if (nameEl) nameEl.innerText = guard.name;
+            const titleEl = document.getElementById('guard-detail-title');
+            if (titleEl) titleEl.innerText = guard.title;
+            const badgeEl = document.getElementById('guard-detail-badge');
+            if (badgeEl) {
+                badgeEl.innerText = guard.status;
+                badgeEl.className = 'badge ' + (guard.statusBadge || 'badge-active');
+            }
+            const carEl = document.getElementById('guard-detail-car');
+            if (carEl) carEl.innerText = guard.car;
+            const phoneEl = document.getElementById('guard-detail-phone');
+            if (phoneEl) phoneEl.innerText = guard.phone;
+            const gpsEl = document.getElementById('guard-gps-display');
+            if (gpsEl) gpsEl.innerText = guard.locationName || `위도: ${guard.lat.toFixed(4)}, 경도: ${guard.lng.toFixed(4)}`;
+            const tempEl = document.getElementById('guard-detail-temp');
+            if (tempEl) tempEl.innerText = (guard.temp || "22.5 ℃") + " (쾌적 자동 유지 중)";
+        }
+
+        function updateBodycamMonitor(guard) {
+            const title = document.getElementById('bodycam-monitor-title');
+            if (title) title.innerText = `${guard.name} - 안심 바디캠 라이브 실시간 수송 모니터링`;
+            const sub = document.getElementById('bodycam-monitor-sub');
+            if (sub) sub.innerText = `차내 레이 안심 세이프티 시트 및 ${guard.assignedPet || '아이'} 이송 상태 실시간 라이브 수신 중`;
+            const overlayCam = document.getElementById('bodycam-overlay-cam');
+            if (overlayCam) overlayCam.innerText = `🔴 ${guard.bodycamCam || 'CAM-01 [가드 바디캠]'}`;
+            const overlayInfo = document.getElementById('bodycam-overlay-info');
+            if (overlayInfo) overlayInfo.innerText = `🚘 레이 케어카 (${guard.car}) | 🌡️ 차내 온도: ${guard.temp || '22.5℃'} | 🎙️ 음성 오디오 정상`;
+        }
+
+        function renderGuardFleetBar() {
+            const container = document.getElementById('guard-fleet-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            guardsData.forEach(guard => {
+                const isSelected = (guard.id === selectedGuardId);
+                const card = document.createElement('div');
+                card.className = 'guard-fleet-card' + (isSelected ? ' active' : '');
+                card.onclick = () => selectGuard(guard.id);
+                card.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="background:${guard.color || '#0284c7'}; color:#fff; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold; flex-shrink:0;">
+                            👨‍✈️
+                        </div>
+                        <div style="flex:1; overflow:hidden;">
+                            <div style="font-size:14px; font-weight:800; color:#0f172a; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${guard.name}</div>
+                            <div style="font-size:11px; color:#64748b; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${guard.car}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+                        <span class="badge ${guard.statusBadge || 'badge-active'}" style="font-size:10px;">${guard.status}</span>
+                        <span style="font-size:11px; color:${guard.color || '#0284c7'}; font-weight:700;">📍 ${guard.locationName.split(' ')[1] || '위치'}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            const fleetCount = document.getElementById('guard-fleet-count');
+            if (fleetCount) fleetCount.innerText = guardsData.length + "명 가동 중";
+            const kpiCount = document.getElementById('kpi-guard-count');
+            if (kpiCount) kpiCount.innerText = guardsData.length + " 대";
+            const kpiSub = document.getElementById('kpi-guard-sub');
+            if (kpiSub) kpiSub.innerText = `🚙 전담 가드 ${guardsData.length}명 배차 가동 중`;
+        }
+
+        function syncSelectedGuardGps() {
+            const guard = guardsData.find(g => g.id === selectedGuardId);
+            if (guard) {
+                alert(`📡 [${guard.name}]의 스마트폰 GPS 위치 신호가 최신 상태로 100% 동기화되었습니다!`);
+            }
+        }
+
+        function callSelectedGuard() {
+            const guard = guardsData.find(g => g.id === selectedGuardId);
+            if (guard) {
+                alert(`📞 [${guard.name}]에게 직통 통화/무전이 연결됩니다 (${guard.phone})`);
+            }
+        }
+
+        function openSelectedGuardBodycam() {
+            const guard = guardsData.find(g => g.id === selectedGuardId);
+            if (guard) {
+                const title = document.getElementById('bodycam-modal-title');
+                if (title) title.innerText = `📹 [${guard.name}] 안심 바디캠 라이브 실시간 수송 모니터링`;
+                document.getElementById('bodycam-modal').style.display = 'flex';
+            }
+        }
+
+        function sendIntercomToSelectedGuard() {
+            const guard = guardsData.find(g => g.id === selectedGuardId);
+            if (guard) {
+                alert(`🎙️ [${guard.name}] 무전 스피커로 관제 음성이 송출됩니다.`);
+            }
+        }
+
+        function openAddGuardModal() {
+            document.getElementById('guard-modal-title').innerText = "👨‍✈️ 신규 케어가드 채용 & 차량 배차 등록";
+            document.getElementById('edit-guard-id').value = "";
+            document.getElementById('form-guard-name').value = "";
+            document.getElementById('form-guard-title').value = (guardsData.length + 1) + "호차 전담 케어가드";
+            document.getElementById('form-guard-car').value = "기아 레이 (부산 " + (40 + guardsData.length) + "라 " + Math.floor(1000 + Math.random()*9000) + ")";
+            document.getElementById('form-guard-phone').value = "010-";
+            document.getElementById('guard-form-modal').style.display = 'flex';
+        }
+
+        function openEditSelectedGuardModal() {
+            const guard = guardsData.find(g => g.id === selectedGuardId);
+            if (!guard) return;
+            document.getElementById('guard-modal-title').innerText = "✏️ 가드 정보 및 배차 차량 수정";
+            document.getElementById('edit-guard-id').value = guard.id;
+            document.getElementById('form-guard-name').value = guard.name;
+            document.getElementById('form-guard-title').value = guard.title;
+            document.getElementById('form-guard-car').value = guard.car;
+            document.getElementById('form-guard-phone').value = guard.phone;
+            document.getElementById('form-guard-status').value = guard.status;
+            document.getElementById('guard-form-modal').style.display = 'flex';
+        }
+
+        function saveGuardForm() {
+            const editId = document.getElementById('edit-guard-id').value;
+            const colors = ['#0284c7', '#10b981', '#d97706', '#8b5cf6', '#ec4899', '#06b6d4'];
+            const presetLocs = {
+                jakji: { lat: 35.0830000, lng: 128.8950000, name: "부산 강서구 작지마을 정류장 앞" },
+                myeongji: { lat: 35.0934000, lng: 128.9105000, name: "부산 강서구 명지국제8로 150 앞" },
+                hadan: { lat: 35.1064000, lng: 128.9605000, name: "부산 사하구 하단역 자이 앞" },
+                sasang: { lat: 35.1564000, lng: 128.9805000, name: "부산 사상구 사상역 센트럴 앞" },
+                yeonsan: { lat: 35.1818200, lng: 129.0823500, name: "부산 연제구 연산동 1953-1 앞" },
+                deokcheon: { lat: 35.2289650, lng: 129.0093850, name: "부산 북구 덕천동 561-2 앞" }
+            };
+            const presetKey = document.getElementById('form-guard-location-preset').value;
+            const chosenLoc = presetLocs[presetKey] || presetLocs.jakji;
+
+            if (editId !== "") {
+                const guard = guardsData.find(g => g.id === editId);
+                if (guard) {
+                    guard.name = document.getElementById('form-guard-name').value || guard.name;
+                    guard.title = document.getElementById('form-guard-title').value || guard.title;
+                    guard.car = document.getElementById('form-guard-car').value || guard.car;
+                    guard.phone = document.getElementById('form-guard-phone').value || guard.phone;
+                    guard.status = document.getElementById('form-guard-status').value;
+                    guard.statusBadge = guard.status.includes('운행') ? 'badge-active' : (guard.status.includes('대기') ? 'badge-pending' : 'badge-blue');
+                    alert(`💾 [${guard.name}] 정보가 성공적으로 수정 저장되었습니다!`);
+                }
+            } else {
+                const newId = "guard_" + Date.now();
+                const newCar = document.getElementById('form-guard-car').value || "기아 레이";
+                const plateMatch = newCar.match(/\((.*?)\)/);
+                const newPlate = plateMatch ? plateMatch[1] : (newCar.split(' ')[1] || '케어카');
+                const newGuard = {
+                    id: newId,
+                    name: document.getElementById('form-guard-name').value || "신규 가드",
+                    title: document.getElementById('form-guard-title').value || "안심 케어가드",
+                    car: newCar,
+                    plate: newPlate,
+                    phone: document.getElementById('form-guard-phone').value || "010-0000-0000",
+                    status: document.getElementById('form-guard-status').value,
+                    statusBadge: "badge-active",
+                    locationName: chosenLoc.name,
+                    lat: chosenLoc.lat,
+                    lng: chosenLoc.lng,
+                    temp: "22.5 ℃",
+                    color: colors[guardsData.length % colors.length],
+                    bodycamCam: `CAM-0${guardsData.length + 1} [${document.getElementById('form-guard-name').value || '가드'} 바디캠]`,
+                    assignedPet: "배차 대기 중"
+                };
+                guardsData.push(newGuard);
+                selectedGuardId = newId;
+                alert(`🎉 [${newGuard.name}] 가드가 채용되어 ${newGuard.car} 차량과 함께 플릿에 정식 등록되었습니다!`);
+            }
+
+            closeModal('guard-form-modal');
+            persistGuards();
+            selectGuard(selectedGuardId);
+        }
+
+        function deleteSelectedGuard() {
+            if (guardsData.length <= 1) {
+                alert("⚠️ 최소 1명 이상의 가드가 관제 시스템에 등록되어 있어야 합니다.");
+                return;
+            }
+            const guard = guardsData.find(g => g.id === selectedGuardId);
+            if (!guard) return;
+
+            if (confirm(`정말로 [${guard.name} (${guard.car})] 가드를 관제 플릿에서 삭제하시겠습니까?`)) {
+                if (guardMarkers[guard.id] && googleMap) {
+                    googleMap.removeLayer(guardMarkers[guard.id]);
+                    delete guardMarkers[guard.id];
+                }
+                guardsData = guardsData.filter(g => g.id !== guard.id);
+                selectedGuardId = guardsData[0].id;
+                persistGuards();
+                selectGuard(selectedGuardId);
+                alert(`🗑️ [${guard.name}] 가드가 성공적으로 삭제되었습니다.`);
+            }
+        }
 
         function initGoogleMapEngine() {
             if (typeof L !== 'undefined') {
@@ -872,23 +1337,8 @@
                     maxZoom: 20
                 }).addTo(googleMap);
 
-                // 1. 레이 케어카 차 커스텀 마커 핀 (드래그로 마우스 이동 및 저장 가능!)
-                var carIcon = L.divIcon({
-                    className: 'custom-car-marker',
-                    html: `<div style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 16px rgba(0,0,0,0.35); border: 2.5px solid #ffffff; cursor: move; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('👨‍✈️ 박찬헌 가드 (부산 38가 5394)\\n📍 현재 위치: ' + currentGpsText + '\\n속도: 42 km/h (안전 운행 중)\\n상태: 1:1 안심 진료 대행 이송 중')">
-                               <span style="font-size: 18px;">🚙</span>
-                               <span>레이 케어카 (38가 5394)</span>
-                               <span style="background: #10b981; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">GPS LIVE</span>
-                           </div>`,
-                    iconSize: [180, 40],
-                    iconAnchor: [90, 20]
-                });
-                carMarker = L.marker(savedPinCoords.car || defaultPinCoords.car, { icon: carIcon, draggable: true }).addTo(googleMap);
-                carMarker.on('dragend', function(e) {
-                    var pos = e.target.getLatLng();
-                    savePinCoord('car', pos.lat, pos.lng);
-                    alert('💾 [레이 케어카] 마커 핀 위치가 원하는 장소로 영구 이동 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
-                });
+                // 복수 가드 마커 핀 일괄 생성 및 등록
+                renderGuardMarkersOnMap();
 
                 // 2. 부산 24시 동행동물의료센터 커스텀 마커 핀 (부산 북구 덕천동 561-2)
                 var hospIcon1 = L.divIcon({
@@ -965,45 +1415,59 @@
         }
 
         window.onload = function() {
-            initGoogleMapEngine();
+            try {
+                initGoogleMapEngine();
+                renderGuardFleetBar();
+                selectGuard(selectedGuardId);
+            } catch (mapErr) {
+                console.warn("initGoogleMapEngine error:", mapErr);
+            }
+            try {
+                if (typeof initFirebaseSync === 'function') {
+                    initFirebaseSync();
+                }
+            } catch (fbErr) {
+                console.warn("initFirebaseSync error:", fbErr);
+            }
         };
 
         function changeGuardGpsLocation(locKey) {
-            const display = document.getElementById('guard-gps-display');
+            const guard = guardsData.find(g => g.id === selectedGuardId);
+            if (!guard) return;
+
             var lat = 35.0830000, lng = 128.8950000;
+            var locName = "부산 강서구 작지마을 정류장 인근";
 
             if (locKey === 'jakji') {
                 lat = 35.0830000; lng = 128.8950000;
-                currentGpsText = "부산 강서구 작지마을 정류장 인근";
+                locName = "부산 강서구 작지마을 정류장 앞";
             } else if (locKey === 'myeongji') {
                 lat = 35.0934000; lng = 128.9105000;
-                currentGpsText = "부산 강서구 명지국제8로 150 삼정그린코아";
+                locName = "부산 강서구 명지국제8로 150 삼정그린코아 앞";
             } else if (locKey === 'hadan') {
                 lat = 35.1064000; lng = 128.9605000;
-                currentGpsText = "부산 사하구 낙동대로 550 하단역 자이";
+                locName = "부산 사하구 낙동대로 550 하단역 자이 앞";
             } else if (locKey === 'sasang') {
                 lat = 35.1564000; lng = 128.9805000;
-                currentGpsText = "부산 사상구 괘법동 사상역 센트럴";
+                locName = "부산 사상구 괘법동 사상역 센트럴 앞";
             } else if (locKey === 'yeonsan') {
-                lat = savedPinCoords.hosp2[0]; lng = savedPinCoords.hosp2[1];
-                currentGpsText = "부산 연제구 연산동 1953-1 연산동물의료센터 앞";
+                lat = 35.1818200; lng = 129.0823500;
+                locName = "부산 연제구 연산동 1953-1 연산동물의료센터 앞";
             } else if (locKey === 'saha_eisol') {
-                lat = savedPinCoords.hosp3[0]; lng = savedPinCoords.hosp3[1];
-                currentGpsText = "부산 사하구 하단동 534-7 이솔동물의료센터 앞";
+                lat = 35.1017800; lng = 128.9664500;
+                locName = "부산 사하구 하단동 534-7 이솔동물의료센터 앞";
             } else if (locKey === 'saha_hadan5') {
-                lat = savedPinCoords.hosp4[0]; lng = savedPinCoords.hosp4[1];
-                currentGpsText = "부산 사하구 하단동 617-10 하단오거리동물병원 앞";
+                lat = 35.1051500; lng = 128.9617800;
+                locName = "부산 사하구 하단동 617-10 하단오거리동물병원 앞";
             }
 
-            if (googleMap) {
-                if (carMarker && (locKey === 'jakji' || locKey === 'myeongji' || locKey === 'hadan' || locKey === 'sasang')) {
-                    carMarker.setLatLng([lat, lng]);
-                }
-                googleMap.setView([lat, lng], 17); // ⚡ 해당 건물 17레벨 초고화질 밀착 줌!
-            }
+            guard.lat = lat;
+            guard.lng = lng;
+            guard.locationName = locName;
+            persistGuards();
+            selectGuard(guard.id);
 
-            display.innerText = currentGpsText;
-            alert(`📡 위치가 구글 지도상에 [${currentGpsText}]로 실시간 100% 동기화되었습니다!`);
+            alert(`📡 [${guard.name}] 위치가 구글 지도상에 [${locName}]로 실시간 100% 동기화되었습니다!`);
         }
 
         // 초기 기본 샘플 데이터 (3가지 서비스 트림 구분: 긴급 50,000원 / 당일미예약 35,000원 / 예약진료 30,000원)
@@ -1020,8 +1484,8 @@
         ];
 
         const defaultSales = [
-            { date: "2026-10-18 10:30", id: "ORD-01", type: "🏥 병원 진료 대행", owner: "최지훈 대표님 (초코)", price: "38,000 원", discount: "-3,000 P", final: 35000, method: "💳 카드 자동 가결제", status: "정산 완료" },
-            { date: "2026-10-18 14:00", id: "ORD-02", type: "🏥 병원 진료 대행", owner: "이선하 대표님 (해피)", price: "30,000 원", discount: "0 P", final: 30000, method: "💳 카드 자동 가결제", status: "정산 완료" }
+            { date: "2026-11-05 10:30", id: "ORD-01", type: "🏥 병원 진료 대행", owner: "최지훈 대표님 (초코)", price: "38,000 원", discount: "-3,000 P", final: 35000, method: "💳 카드 자동 가결제", status: "정산 완료" },
+            { date: "2026-11-05 14:00", id: "ORD-02", type: "🏥 병원 진료 대행", owner: "이선하 대표님 (해피)", price: "30,000 원", discount: "0 P", final: 30000, method: "💳 카드 자동 가결제", status: "정산 완료" }
         ];
 
         // LocalStorage 영구 로드 및 저장
@@ -1030,12 +1494,172 @@
         let salesData = JSON.parse(localStorage.getItem('baljaguk_sales')) || defaultSales;
 
         function persistData() {
-            localStorage.setItem('baljaguk_orders', JSON.stringify(ordersData));
-            localStorage.setItem('baljaguk_users', JSON.stringify(usersData));
-            localStorage.setItem('baljaguk_sales', JSON.stringify(salesData));
+            try {
+                localStorage.setItem('baljaguk_orders', JSON.stringify(ordersData));
+                localStorage.setItem('baljaguk_users', JSON.stringify(usersData));
+                localStorage.setItem('baljaguk_sales', JSON.stringify(salesData));
+            } catch (storageErr) {
+                console.warn("Storage save error:", storageErr);
+            }
             renderOrdersTable();
             renderUsersTable();
             renderSalesTable();
+        }
+
+        // ☁️ Firebase Firestore 실시간 연동 (스마트폰 앱 ↔ 관리자 웹 포털 실시간 동기화)
+        function initFirebaseSync() {
+            try {
+                if (typeof firebase === 'undefined') return;
+                const firebaseConfig = {
+                    apiKey: "AIzaSyD3T4gWVuK2S_V9FCF8dMjVUPNmNg_tuL4",
+                    authDomain: "forpetapp-c603e.firebaseapp.com",
+                    projectId: "forpetapp-c603e",
+                    storageBucket: "forpetapp-c603e.firebasestorage.app",
+                    messagingSenderId: "797590460763",
+                    appId: "1:797590460763:android:95849f156161f738f9e27e"
+                };
+
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                const db = firebase.firestore();
+
+                // 🚗 0. 가드 차량 실시간 GPS 수신
+                db.collection("guard_live").doc("ray_care_car")
+                    .onSnapshot(function(doc) {
+                        if (doc && doc.exists) {
+                            var data = doc.data();
+                            if (data.lat && data.lng) {
+                                if (typeof carMarker !== 'undefined' && carMarker) {
+                                    carMarker.setLatLng([data.lat, data.lng]);
+                                }
+                                var display = document.getElementById('guard-gps-display');
+                                if (display) display.innerText = '위도: ' + data.lat.toFixed(6) + ', 경도: ' + data.lng.toFixed(6) + ' (실시간 스마트폰 GPS)';
+                            }
+                        }
+                    }, function(err) { console.log("GPS listen error", err); });
+
+                // 1. 실시간 회원 DB (users 컬렉션) 동기화
+                db.collection("users").onSnapshot((snapshot) => {
+                    const statusText = document.getElementById('db-status-text');
+                    if (statusText) {
+                        statusText.innerHTML = "🟢 실시간 연동 정상 (forpetapp-c603e)";
+                        statusText.style.color = "#047857";
+                    }
+                    if (snapshot && !snapshot.empty) {
+                        const cloudUsers = [];
+                        snapshot.forEach(doc => {
+                            const d = doc.data();
+                            const provLabel = d.provider === "Kakao" ? "💛 카카오톡" : (d.provider === "Google" ? "🔴 Google" : (d.provider || "일반"));
+                            cloudUsers.push({
+                                name: d.name || "회원",
+                                provider: provLabel + (d.email ? " (" + d.email + ")" : ""),
+                                phone: d.phone || doc.id,
+                                address: ((d.address || "부산") + " " + (d.detailAddress || "")).trim(),
+                                pet: d.pet || "반려동물 (등록 대기)",
+                                points: typeof d.points === 'number' ? d.points : 3000
+                            });
+                        });
+                        if (cloudUsers.length > 0) {
+                            usersData = cloudUsers;
+                            localStorage.setItem('baljaguk_users', JSON.stringify(usersData));
+                            renderUsersTable();
+                            console.log("☁️ Firestore 실시간 회원 동기화 완료:", cloudUsers.length, "명");
+                        }
+                    } else if (snapshot && snapshot.empty) {
+                        if (statusText) {
+                            statusText.innerHTML = "🟢 실시간 연결됨 (신규 가입 대기 중)";
+                            statusText.style.color = "#0284c7";
+                        }
+                    }
+                }, (err) => {
+                    console.warn("Firestore users sync:", err);
+                    const statusText = document.getElementById('db-status-text');
+                    if (statusText) {
+                        statusText.innerHTML = "⚠️ Firestore 활성화 필요 (<a href='https://console.firebase.google.com/project/forpetapp-c603e/firestore' target='_blank' style='color:#dc2626; font-weight:bold; text-decoration:underline;'>콘솔에서 데이터베이스 만들기 클릭</a>)";
+                        statusText.style.color = "#dc2626";
+                    }
+                });
+
+                // 2. 실시간 오더 DB (orders 컬렉션) 동기화
+                db.collection("orders").onSnapshot((snapshot) => {
+                    if (snapshot && !snapshot.empty) {
+                        const cloudOrders = [];
+                        snapshot.forEach(doc => {
+                            const d = doc.data();
+                            cloudOrders.push({
+                                id: d.id || doc.id,
+                                trim: d.serviceTrim || "📅 예약 진료",
+                                type: d.species || "🐶 강아지",
+                                pet: d.petName || "아이",
+                                owner: d.ownerName || "보호자",
+                                hospital: d.hospitalName || "동물병원",
+                                time: d.time || "시간 미정",
+                                status: d.status || "1. 배차 대기 중",
+                                guard: d.vehicleInfo || "발자국동행 레이",
+                                price: d.estimatedPrice || "30,000원",
+                                doctorNote: d.doctorNote || "",
+                                prescription: d.prescription || ""
+                            });
+                        });
+                        if (cloudOrders.length > 0) {
+                            ordersData = cloudOrders;
+                            localStorage.setItem('baljaguk_orders', JSON.stringify(ordersData));
+                            renderOrdersTable();
+                            console.log("☁️ Firestore 실시간 오더 동기화 완료:", cloudOrders.length, "건");
+                        }
+                    }
+                }, (err) => console.warn("Firestore orders sync:", err));
+
+                // 3. 앱 필수 버전 (app_config / version_control) 실시간 동기화
+                db.collection("app_config").doc("version_control")
+                    .onSnapshot((doc) => {
+                        if (doc && doc.exists) {
+                            const data = doc.data();
+                            const minCode = data.minVersionCode || 9;
+                            const verName = data.latestVersionName || "1.0.8";
+                            const badgeText = document.getElementById('current-min-version');
+                            if (badgeText) {
+                                badgeText.innerText = `v${verName} (Code ${minCode})`;
+                            }
+                        }
+                    }, (err) => console.warn("Version config sync error:", err));
+
+            } catch (fbErr) {
+                console.warn("Firebase Init Error:", fbErr);
+            }
+        }
+        initFirebaseSync();
+
+        // 🚀 관리자 버전 제어 모달 기능
+        function openVersionControlModal() {
+            const currentText = document.getElementById('current-min-version') ? document.getElementById('current-min-version').innerText : 'v1.0.8 (Code 9)';
+            const inputCode = prompt(`[📱 발자국동행 앱 강제 업데이트 설정]\n\n현재 필수 최소 버전: ${currentText}\n\n새로 요구할 최소 VersionCode(숫자)를 입력하세요.\n(예: 9 이상으로 설정하면 8 이하 사용자는 무조건 구글플레이 업데이트 팝업이 뜹니다.)`, "9");
+            if (!inputCode) return;
+
+            const parsedCode = parseInt(inputCode, 10);
+            if (isNaN(parsedCode) || parsedCode < 1) {
+                alert("올바른 숫자(VersionCode)를 입력해주세요.");
+                return;
+            }
+
+            const inputName = prompt("표시할 최신 버전명을 입력하세요 (예: 1.0.8):", "1.0.8") || "1.0.8";
+
+            try {
+                const db = firebase.firestore();
+                db.collection("app_config").doc("version_control").set({
+                    minVersionCode: parsedCode,
+                    latestVersionName: inputName,
+                    updateMessage: "원활한 실시간 예약 및 안심 케어 서비스 이용을 위해 무조건 최신 버전으로 업데이트해야 합니다. 구글 플레이스토어로 이동하여 지금 바로 업데이트를 진행해 주세요.",
+                    updatedAt: Date.now()
+                }, { merge: true }).then(() => {
+                    alert(`✅ 최신 버전 요구사항이 성공적으로 적용되었습니다!\n- 필수 버전코드: ${parsedCode}\n- 버전명: v${inputName}\n\n이 버전보다 낮은 앱을 켠 사용자는 즉시 이용이 차단되고 구글플레이로 이동됩니다.`);
+                }).catch((e) => {
+                    alert("버전 저장 실패: " + e.message);
+                });
+            } catch (err) {
+                alert("Firebase 연결 오류: " + err.message);
+            }
         }
 
         // 로드 시 내장 저장된 커스텀 로고가 있으면 불러오기
@@ -1078,7 +1702,7 @@
                             <button class="btn-action" style="padding:4px 8px; font-size:11px; background:#0284c7;" onclick="openBodycamModal('${item.id}')">📹 바디캠 시청</button>
                             <button class="btn-action" style="padding:4px 8px; font-size:11px;" onclick="openReportModal('${item.id}')">📄 리포트</button>
                             <button class="btn-action btn-gold" style="padding:4px 8px; font-size:11px;" onclick="openEditOrderModal(${index})">✏️ 수정</button>
-                            <button class="btn-action btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteUser(${index})">🗑️ 삭제</button>
+                            <button class="btn-action btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteOrder(${index})">🗑️ 삭제</button>
                         </div>
                     </td>
                 `;
@@ -1412,7 +2036,7 @@
                 alert("➕ 신규 회원이 등록되었습니다!");
             }
 
-            closeModal('order-form-modal');
+            closeModal('user-form-modal');
             persistData();
         }
 

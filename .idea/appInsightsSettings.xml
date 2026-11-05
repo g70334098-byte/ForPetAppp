@@ -3,13 +3,27 @@
   <component name="AppInsightsSettings">
     <option name="tabSettings">
       <map>
+        <entry key="Android vitals">
+          <value>
+            <InsightsFilterSettings>
+              <option name="connection">
+                <ConnectionSetting>
+                  <option name="appId" value="com.baldong.app" />
+                </ConnectionSetting>
+              </option>
+              <option name="signal" value="SIGNAL_UNSPECIFIED" />
+              <option name="timeIntervalDays" value="SEVEN_DAYS" />
+              <option name="visibilityType" value="ALL" />
+            </InsightsFilterSettings>
+          </value>
+        </entry>
         <entry key="Firebase Crashlytics">
           <value>
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="com.example.forpetapp" />
-                  <option name="mobileSdkAppId" value="1:797590460763:android:95849f156161f738f9e27e" />
+                  <option name="appId" value="com.baldong.app" />
+                  <option name="mobileSdkAppId" value="1:797590460763:android:8710f231ab2cca4cf9e27e" />
                   <option name="projectId" value="forpetapp-c603e" />
                   <option name="projectNumber" value="797590460763" />
                 </ConnectionSetting>

@@ -23,6 +23,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Forpetapp"
+rootProject.name = "Baldong"
 include(":app")
  
