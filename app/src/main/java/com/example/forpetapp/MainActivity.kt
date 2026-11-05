@@ -5178,7 +5178,8 @@ fun MyPageScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 0. 보유 포인트 및 친구 추천 관리 카드 (클릭 시 상세 내역 다이얼로그 연동)
+        // 0. 보유 포인트 및 친구 추천 관리 카드 (정식 오픈 시 복구 예정으로 마이페이지에서 숨김 처리됨)
+        /*
         item {
             Card(
                 modifier = Modifier
@@ -5256,6 +5257,7 @@ fun MyPageScreen(
                 }
             }
         }
+        */
 
         // 0-2. 🔒 AES-256 금융급 보안 및 DB 보호 시스템 가동 안내 카드
         item {
