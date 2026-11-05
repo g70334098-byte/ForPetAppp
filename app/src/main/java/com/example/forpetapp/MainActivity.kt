@@ -2356,8 +2356,8 @@ fun ForPetMainScreen(
     // 디스크 파일(SharedPreferences)에서 영구 정보 초기화 로드
     var userNickname by remember { mutableStateOf(PersistentStorageManager.loadUserNickname(context, "발자국동행보호자")) }
     var userPhone by remember { mutableStateOf(PersistentStorageManager.loadUserPhone(context, "010-1234-5678")) }
-    var userAddress by remember { mutableStateOf(PersistentStorageManager.loadUserAddress(context, "부산 강서구 명지국제8로 150")) }
-    var userDetailAddress by remember { mutableStateOf(PersistentStorageManager.loadUserDetailAddress(context, "101동 1502호")) }
+    var userAddress by remember { mutableStateOf(PersistentStorageManager.loadUserAddress(context, "")) }
+    var userDetailAddress by remember { mutableStateOf(PersistentStorageManager.loadUserDetailAddress(context, "")) }
     var savedRegisteredCard by remember { mutableStateOf(PersistentStorageManager.loadRegisteredCard(context)) }
 
     // 반려동물 프로필 정보 디스크 파일 초기화 로드
@@ -5119,8 +5119,8 @@ fun MyPageScreen(
     userReferralCode: String = "K7TB94",
     userNickname: String = "발자국동행보호자",
     userPhone: String = "010-1234-5678",
-    userAddress: String = "부산 강서구 명지국제8로 150",
-    userDetailAddress: String = "101동 1502호",
+    userAddress: String = "",
+    userDetailAddress: String = "",
     initialCard: String? = null,
     onUpdateCard: (String?) -> Unit = {},
     onUpdateProfile: (String, String, String, String) -> Unit = { _, _, _, _ -> },
@@ -6446,8 +6446,8 @@ fun HomeScreenContent(
     userReferralCode: String = "K7TB94",
     userNickname: String = "발자국동행보호자",
     userPhone: String = "010-1234-5678",
-    initialAddress: String = "부산 강서구 명지국제8로 150",
-    initialDetailAddress: String = "101동 1502호",
+    initialAddress: String = "",
+    initialDetailAddress: String = "",
     currentGpsLocation: String = "부산 전 지역",
     onAddBooking: (BookingItem) -> Unit = {},
     onNavigateToBookingTab: () -> Unit = {}

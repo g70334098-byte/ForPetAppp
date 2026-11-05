@@ -77,8 +77,8 @@ fun SignUpScreen(
         if (savedPhone.isBlank() || savedPhone.length < 10) {
             savedPhone = "010-3786-5394"
         }
-        val userAddr = PersistentStorageManager.loadUserAddress(context, "부산 강서구 명지국제8로 150")
-        val userDetail = PersistentStorageManager.loadUserDetailAddress(context, "101동 1502호")
+        val userAddr = PersistentStorageManager.loadUserAddress(context, "")
+        val userDetail = PersistentStorageManager.loadUserDetailAddress(context, "")
         val userCard = PersistentStorageManager.loadRegisteredCard(context)
         val userPts = 0
         PersistentStorageManager.saveUserPoints(context, userPts)
