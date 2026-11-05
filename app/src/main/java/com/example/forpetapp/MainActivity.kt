@@ -5259,27 +5259,7 @@ fun MyPageScreen(
         }
         */
 
-        // 0-2. 🔒 AES-256 금융급 보안 및 DB 보호 시스템 가동 안내 카드
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
-                border = BorderStroke(1.dp, Color(0xFFBBF7D0))
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text("🔒", fontSize = 24.sp)
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("AES-256 금융급 데이터베이스 암호화 적용 중", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF15803D))
-                        Text("보호자님의 자택 주소 및 결제 카드는 암호화 보관되며, 도어락 비번 등 민감 정보는 이송 완료 시 자동 100% 영구 파기됩니다.", fontSize = 10.sp, color = Color(0xFF166534), lineHeight = 14.sp)
-                    }
-                }
-            }
-        }
+        // 0-2. 🔒 암호화 보안 안내 카드는 마이페이지 최하단(사업자 정보 위)으로 이동됨
         // 1. 닉네임 및 휴대폰번호 설정
         item {
             Card(
@@ -5573,6 +5553,28 @@ fun MyPageScreen(
                             Text("회원 탈퇴 (계정 및 데이터 영구 파기)", color = Color(0xFFEF4444), fontSize = 13.sp)
                             Text("➔", color = Color(0xFFEF4444), fontSize = 13.sp)
                         }
+                    }
+                }
+            }
+        }
+
+        // 4-2. 🔒 AES-256 금융급 보안 및 DB 보호 시스템 가동 안내 카드 (하단 배치)
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
+                border = BorderStroke(1.dp, Color(0xFFBBF7D0))
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text("🔒", fontSize = 24.sp)
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("AES-256 금융급 데이터베이스 암호화 적용 중", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF15803D))
+                        Text("보호자님의 자택 주소 및 결제 카드는 암호화 보관되며, 도어락 비번 등 민감 정보는 이송 완료 시 자동 100% 영구 파기됩니다.", fontSize = 10.sp, color = Color(0xFF166534), lineHeight = 14.sp)
                     }
                 }
             }
