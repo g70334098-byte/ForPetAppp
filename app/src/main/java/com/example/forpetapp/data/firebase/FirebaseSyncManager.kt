@@ -406,7 +406,7 @@ object FirebaseSyncManager {
         provider: String = "일반",
         address: String = "",
         detailAddress: String = "",
-        points: Int = 3000,
+        points: Int = 0,
         onComplete: ((Boolean) -> Unit)? = null
     ) {
         try {

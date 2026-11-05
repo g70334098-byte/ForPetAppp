@@ -73,7 +73,7 @@ fun LoginScreen(
         val userAddr = PersistentStorageManager.loadUserAddress(context, "부산 강서구 명지국제8로 150")
         val userDetail = PersistentStorageManager.loadUserDetailAddress(context, "101동 1502호")
         val userCard = PersistentStorageManager.loadRegisteredCard(context)
-        val userPts = PersistentStorageManager.loadUserPoints(context, 3000)
+        val userPts = PersistentStorageManager.loadUserPoints(context, 0)
 
         PersistentStorageManager.saveUserProfile(
             context = context,

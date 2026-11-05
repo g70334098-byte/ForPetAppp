@@ -1744,7 +1744,7 @@ object PersistentStorageManager {
         getPrefs(context).edit(commit = true) { putInt("user_points", points) }
     }
 
-    fun loadUserPoints(context: android.content.Context, defaultVal: Int = 3000): Int =
+    fun loadUserPoints(context: android.content.Context, defaultVal: Int = 0): Int =
         getPrefs(context).getInt("user_points", defaultVal)
 
     // 마이페이지 회원 정보 저장/로드 (.commit() 보장)
@@ -5875,6 +5875,8 @@ fun MyPageScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     item {
+                        // 💡 포인트/적립금 제도는 정식 사업자 및 SMS 본인인증 도입 후 복구 예정으로 마이페이지에서 숨김 처리됨
+                        /*
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
@@ -5909,6 +5911,7 @@ fun MyPageScreen(
                                 Text("※ 적립된 포인트의 유효기간은 적립일로부터 1년(365일)입니다.", fontSize = 10.sp, color = Color.Gray)
                             }
                         }
+                        */
                     }
 
                     items(pointLogs.size) { index ->
@@ -6707,47 +6710,7 @@ fun HomeScreenContent(
             }
         }
 
-        // 1-3. 🎁 친구 추천 이벤트 3,000P 배너 카드
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showEventDialog = true },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)),
-                border = BorderStroke(1.dp, Color(0xFFFDE68A))
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("🎁", fontSize = 28.sp)
-                        Column {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text("친구 추천 3,000 P 100% 증정!", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF92400E))
-                                Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = Color(0xFFD97706)
-                                ) {
-                                    Text("HOT 🔥", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
-                                }
-                            }
-                            Text("친구 초대 시 1명당 3,000 포인트 적립 (결제 시 현금처럼 사용 가능)", fontSize = 11.sp, color = Color(0xFFB45309))
-                        }
-                    }
-                    Text("참여하기 ➔", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
-                }
-            }
-        }
+        // 1-3. 🎁 친구 추천 이벤트 배너 (정식 오픈 시 포인트/추천제도와 함께 복구 예정으로 현재 숨김)
 
         // 1-4. 💊 복약 & 백신 캘린더 & 🚨 24시 응급 직통 가이드 (2분할 카드)
         item {
@@ -8330,7 +8293,8 @@ fun HomeScreenContent(
                         }
                     }
 
-                    // 8-2. 🎁 보유 포인트 사용 (1회 결제 당 최대 3,000 P 제한)
+                    // 8-2. 🎁 보유 포인트 사용 (정식 오픈 시 복구 예정으로 예약 화면에서 숨김 처리됨)
+                    /*
                     item {
                         var isPointsApplied by remember { mutableStateOf(false) }
                         val maxUsablePoints = kotlin.math.min(userPoints, 3000)
@@ -8388,6 +8352,7 @@ fun HomeScreenContent(
                             }
                         }
                     }
+                    */
 
                     // 8-3. 🎟️ 보유 할인 쿠폰 선택 (친구 추천 5,000원 / 웰컴 3,000원 쿠폰)
                     item {

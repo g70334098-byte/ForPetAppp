@@ -405,7 +405,7 @@
             <div class="nav-menu">
                 <div class="nav-item active" id="menu-orders" onclick="switchPanel('orders')">📋 실시간 오더 관제 & 배차</div>
                 <div class="nav-item" id="menu-guard" onclick="switchPanel('guard')">👨‍✈️ 가드 실시간 GPS 위치 (Google Maps)</div>
-                <div class="nav-item" id="menu-users" onclick="switchPanel('users')">👥 회원 DB 및 포인트 관리</div>
+                <div class="nav-item" id="menu-users" onclick="switchPanel('users')">👥 회원 DB 관리</div>
                 <div class="nav-item" id="menu-sales" onclick="switchPanel('sales')">📊 매출 관리 & 결제 정산 내역</div>
             </div>
         </div>
@@ -431,7 +431,7 @@
                 <!-- 🚀 실시간 앱 버전 제어 배지 및 원클릭 강제 업데이트 버튼 -->
                 <div id="version-control-badge" style="background:#ffffff; border:1px solid #bae6fd; padding:8px 14px; border-radius:12px; font-size:12px; color:#0369a1; box-shadow:0 4px 10px rgba(0,0,0,0.03); display:flex; align-items:center; gap:8px;">
                     <span>📱 앱 필수 버전:</span>
-                    <span id="current-min-version" style="font-weight:bold; color:#0284c7;">v1.0.9 (Code 10)</span>
+                    <span id="current-min-version" style="font-weight:bold; color:#0284c7;">v1.0.10 (Code 11)</span>
                     <button onclick="openVersionControlModal()" style="background:#0284c7; color:#ffffff; border:none; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer;">⚙️ 버전 설정</button>
                 </div>
 
@@ -625,8 +625,6 @@
                         <th>연락처</th>
                         <th>자택 주소</th>
                         <th>등록 반려동물</th>
-                        <th>보유 포인트</th>
-                        <th>포인트 지급</th>
                         <th>회원 직접 수정 / 삭제</th>
                     </tr>
                 </thead>
@@ -1776,10 +1774,6 @@
                     <td><b style="color:#0284c7;">${user.phone}</b></td>
                     <td style="font-size:12px;">${user.address}</td>
                     <td><b style="color:#d97706; cursor:pointer;" onclick="openUserDetailModal(${index})">${user.pet} 🐾</b></td>
-                    <td><b style="color:#d97706;">${user.points.toLocaleString()} P</b></td>
-                    <td>
-                        <button class="btn-action btn-gold" style="padding:4px 8px; font-size:11px;" onclick="addPoints(${index}, 3000)">🎁 +3,000P</button>
-                    </td>
                     <td>
                         <div style="display:flex; gap:4px;">
                             <button class="btn-action" style="padding:4px 8px; font-size:11px; background:#0284c7;" onclick="openUserDetailModal(${index})">🔍 상세조회</button>

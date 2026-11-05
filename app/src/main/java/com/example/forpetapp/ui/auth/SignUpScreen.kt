@@ -80,18 +80,7 @@ fun SignUpScreen(
         val userAddr = PersistentStorageManager.loadUserAddress(context, "부산 강서구 명지국제8로 150")
         val userDetail = PersistentStorageManager.loadUserDetailAddress(context, "101동 1502호")
         val userCard = PersistentStorageManager.loadRegisteredCard(context)
-        val userPts = PersistentStorageManager.loadUserPoints(context, 3000)
-
-        PersistentStorageManager.saveUserProfile(
-            context = context,
-            nickname = finalName,
-            phone = savedPhone,
-            address = userAddr,
-            detailAddress = userDetail,
-            card = userCard
-        )
-        PersistentStorageManager.saveUserProvider(context, currentProvider)
-        PersistentStorageManager.saveUserEmail(context, currentAccountEmail)
+        val userPts = 0
         PersistentStorageManager.saveUserPoints(context, userPts)
 
         val targetUserId = if (currentAccountEmail.isNotBlank()) currentAccountEmail else savedPhone
@@ -107,7 +96,7 @@ fun SignUpScreen(
             points = userPts
         )
 
-        Toast.makeText(context, "🎉 발자국동행 신규 회원가입을 축하드립니다! (웰컴 3,000P 적립 완료)", Toast.LENGTH_LONG).show()
+        Toast.makeText(context, "🎉 발자국동행 신규 회원가입을 축하드립니다!", Toast.LENGTH_LONG).show()
         onSignUpSuccess(false, false, finalName)
     }
 
@@ -182,8 +171,8 @@ fun SignUpScreen(
                     Text("🎁", fontSize = 16.sp)
                     Text("신규 회원 특별 웰컴 혜택", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF1E40AF))
                 }
-                Text("• 가입 즉시 예약 시 현금처럼 차감 가능한 3,000P 웰컴 포인트 지급!", fontSize = 11.sp, color = Color(0xFF1E3A8A))
                 Text("• 발자국동행 기아 레이 펫전용차 1:1 안심 케어카 배차 우선 배정권 부여", fontSize = 11.sp, color = Color(0xFF1E3A8A))
+                Text("• 전문 펫케어가드의 24시간 실시간 위치 & 안심 동행 라이브 관제 지원", fontSize = 11.sp, color = Color(0xFF1E3A8A))
             }
         }
 
