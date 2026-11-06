@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.sp
 import com.example.forpetapp.AdaptiveAppIcon
 import com.example.forpetapp.PersistentStorageManager
 import com.example.forpetapp.data.firebase.FirebaseSyncManager
+import com.kakao.sdk.common.model.ClientError
+import com.kakao.sdk.common.model.ClientErrorCause
 import com.kakao.sdk.user.UserApiClient
 
 @Composable
@@ -112,10 +114,15 @@ fun SignUpScreen(
     val googleSignUpLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
+        if (result.resultCode != android.app.Activity.RESULT_OK) {
+            Toast.makeText(context, "Google 회원가입이 취소되었습니다.", Toast.LENGTH_SHORT).show()
+            return@rememberLauncherForActivityResult
+        }
+
         var signedInEmail: String? = null
         var signedInName: String? = null
 
-        if (result.resultCode == android.app.Activity.RESULT_OK && result.data != null) {
+        if (result.data != null) {
             val accountName = result.data?.getStringExtra(android.accounts.AccountManager.KEY_ACCOUNT_NAME)
             if (!accountName.isNullOrEmpty()) {
                 signedInEmail = accountName
@@ -133,10 +140,14 @@ fun SignUpScreen(
             }
         }
 
-        val finalEmail = signedInEmail ?: "google_user@baldong.co.kr"
+        if (signedInEmail.isNullOrEmpty()) {
+            Toast.makeText(context, "Google 계정 정보를 불러오지 못했습니다.", Toast.LENGTH_SHORT).show()
+            return@rememberLauncherForActivityResult
+        }
+
         val finalName = signedInName?.ifBlank { "발자국보호자" } ?: "발자국보호자"
         currentProvider = "Google"
-        currentAccountEmail = finalEmail
+        currentAccountEmail = signedInEmail
         Toast.makeText(context, "🎉 Google 간편 가입으로 정상 진행합니다!", Toast.LENGTH_SHORT).show()
         processSignUpWithPhoneCheck(finalName)
     }
@@ -419,10 +430,20 @@ fun SignUpScreen(
                             if (UserApiClient.instance.isKakaoTalkLoginAvailable(context)) {
                                 UserApiClient.instance.loginWithKakaoTalk(context) { token, error ->
                                     if (error != null) {
+                                        if (error is ClientError && error.reason == ClientErrorCause.Cancelled) {
+                                            Toast.makeText(context, "카카오 회원가입이 취소되었습니다.", Toast.LENGTH_SHORT).show()
+                                            return@loginWithKakaoTalk
+                                        }
                                         UserApiClient.instance.loginWithKakaoAccount(context) { token2, error2 ->
-                                            if (error2 != null || token2 == null) {
-                                                handleKakaoSuccess("발자국보호자", "kakao_user@baldong.co.kr")
-                                            } else {
+                                            if (error2 != null) {
+                                                if (error2 is ClientError && error2.reason == ClientErrorCause.Cancelled) {
+                                                    Toast.makeText(context, "카카오 회원가입이 취소되었습니다.", Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    Toast.makeText(context, "카카오 회원가입에 실패하였습니다.", Toast.LENGTH_SHORT).show()
+                                                }
+                                                return@loginWithKakaoAccount
+                                            }
+                                            if (token2 != null) {
                                                 UserApiClient.instance.me { user, _ ->
                                                     val nick = user?.kakaoAccount?.profile?.nickname
                                                         ?: user?.properties?.get("nickname")
@@ -440,15 +461,19 @@ fun SignUpScreen(
                                             val email = user?.kakaoAccount?.email ?: "kakao_${user?.id ?: "user"}@kakao.com"
                                             handleKakaoSuccess(nick, email)
                                         }
-                                    } else {
-                                        handleKakaoSuccess("발자국보호자", "kakao_user@baldong.co.kr")
                                     }
                                 }
                             } else {
                                 UserApiClient.instance.loginWithKakaoAccount(context) { token, error ->
-                                    if (error != null || token == null) {
-                                        handleKakaoSuccess("발자국보호자", "kakao_user@baldong.co.kr")
-                                    } else {
+                                    if (error != null) {
+                                        if (error is ClientError && error.reason == ClientErrorCause.Cancelled) {
+                                            Toast.makeText(context, "카카오 회원가입이 취소되었습니다.", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            Toast.makeText(context, "카카오 회원가입에 실패하였습니다.", Toast.LENGTH_SHORT).show()
+                                        }
+                                        return@loginWithKakaoAccount
+                                    }
+                                    if (token != null) {
                                         UserApiClient.instance.me { user, _ ->
                                             val nick = user?.kakaoAccount?.profile?.nickname
                                                 ?: user?.properties?.get("nickname")
@@ -460,7 +485,7 @@ fun SignUpScreen(
                                 }
                             }
                         } catch (_: Exception) {
-                            handleKakaoSuccess("발자국보호자", "kakao_user@baldong.co.kr")
+                            Toast.makeText(context, "카카오 회원가입 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier
@@ -493,10 +518,7 @@ fun SignUpScreen(
                             val googleSignInClient = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
                             googleSignUpLauncher.launch(googleSignInClient.signInIntent)
                         } catch (_: Exception) {
-                            currentProvider = "Google"
-                            currentAccountEmail = "google_user@baldong.co.kr"
-                            Toast.makeText(context, "🎉 Google 간편 가입으로 정상 진행합니다!", Toast.LENGTH_SHORT).show()
-                            processSignUpWithPhoneCheck("발자국보호자")
+                            Toast.makeText(context, "Google 회원가입 실행 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier
