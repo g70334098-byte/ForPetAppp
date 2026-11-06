@@ -5853,23 +5853,38 @@ fun MyPageScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        val uid = PersistentStorageManager.loadUserId(context)
+                        val uEmail = PersistentStorageManager.loadUserEmail(context)
+                        val uPhone = userPhone.takeIf { it != "010-1234-5678" } ?: PersistentStorageManager.loadUserPhone(context, "")
+
+                        // 1. Cloud Firestore users 컬렉션에서 해당 회원 정보 완전 영구 삭제
+                        FirebaseSyncManager.deleteUserProfileFromCloud(userId = uid, email = uEmail, phone = uPhone)
+
+                        // 2. Google Sign-In 계정 연동 해제 (토큰 및 권한 철회하여 재로그인 시 신규 가입 유도)
                         try {
-                            if (userPhone.isNotBlank()) {
-                                com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                                    .collection("users")
-                                    .document(userPhone)
-                                    .delete()
-                            }
+                            val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
+                                com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
+                            ).build()
+                            val googleClient = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
+                            googleClient.revokeAccess()
+                            googleClient.signOut()
                         } catch (_: Exception) {}
+
+                        // 3. 카카오 계정 연동 해제 (앱 연결 해제)
                         try {
                             com.kakao.sdk.user.UserApiClient.instance.unlink { }
                         } catch (_: Exception) {}
+
+                        // 4. Firebase Auth 로그아웃
                         try {
                             com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
                         } catch (_: Exception) {}
+
+                        // 5. 로컬 SharedPreferences 모든 세션/데이터 완전 초기화
                         try {
                             PersistentStorageManager.clearAllData(context)
                         } catch (_: Exception) {}
+
                         Toast.makeText(context, "회원 탈퇴가 완료되어 모든 데이터가 안전하게 파기되었습니다.", Toast.LENGTH_LONG).show()
                         showDeleteAccountDialog = false
                         onDeleteAccount()

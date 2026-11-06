@@ -455,6 +455,140 @@ object FirebaseSyncManager {
     }
 
     /**
+     * 8-1. Cloud Firestore users 컬렉션에서 회원 존재 여부 확인 (탈퇴 여부 및 미가입 검증)
+     */
+    fun checkUserExistsInCloud(
+        userId: String,
+        email: String = "",
+        phone: String = "",
+        onResult: (exists: Boolean, userData: Map<String, Any>?) -> Unit
+    ) {
+        try {
+            val validUserId = userId.trim()
+            val validEmail = email.trim()
+            val validPhone = phone.trim()
+
+            if (validUserId.isBlank() && validEmail.isBlank() && validPhone.isBlank()) {
+                onResult(false, null)
+                return
+            }
+
+            val targetDocId = if (validUserId.isNotBlank()) validUserId else validEmail
+            firestore.collection(USERS_COLLECTION).document(targetDocId).get()
+                .addOnSuccessListener { doc ->
+                    if (doc.exists() && doc.data != null) {
+                        onResult(true, doc.data)
+                    } else if (validEmail.isNotBlank() && validEmail != targetDocId) {
+                        firestore.collection(USERS_COLLECTION).document(validEmail).get()
+                            .addOnSuccessListener { emailDoc ->
+                                if (emailDoc.exists() && emailDoc.data != null) {
+                                    onResult(true, emailDoc.data)
+                                } else {
+                                    checkByFieldQuery(validEmail, validPhone, onResult)
+                                }
+                            }
+                            .addOnFailureListener {
+                                checkByFieldQuery(validEmail, validPhone, onResult)
+                            }
+                    } else {
+                        checkByFieldQuery(validEmail, validPhone, onResult)
+                    }
+                }
+                .addOnFailureListener {
+                    checkByFieldQuery(validEmail, validPhone, onResult)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "checkUserExistsInCloud error: ${e.message}")
+            onResult(false, null)
+        }
+    }
+
+    private fun checkByFieldQuery(
+        email: String,
+        phone: String,
+        onResult: (exists: Boolean, userData: Map<String, Any>?) -> Unit
+    ) {
+        if (email.isNotBlank()) {
+            firestore.collection(USERS_COLLECTION)
+                .whereEqualTo("email", email)
+                .limit(1)
+                .get()
+                .addOnSuccessListener { qs ->
+                    if (!qs.isEmpty && qs.documents[0].data != null) {
+                        onResult(true, qs.documents[0].data)
+                    } else if (phone.isNotBlank()) {
+                        firestore.collection(USERS_COLLECTION)
+                            .whereEqualTo("phone", phone)
+                            .limit(1)
+                            .get()
+                            .addOnSuccessListener { pqs ->
+                                if (!pqs.isEmpty && pqs.documents[0].data != null) {
+                                    onResult(true, pqs.documents[0].data)
+                                } else {
+                                    onResult(false, null)
+                                }
+                            }
+                            .addOnFailureListener { onResult(false, null) }
+                    } else {
+                        onResult(false, null)
+                    }
+                }
+                .addOnFailureListener { onResult(false, null) }
+        } else if (phone.isNotBlank()) {
+            firestore.collection(USERS_COLLECTION)
+                .whereEqualTo("phone", phone)
+                .limit(1)
+                .get()
+                .addOnSuccessListener { pqs ->
+                    if (!pqs.isEmpty && pqs.documents[0].data != null) {
+                        onResult(true, pqs.documents[0].data)
+                    } else {
+                        onResult(false, null)
+                    }
+                }
+                .addOnFailureListener { onResult(false, null) }
+        } else {
+            onResult(false, null)
+        }
+    }
+
+    /**
+     * 8-2. 회원 탈퇴 시 Cloud Firestore users 컬렉션에서 해당 회원 문서 영구 삭제
+     */
+    fun deleteUserProfileFromCloud(
+        userId: String,
+        email: String = "",
+        phone: String = "",
+        onComplete: ((Boolean) -> Unit)? = null
+    ) {
+        try {
+            val docIds = listOf(userId, email, phone).filter { it.isNotBlank() }.distinct()
+            docIds.forEach { id ->
+                firestore.collection(USERS_COLLECTION).document(id).delete()
+            }
+            if (email.isNotBlank()) {
+                firestore.collection(USERS_COLLECTION)
+                    .whereEqualTo("email", email)
+                    .get()
+                    .addOnSuccessListener { qs ->
+                        for (doc in qs.documents) {
+                            doc.reference.delete()
+                        }
+                        onComplete?.invoke(true)
+                    }
+                    .addOnFailureListener {
+                        onComplete?.invoke(true)
+                    }
+            } else {
+                onComplete?.invoke(true)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "deleteUserProfileFromCloud error: ${e.message}")
+            onComplete?.invoke(false)
+        }
+    }
+
+    /**
      * 9. Cloud Firestore 전체 가입 회원 목록 실시간 동기화 리스너 (관리자 대시보드 연동)
      */
     fun listenToCloudUsers(onUsersUpdated: (List<Triple<String, String, String>>) -> Unit): ListenerRegistration? {

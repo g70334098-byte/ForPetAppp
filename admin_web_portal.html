@@ -1563,6 +1563,7 @@
                             const provLabel = d.provider === "Kakao" ? "💛 카카오톡" : (d.provider === "Google" ? "🔴 Google" : (d.provider || "일반"));
                             const fullAddr = ((d.address || "") + " " + (d.detailAddress || "")).trim();
                             cloudUsers.push({
+                                docId: doc.id,
                                 name: d.name || "회원",
                                 provider: provLabel + (d.email ? " (" + d.email + ")" : ""),
                                 phone: d.phone || doc.id,
@@ -1906,9 +1907,18 @@
 
         // 회원 삭제
         function deleteUser(index) {
-            if (confirm(`정말로 [${usersData[index].name}] 회원 정보를 삭제하시겠습니까?`)) {
+            const user = usersData[index];
+            if (!user) return;
+            if (confirm(`정말로 [${user.name} (${user.phone})] 회원 정보를 삭제(탈퇴 처리)하시겠습니까?\nFirestore DB 및 포털에서 즉시 제거됩니다.`)) {
+                if (user.docId && typeof db !== 'undefined') {
+                    db.collection("users").doc(user.docId).delete().then(() => {
+                        console.log("☁️ Firestore 회원 문서 삭제 완료:", user.docId);
+                    }).catch(e => console.warn("Firestore 삭제 오류:", e));
+                }
                 usersData.splice(index, 1);
                 persistData();
+                renderUsersTable();
+                alert(`🗑️ [${user.name}] 회원 정보가 성공적으로 삭제되었습니다.`);
             }
         }
 

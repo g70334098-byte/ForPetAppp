@@ -47,6 +47,9 @@ fun LoginScreen(
     var userPw by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
 
+    var showNotRegisteredDialog by remember { mutableStateOf(false) }
+    var unregAccountEmail by remember { mutableStateOf("") }
+
     val guardPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -66,40 +69,57 @@ fun LoginScreen(
         onDriverLoginSuccess()
     }
 
-    fun processLoginWithPhoneCheck(isAdmin: Boolean, isDedicatedAdminWorkspace: Boolean, displayName: String) {
-        val finalName = displayName.ifBlank { "발자국보호자" }
-        val savedPhone = PersistentStorageManager.loadUserPhone(context, "")
-        val userAddr = PersistentStorageManager.loadUserAddress(context, "")
-        val userDetail = PersistentStorageManager.loadUserDetailAddress(context, "")
-        val userCard = PersistentStorageManager.loadRegisteredCard(context)
-        val userPts = PersistentStorageManager.loadUserPoints(context, 0)
+    fun verifyAndProcessLogin(targetEmail: String, displayName: String, provider: String) {
+        currentProvider = provider
+        currentAccountEmail = targetEmail
 
-        val targetUserId = if (currentAccountEmail.isNotBlank()) currentAccountEmail else if (savedPhone.isNotBlank()) savedPhone else "user_${System.currentTimeMillis()}"
+        FirebaseSyncManager.checkUserExistsInCloud(
+            userId = targetEmail,
+            email = targetEmail
+        ) { exists, userData ->
+            if (!exists) {
+                // 탈퇴했거나 미가입된 계정 -> 로그인 차단 및 회원가입 유도
+                unregAccountEmail = targetEmail
+                showNotRegisteredDialog = true
+            } else {
+                // 가입되어 있는 회원 -> 정상 로그인
+                val finalName = (userData?.get("name") as? String)?.ifBlank { displayName } ?: displayName.ifBlank { "발자국보호자" }
+                val savedPhone = (userData?.get("phone") as? String) ?: PersistentStorageManager.loadUserPhone(context, "")
+                val userAddr = (userData?.get("address") as? String) ?: PersistentStorageManager.loadUserAddress(context, "")
+                val userDetail = (userData?.get("detailAddress") as? String) ?: PersistentStorageManager.loadUserDetailAddress(context, "")
+                val userPts = (userData?.get("points") as? Number)?.toInt() ?: PersistentStorageManager.loadUserPoints(context, 0)
+                val userCard = PersistentStorageManager.loadRegisteredCard(context)
 
-        PersistentStorageManager.saveUserId(context, targetUserId)
-        PersistentStorageManager.saveUserProfile(
-            context = context,
-            nickname = finalName,
-            phone = savedPhone,
-            address = userAddr,
-            detailAddress = userDetail,
-            card = userCard
-        )
-        PersistentStorageManager.saveUserProvider(context, currentProvider)
-        PersistentStorageManager.saveUserEmail(context, currentAccountEmail)
+                val targetUserId = if (targetEmail.isNotBlank()) targetEmail else if (savedPhone.isNotBlank()) savedPhone else "user_${System.currentTimeMillis()}"
 
-        FirebaseSyncManager.syncUserProfileToCloud(
-            userId = targetUserId,
-            name = finalName,
-            phone = savedPhone,
-            email = currentAccountEmail,
-            provider = currentProvider,
-            address = userAddr,
-            detailAddress = userDetail,
-            points = userPts
-        )
+                PersistentStorageManager.saveUserId(context, targetUserId)
+                PersistentStorageManager.saveUserProfile(
+                    context = context,
+                    nickname = finalName,
+                    phone = savedPhone,
+                    address = userAddr,
+                    detailAddress = userDetail,
+                    card = userCard
+                )
+                PersistentStorageManager.saveUserPoints(context, userPts)
+                PersistentStorageManager.saveUserProvider(context, provider)
+                PersistentStorageManager.saveUserEmail(context, targetEmail)
 
-        onLoginSuccess(isAdmin, isDedicatedAdminWorkspace, finalName)
+                FirebaseSyncManager.syncUserProfileToCloud(
+                    userId = targetUserId,
+                    name = finalName,
+                    phone = savedPhone,
+                    email = targetEmail,
+                    provider = provider,
+                    address = userAddr,
+                    detailAddress = userDetail,
+                    points = userPts
+                )
+
+                Toast.makeText(context, "🎉 ${finalName} 보호자님, 환영합니다!", Toast.LENGTH_SHORT).show()
+                onLoginSuccess(false, false, finalName)
+            }
+        }
     }
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
@@ -137,10 +157,7 @@ fun LoginScreen(
         }
 
         val finalName = signedInName?.ifBlank { "발자국보호자" } ?: "발자국보호자"
-        currentProvider = "Google"
-        currentAccountEmail = signedInEmail
-        Toast.makeText(context, "🎉 Google 간편 연동 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-        processLoginWithPhoneCheck(isAdmin = false, isDedicatedAdminWorkspace = false, displayName = finalName)
+        verifyAndProcessLogin(targetEmail = signedInEmail, displayName = finalName, provider = "Google")
     }
 
     Column(
@@ -236,10 +253,7 @@ fun LoginScreen(
                 Button(
                     onClick = {
                         val handleKakaoLoginSuccess = { nick: String, email: String ->
-                            currentProvider = "Kakao"
-                            currentAccountEmail = email
-                            Toast.makeText(context, "💛 카카오 계정으로 간편 로그인되었습니다!", Toast.LENGTH_SHORT).show()
-                            processLoginWithPhoneCheck(isAdmin = false, isDedicatedAdminWorkspace = false, displayName = nick)
+                            verifyAndProcessLogin(targetEmail = email, displayName = nick, provider = "Kakao")
                         }
 
                         val doKakaoWebLogin = {
@@ -480,5 +494,50 @@ fun LoginScreen(
         }
     }
 
+    // 미가입 또는 탈퇴 회원 안내 다이얼로그
+    if (showNotRegisteredDialog) {
+        AlertDialog(
+            onDismissRequest = { showNotRegisteredDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("⚠️", fontSize = 20.sp)
+                    Text("가입 정보 없음 (또는 탈퇴된 계정)", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "선택하신 계정($unregAccountEmail)은 가입된 내역이 없거나 탈퇴 처리가 완료된 상태입니다.",
+                        fontSize = 13.sp,
+                        color = Color(0xFF334155),
+                        lineHeight = 18.sp
+                    )
+                    Text(
+                        "발자국동행 서비스를 이용하시려면 신규 회원가입을 먼저 진행해 주세요.",
+                        fontSize = 12.sp,
+                        color = Color(0xFF64748B)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showNotRegisteredDialog = false
+                        onNavigateToSignUp()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                ) {
+                    Text("신규 회원가입하기", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showNotRegisteredDialog = false }) {
+                    Text("닫기")
+                }
+            }
+        )
+    }
+
     // 💡 정식 오픈 시 휴대폰 본인인증(PhoneVerificationDialog) 복구를 위해 dialog 블록은 임시 비활성화됨
 }
+
