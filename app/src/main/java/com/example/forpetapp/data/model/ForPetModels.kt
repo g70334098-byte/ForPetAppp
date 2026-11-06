@@ -36,6 +36,8 @@ data class PetProfile(
 // 📅 예약 정보 데이터 클래스 (3가지 트림: 긴급 50,000원 / 당일미예약 35,000원 / 예약진료 30,000원)
 data class BookingItem(
     val id: String = System.currentTimeMillis().toString(),
+    val userId: String = "",
+    val userEmail: String = "",
     val serviceTrim: String = "📅 예약 진료 (예약 O)",
     val serviceType: String = "병원 진료 대행",
     val species: String,

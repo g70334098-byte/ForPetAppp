@@ -73,17 +73,26 @@ fun SignUpScreen(
 
     fun processSignUpWithPhoneCheck(displayName: String) {
         val finalName = displayName.ifBlank { "발자국보호자" }
-        var savedPhone = PersistentStorageManager.loadUserPhone(context, "")
-        if (savedPhone.isBlank() || savedPhone.length < 10) {
-            savedPhone = "010-3786-5394"
-        }
+        val savedPhone = PersistentStorageManager.loadUserPhone(context, "")
         val userAddr = PersistentStorageManager.loadUserAddress(context, "")
         val userDetail = PersistentStorageManager.loadUserDetailAddress(context, "")
         val userCard = PersistentStorageManager.loadRegisteredCard(context)
         val userPts = 0
         PersistentStorageManager.saveUserPoints(context, userPts)
 
-        val targetUserId = if (currentAccountEmail.isNotBlank()) currentAccountEmail else savedPhone
+        val targetUserId = if (currentAccountEmail.isNotBlank()) currentAccountEmail else if (savedPhone.isNotBlank()) savedPhone else "user_${System.currentTimeMillis()}"
+
+        PersistentStorageManager.saveUserId(context, targetUserId)
+        PersistentStorageManager.saveUserEmail(context, currentAccountEmail)
+        PersistentStorageManager.saveUserProvider(context, currentProvider)
+        PersistentStorageManager.saveUserProfile(
+            context = context,
+            nickname = finalName,
+            phone = savedPhone,
+            address = userAddr,
+            detailAddress = userDetail,
+            card = userCard
+        )
 
         FirebaseSyncManager.syncUserProfileToCloud(
             userId = targetUserId,

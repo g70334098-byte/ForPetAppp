@@ -161,6 +161,8 @@ object FirebaseSyncManager {
         try {
             val orderMap = hashMapOf(
                 "id" to booking.id,
+                "userId" to booking.userId,
+                "userEmail" to booking.userEmail,
                 "serviceTrim" to booking.serviceTrim,
                 "serviceType" to booking.serviceType,
                 "species" to booking.species,
@@ -276,6 +278,8 @@ object FirebaseSyncManager {
                             try {
                                 BookingItem(
                                     id = doc.getString("id") ?: doc.id,
+                                    userId = doc.getString("userId") ?: "",
+                                    userEmail = doc.getString("userEmail") ?: "",
                                     serviceTrim = doc.getString("serviceTrim") ?: "📅 예약 진료 (예약 O)",
                                     serviceType = doc.getString("serviceType") ?: "병원 진료 대행",
                                     species = doc.getString("species") ?: "강아지",

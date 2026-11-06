@@ -337,7 +337,10 @@ fun ForPetApp() {
                         isLargeFontMode = enabled
                         PersistentStorageManager.saveLargeFontMode(context, isLargeFontMode)
                     },
-                    onLogout = { currentScreen = ScreenState.LOGIN }
+                    onLogout = {
+                        PersistentStorageManager.clearUserSession(context)
+                        currentScreen = ScreenState.LOGIN
+                    }
                 )
                 ScreenState.DRIVER -> DriverMainDashboardScreen(
                     isDarkMode = isDarkMode,
@@ -439,7 +442,7 @@ fun DriverMainDashboardScreen(
 
     val driverOrders = remember {
         mutableStateListOf<BookingItem>().apply {
-            val savedList = PersistentStorageManager.loadBookingList(context)
+            val savedList = PersistentStorageManager.loadBookingList(context, "DRIVER_ALL")
             if (savedList.isNotEmpty()) {
                 addAll(savedList)
             } else {
@@ -468,7 +471,7 @@ fun DriverMainDashboardScreen(
             if (cloudOrders.isNotEmpty()) {
                 driverOrders.clear()
                 driverOrders.addAll(cloudOrders)
-                PersistentStorageManager.saveBookingList(context, cloudOrders)
+                PersistentStorageManager.saveBookingList(context, cloudOrders, "DRIVER_ALL")
             }
         }
         onDispose {
@@ -719,7 +722,7 @@ fun DriverMainDashboardScreen(
                                             } else {
                                                 val updatedOrder = order.copy(status = statusStep)
                                                 driverOrders[index] = updatedOrder
-                                                PersistentStorageManager.saveBookingList(context, driverOrders)
+                                                PersistentStorageManager.saveBookingList(context, driverOrders, "DRIVER_ALL")
                                                 FirebaseSyncManager.updateOrderStatus(context, order.id, statusStep, order.petName)
                                                 FirebaseSyncManager.syncOrderToCloud(updatedOrder)
 
@@ -941,7 +944,7 @@ fun DriverMainDashboardScreen(
                             }
 
                             // 2. 디스크 저장소에 100% 영구 저장 및 서버 동기화!
-                            PersistentStorageManager.saveBookingList(context, driverOrders)
+                            PersistentStorageManager.saveBookingList(context, driverOrders, "DRIVER_ALL")
                             FirebaseSyncManager.syncOrderToCloud(updatedOrder)
 
                             // 3. 실시간 푸시 알림 발송
@@ -979,7 +982,7 @@ fun DriverMainDashboardScreen(
                 if (idx != -1) {
                     driverOrders[idx] = updatedOrder
                 }
-                PersistentStorageManager.saveBookingList(context, driverOrders)
+                PersistentStorageManager.saveBookingList(context, driverOrders, "DRIVER_ALL")
                 FirebaseSyncManager.updateOrderStatus(context, order.id, updatedStatus, order.petName)
                 FirebaseSyncManager.syncOrderToCloud(updatedOrder)
                 ForPetFirebaseMessagingService.sendLocalNotification(
@@ -1369,7 +1372,7 @@ fun AdminMainDashboardScreen(adminName: String = "최지훈 대표님", onLogout
 
     val adminBookingOrders = remember {
         mutableStateListOf<BookingItem>().apply {
-            addAll(PersistentStorageManager.loadBookingList(context))
+            addAll(PersistentStorageManager.loadBookingList(context, "ADMIN_ALL"))
         }
     }
 
@@ -1379,6 +1382,7 @@ fun AdminMainDashboardScreen(adminName: String = "최지훈 대표님", onLogout
             if (cloudOrders.isNotEmpty()) {
                 adminBookingOrders.clear()
                 adminBookingOrders.addAll(cloudOrders)
+                PersistentStorageManager.saveBookingList(context, cloudOrders, "ADMIN_ALL")
             }
         }
         onDispose {
@@ -1789,6 +1793,34 @@ object PersistentStorageManager {
     fun loadUserProvider(context: android.content.Context, defaultVal: String = "일반"): String =
         getPrefs(context).getString("user_provider", defaultVal) ?: defaultVal
 
+    fun saveUserId(context: android.content.Context, userId: String) {
+        getPrefs(context).edit(commit = true) { putString("user_id", userId) }
+    }
+
+    fun clearUserSession(context: android.content.Context) {
+        getPrefs(context).edit(commit = true) {
+            remove("user_id")
+            remove("user_email")
+            remove("user_phone")
+            remove("user_nickname")
+            remove("user_address")
+            remove("user_detail_address")
+            remove("registered_card")
+            remove("user_provider")
+        }
+    }
+
+    fun loadUserId(context: android.content.Context): String {
+        val id = getPrefs(context).getString("user_id", "") ?: ""
+        if (id.isNotBlank()) return id
+        val email = loadUserEmail(context)
+        if (email.isNotBlank()) return email
+        val phone = loadUserPhone(context, "")
+        if (phone.isNotBlank()) return phone
+        val nick = loadUserNickname(context, "")
+        return nick
+    }
+
     fun saveUserEmail(context: android.content.Context, email: String) {
         getPrefs(context).edit(commit = true) { putString("user_email", email) }
     }
@@ -1796,17 +1828,27 @@ object PersistentStorageManager {
     fun loadUserEmail(context: android.content.Context, defaultVal: String = ""): String =
         getPrefs(context).getString("user_email", defaultVal) ?: defaultVal
 
-    // 예약 및 진료 리포트 목록 디스크 영구 저장/로드 (.commit() 보장)
-    fun saveBookingList(context: android.content.Context, list: List<BookingItem>) {
+    private fun getBookingKey(context: android.content.Context, userId: String? = null): String {
+        val uid = if (!userId.isNullOrBlank()) userId else loadUserId(context)
+        val sanitized = uid.replace("[^a-zA-Z0-9_]".toRegex(), "_")
+        return if (sanitized.isNotBlank()) "booking_list_json_$sanitized" else "booking_list_json_guest"
+    }
+
+    // 예약 및 진료 리포트 목록 디스크 영구 저장/로드 (.commit() 보장, 사용자별 격리 저장)
+    fun saveBookingList(context: android.content.Context, list: List<BookingItem>, userId: String? = null) {
         val jsonArray = org.json.JSONArray()
         list.forEach { item ->
             val obj = org.json.JSONObject().apply {
                 put("id", item.id)
+                put("userId", item.userId)
+                put("userEmail", item.userEmail)
                 put("serviceTrim", item.serviceTrim)
                 put("serviceType", item.serviceType)
                 put("species", item.species)
                 put("petName", item.petName)
                 put("ownerName", item.ownerName)
+                put("ownerPhone", item.ownerPhone)
+                put("pickupAddress", item.pickupAddress)
                 put("hospitalName", item.hospitalName)
                 put("time", item.time)
                 put("status", item.status)
@@ -1818,14 +1860,17 @@ object PersistentStorageManager {
                 put("prescription", item.prescription)
                 put("receiptImageUri", item.receiptImageUri ?: "")
                 put("prescriptionImageUri", item.prescriptionImageUri ?: "")
+                put("doorlockPhotoUri", item.doorlockPhotoUri ?: "")
             }
             jsonArray.put(obj)
         }
-        getPrefs(context).edit(commit = true) { putString("booking_list_json", jsonArray.toString()) }
+        val targetKey = getBookingKey(context, userId)
+        getPrefs(context).edit(commit = true) { putString(targetKey, jsonArray.toString()) }
     }
 
-    fun loadBookingList(context: android.content.Context): MutableList<BookingItem> {
-        val jsonStr = getPrefs(context).getString("booking_list_json", null) ?: return mutableListOf()
+    fun loadBookingList(context: android.content.Context, userId: String? = null): MutableList<BookingItem> {
+        val targetKey = getBookingKey(context, userId)
+        val jsonStr = getPrefs(context).getString(targetKey, null) ?: return mutableListOf()
         val list = mutableListOf<BookingItem>()
         try {
             val jsonArray = org.json.JSONArray(jsonStr)
@@ -1834,11 +1879,15 @@ object PersistentStorageManager {
                 list.add(
                     BookingItem(
                         id = obj.optString("id"),
+                        userId = obj.optString("userId"),
+                        userEmail = obj.optString("userEmail"),
                         serviceTrim = obj.optString("serviceTrim", "📅 예약 진료 (예약 O)"),
                         serviceType = obj.optString("serviceType"),
                         species = obj.optString("species"),
                         petName = obj.optString("petName"),
                         ownerName = obj.optString("ownerName"),
+                        ownerPhone = obj.optString("ownerPhone"),
+                        pickupAddress = obj.optString("pickupAddress"),
                         hospitalName = obj.optString("hospitalName"),
                         time = obj.optString("time"),
                         status = obj.optString("status"),
@@ -1849,7 +1898,8 @@ object PersistentStorageManager {
                         doctorNote = obj.optString("doctorNote"),
                         prescription = obj.optString("prescription"),
                         receiptImageUri = obj.optString("receiptImageUri").ifEmpty { null },
-                        prescriptionImageUri = obj.optString("prescriptionImageUri").ifEmpty { null }
+                        prescriptionImageUri = obj.optString("prescriptionImageUri").ifEmpty { null },
+                        doorlockPhotoUri = obj.optString("doorlockPhotoUri").ifEmpty { null }
                     )
                 )
             }
@@ -2375,20 +2425,38 @@ fun ForPetMainScreen(
     var savedBirthMillis by remember { mutableStateOf(PersistentStorageManager.loadPetBirthMillis(context)) }
     val userReferralCode = remember { "K7TB94" }
 
-    val bookingList = remember {
+    val currentUserId = remember { PersistentStorageManager.loadUserId(context) }
+    val currentUserEmail = remember { PersistentStorageManager.loadUserEmail(context) }
+
+    val bookingList = remember(currentUserId) {
         mutableStateListOf<BookingItem>().apply {
-            addAll(PersistentStorageManager.loadBookingList(context))
+            addAll(PersistentStorageManager.loadBookingList(context, currentUserId))
         }
     }
 
-    // ☁️ 실시간 Cloud Firestore 오더 동기화 리스너 (보호자 화면 실시간 연동)
-    DisposableEffect(Unit) {
+    // ☁️ 실시간 Cloud Firestore 오더 동기화 리스너 (보호자 화면 실시간 연동 - 본인 계정 오더만 필터링)
+    DisposableEffect(currentUserId) {
         val listenerReg = com.example.forpetapp.data.firebase.FirebaseSyncManager.listenToCloudOrders { cloudOrders ->
-            if (cloudOrders.isNotEmpty()) {
-                bookingList.clear()
-                bookingList.addAll(cloudOrders)
-                PersistentStorageManager.saveBookingList(context, cloudOrders)
+            val myOrders = cloudOrders.filter { order ->
+                val matchesUserId = currentUserId.isNotBlank() && order.userId.isNotBlank() && order.userId == currentUserId
+                val matchesEmail = currentUserEmail.isNotBlank() && order.userEmail.isNotBlank() && order.userEmail.equals(currentUserEmail, ignoreCase = true)
+                val matchesPhone = userPhone.isNotBlank() && order.ownerPhone.isNotBlank() && order.ownerPhone == userPhone
+
+                if (order.userId.isNotBlank() || order.userEmail.isNotBlank()) {
+                    matchesUserId || matchesEmail
+                } else if (order.ownerPhone.isNotBlank() && userPhone.isNotBlank()) {
+                    matchesPhone
+                } else {
+                    val matchesNick = userNickname.isNotBlank() && order.ownerName.isNotBlank() &&
+                            userNickname != "발자국동행보호자" && userNickname != "보호자" && userNickname != "홍길동" &&
+                            order.ownerName == userNickname
+                    matchesPhone || matchesNick
+                }
             }
+
+            bookingList.clear()
+            bookingList.addAll(myOrders)
+            PersistentStorageManager.saveBookingList(context, myOrders, currentUserId)
         }
         onDispose {
             listenerReg?.remove()
@@ -6393,13 +6461,18 @@ fun PetFuneralBookingDialog(
                             if (customNote.isNotEmpty()) " | 메모: $customNote" else ""
 
                     val currentFuneralAddr = ("$funeralAddress $funeralDetailAddress").trim().ifEmpty { "보호자 자택" }
+                    val currentUserId = PersistentStorageManager.loadUserId(context)
+                    val currentUserEmail = PersistentStorageManager.loadUserEmail(context)
 
                     val newFuneralBooking = BookingItem(
+                        userId = currentUserId,
+                        userEmail = currentUserEmail,
+                        serviceTrim = "🕊️ 장례 안심 운구",
                         serviceType = "🕊️ 장례 안심 운구 서비스",
                         species = petSpecies,
                         petName = petName,
                         ownerName = ownerName,
-                        ownerPhone = userPhone.ifEmpty { "010-3786-5394" },
+                        ownerPhone = userPhone,
                         pickupAddress = currentFuneralAddr,
                         hospitalName = finalFuneralHome,
                         time = "장례 안심 운구 접수완료",
@@ -8531,14 +8604,18 @@ fun HomeScreenContent(
                         val formattedPriceStr = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(finalPrice)
 
                         val currentPickupAddr = ("$userAddress $userDetailAddress").trim().ifEmpty { "보호자 자택 (픽업 주소)" }
+                        val currentUserId = PersistentStorageManager.loadUserId(context)
+                        val currentUserEmail = PersistentStorageManager.loadUserEmail(context)
 
                         val newBooking = BookingItem(
+                            userId = currentUserId,
+                            userEmail = currentUserEmail,
                             serviceTrim = selectedServiceTrim,
                             serviceType = if (selectedServiceTrim.contains("긴급")) "🚨 긴급 응급 출동" else if (selectedServiceTrim.contains("미예약")) "🚗 당일 미예약 이동" else "📅 병원 예약 진료 대행",
                             species = selectedSpecies,
                             petName = bookingPetName,
                             ownerName = bookingOwnerName,
-                            ownerPhone = userPhone.ifEmpty { "010-3786-5394" },
+                            ownerPhone = userPhone,
                             pickupAddress = currentPickupAddr,
                             hospitalName = finalHospital,
                             time = "오늘 $selectedBookingTime",
@@ -9083,13 +9160,18 @@ fun HomeScreenContent(
                                 (if (customEmergencyNote.isNotEmpty()) " | 메모: $customEmergencyNote" else "") + insuranceEmergencyNote
 
                         val currentEmergencyPickup = ("$userAddress $userDetailAddress").trim().ifEmpty { "응급 픽업지 (부산 전역)" }
+                        val currentUserId = PersistentStorageManager.loadUserId(context)
+                        val currentUserEmail = PersistentStorageManager.loadUserEmail(context)
 
                         val newEmergencyBooking = BookingItem(
+                            userId = currentUserId,
+                            userEmail = currentUserEmail,
+                            serviceTrim = "🚨 24시 긴급 응급 출동",
                             serviceType = "긴급 응급 출동 (병원 미예약자)",
                             species = emergencySpecies,
                             petName = emergencyPetName,
                             ownerName = emergencyOwnerName,
-                            ownerPhone = emergencyPhone.ifEmpty { userPhone }.ifEmpty { "010-3786-5394" },
+                            ownerPhone = emergencyPhone.ifEmpty { userPhone },
                             pickupAddress = currentEmergencyPickup,
                             hospitalName = finalEmergencyHospital,
                             time = selectedDispatchTime,
