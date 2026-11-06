@@ -298,7 +298,7 @@ fun ForPetApp() {
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = Color(0xFFFAF7F2)
+            color = Color(0xFFEFE5D5)
         ) {
             when (currentScreen) {
                 ScreenState.LOGIN -> LoginScreen(
@@ -501,12 +501,12 @@ fun DriverMainDashboardScreen(
                         Text("로그아웃", color = Color.Red, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFFAF7F2))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFEFE5D5))
             )
         },
         bottomBar = {
             NavigationBar(
-                containerColor = Color(0xFFFAF7F2),
+                containerColor = Color(0xFFEFE5D5),
                 tonalElevation = 8.dp
             ) {
                 NavigationBarItem(
@@ -539,7 +539,7 @@ fun DriverMainDashboardScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .background(Color(0xFFFAF7F2))
+                    .background(Color(0xFFEFE5D5))
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
@@ -2543,13 +2543,13 @@ fun ForPetMainScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFFAF7F2)
+                    containerColor = Color(0xFFEFE5D5)
                 )
             )
         },
         bottomBar = {
             Surface(
-                color = Color(0xFFFAF7F2),
+                color = Color(0xFFEFE5D5),
                 shadowElevation = 8.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -2617,7 +2617,7 @@ fun ForPetMainScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color(0xFFFAF7F2))
+                .background(Color(0xFFEFE5D5))
         ) {
             when (selectedTab) {
                 0 -> HomeScreenContent(
@@ -4796,8 +4796,8 @@ fun DisplaySettingsDialog(
                 // 안내 팁
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFFAF7F2),
-                    border = BorderStroke(1.dp, Color(0xFFEFE9DE))
+                    color = Color(0xFFEFE5D5),
+                    border = BorderStroke(1.dp, Color(0xFFDFD4C2))
                 ) {
                     Row(
                         modifier = Modifier.padding(10.dp),
@@ -6568,7 +6568,7 @@ fun HomeScreenContent(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, Color(0xFFEFE9DE))
+                border = BorderStroke(1.dp, Color(0xFFDFD4C2))
             ) {
                 Column(
                     modifier = Modifier.padding(12.dp),
