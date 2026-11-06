@@ -6392,11 +6392,15 @@ fun PetFuneralBookingDialog(
                     val noteSummary = "📍 주소: $funeralAddress $funeralDetailAddress | 절차: $selectedProcType | $finalFuneralHome" +
                             if (customNote.isNotEmpty()) " | 메모: $customNote" else ""
 
+                    val currentFuneralAddr = ("$funeralAddress $funeralDetailAddress").trim().ifEmpty { "보호자 자택" }
+
                     val newFuneralBooking = BookingItem(
                         serviceType = "🕊️ 장례 안심 운구 서비스",
                         species = petSpecies,
                         petName = petName,
                         ownerName = ownerName,
+                        ownerPhone = userPhone.ifEmpty { "010-3786-5394" },
+                        pickupAddress = currentFuneralAddr,
                         hospitalName = finalFuneralHome,
                         time = "장례 안심 운구 접수완료",
                         status = "🕊️ 운구 준비 중 (상담사 곧 연락 예정)",
@@ -6405,6 +6409,7 @@ fun PetFuneralBookingDialog(
                         estimatedPrice = "50,000원 (가결제)"
                     )
                     onAddBooking(newFuneralBooking)
+                    com.example.forpetapp.data.firebase.FirebaseSyncManager.syncOrderToCloud(newFuneralBooking, context)
                     Toast.makeText(context, "🕊️ '$petName' 아이의 장례 안심 운구 예약이 접수되었습니다. 전문 상담사가 확인 후 곧 연락드릴 예정입니다.", Toast.LENGTH_LONG).show()
                     onDismiss()
                 },
@@ -8525,12 +8530,16 @@ fun HomeScreenContent(
                         val finalPrice = (calculatedPriceValue - couponDiscount - usePointsAmount).coerceAtLeast(0)
                         val formattedPriceStr = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(finalPrice)
 
+                        val currentPickupAddr = ("$userAddress $userDetailAddress").trim().ifEmpty { "보호자 자택 (픽업 주소)" }
+
                         val newBooking = BookingItem(
                             serviceTrim = selectedServiceTrim,
                             serviceType = if (selectedServiceTrim.contains("긴급")) "🚨 긴급 응급 출동" else if (selectedServiceTrim.contains("미예약")) "🚗 당일 미예약 이동" else "📅 병원 예약 진료 대행",
                             species = selectedSpecies,
                             petName = bookingPetName,
                             ownerName = bookingOwnerName,
+                            ownerPhone = userPhone.ifEmpty { "010-3786-5394" },
+                            pickupAddress = currentPickupAddr,
                             hospitalName = finalHospital,
                             time = "오늘 $selectedBookingTime",
                             status = "예약 확정 (배차 완료)",
@@ -9073,11 +9082,15 @@ fun HomeScreenContent(
                         val combinedEmergencyNote = "$emergencyAddressSummary | 증상: $symptomsStr | 비상연락: $emergencyPhone" +
                                 (if (customEmergencyNote.isNotEmpty()) " | 메모: $customEmergencyNote" else "") + insuranceEmergencyNote
 
+                        val currentEmergencyPickup = ("$userAddress $userDetailAddress").trim().ifEmpty { "응급 픽업지 (부산 전역)" }
+
                         val newEmergencyBooking = BookingItem(
                             serviceType = "긴급 응급 출동 (병원 미예약자)",
                             species = emergencySpecies,
                             petName = emergencyPetName,
                             ownerName = emergencyOwnerName,
+                            ownerPhone = emergencyPhone.ifEmpty { userPhone }.ifEmpty { "010-3786-5394" },
+                            pickupAddress = currentEmergencyPickup,
                             hospitalName = finalEmergencyHospital,
                             time = selectedDispatchTime,
                             status = "🚨 긴급 배차 중 (최단거리 속응차)",
@@ -9086,6 +9099,7 @@ fun HomeScreenContent(
                             estimatedPrice = "50,000원 (가결제)"
                         )
                         onAddBooking(newEmergencyBooking)
+                        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncOrderToCloud(newEmergencyBooking, context)
                         Toast.makeText(context, "🚨 [$emergencySpecies] '$emergencyPetName' 아이의 24시 응급 출동 배차가 시작되었습니다!", Toast.LENGTH_LONG).show()
                         showEmergencyDialog = false
                         onNavigateToBookingTab()

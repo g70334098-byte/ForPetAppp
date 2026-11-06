@@ -490,7 +490,9 @@
                         <th>오더ID</th>
                         <th>구분</th>
                         <th>반려동물 / 보호자</th>
-                        <th>목적지 병원</th>
+                        <th>📞 보호자 연락처</th>
+                        <th>📍 픽업 출발지 주소</th>
+                        <th>목적지 (병원/장례식장)</th>
                         <th>예약 시각</th>
                         <th>진행 상태</th>
                         <th>배차 가드 / 차량</th>
@@ -1592,6 +1594,8 @@
                                 type: d.species || "🐶 강아지",
                                 pet: d.petName || "아이",
                                 owner: d.ownerName || "보호자",
+                                phone: d.ownerPhone || "010-3786-5394",
+                                pickup: d.pickupAddress || (d.symptomNote && d.symptomNote.includes("📍") ? d.symptomNote.split("|")[0].replace("📍", "").trim() : "보호자 자택"),
                                 hospital: d.hospitalName || "동물병원",
                                 time: d.time || "시간 미정",
                                 status: d.status || "1. 배차 대기 중",
@@ -1686,11 +1690,16 @@
                 if (trimText.includes("긴급")) trimBadgeClass = "badge-red";
                 else if (trimText.includes("미예약")) trimBadgeClass = "badge-yellow";
 
+                const phoneDisplay = item.phone || "010-3786-5394";
+                const pickupDisplay = item.pickup || (item.address ? item.address : "보호자 자택");
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td><b>${item.id}</b></td>
                     <td><span class="badge ${trimBadgeClass}">${trimText}</span><br><span style="font-size:11px;">${item.type}</span></td>
                     <td><b>${item.pet}</b><br><span style="font-size:11px; color:#64748b;">${item.owner}</span></td>
+                    <td><b style="color:#0284c7; cursor:pointer;" onclick="alert('📞 보호자 직통 전화 걸기: ${phoneDisplay}')">${phoneDisplay} 📞</b></td>
+                    <td style="font-size:12px; max-width:180px;"><span style="color:#0f172a; font-weight:600;">📍 ${pickupDisplay}</span></td>
                     <td><b>${item.hospital}</b></td>
                     <td>${item.time}</td>
                     <td><span class="badge ${item.status.includes('완료') ? 'badge-active' : 'badge-pending'}">${item.status}</span></td>

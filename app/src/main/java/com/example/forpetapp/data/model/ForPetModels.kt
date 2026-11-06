@@ -41,6 +41,8 @@ data class BookingItem(
     val species: String,
     val petName: String,
     val ownerName: String,
+    val ownerPhone: String = "",
+    val pickupAddress: String = "",
     val hospitalName: String,
     val time: String,
     val status: String = "예약 확정 (배차 완료)",

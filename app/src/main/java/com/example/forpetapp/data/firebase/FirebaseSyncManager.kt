@@ -166,6 +166,8 @@ object FirebaseSyncManager {
                 "species" to booking.species,
                 "petName" to booking.petName,
                 "ownerName" to booking.ownerName,
+                "ownerPhone" to booking.ownerPhone,
+                "pickupAddress" to booking.pickupAddress,
                 "hospitalName" to booking.hospitalName,
                 "time" to booking.time,
                 "status" to booking.status,
