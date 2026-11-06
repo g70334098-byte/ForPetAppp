@@ -2483,23 +2483,33 @@ fun ForPetMainScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
+                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             if (selectedTab == 0) {
                                 AdaptiveAppIcon(
                                     modifier = Modifier
-                                        .size(30.dp)
+                                        .size(32.dp)
                                         .clip(CircleShape)
                                 )
-                                Text(
-                                    "발자국동행",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp,
-                                    color = Color(0xFF0F172A)
-                                )
+                                Column {
+                                    Text(
+                                        "발자국동행",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 17.sp,
+                                        color = Color(0xFF0F172A)
+                                    )
+                                    Text(
+                                        "반려동물과 함께 걷는 따뜻한 길 🐾",
+                                        fontSize = 10.5.sp,
+                                        color = Color(0xFFEA580C),
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                }
                             } else {
                                 Text(
                                     when(selectedTab) {
@@ -6552,39 +6562,13 @@ fun HomeScreenContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 1. 인사 및 공식 어플 아이콘 로고 카드
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    AdaptiveAppIcon(
-                        modifier = Modifier
-                            .size(58.dp)
-                            .clip(CircleShape)
-                    )
-
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(text = "발자국동행", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A))
-                        Text(text = "반려동물과 함께 걷는 따뜻한 길 🐾", fontSize = 13.sp, color = Color(0xFFEA580C), fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-
-        // 1-1. 다견·다묘 멀티 펫 프로필 원터치 선택 바
+        // 1. 다견·다묘 멀티 펫 프로필 원터치 선택 바 (상단 중복 로고 카드 제거 후 첫 번째 컴포넌트로 연결)
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFEFE9DE))
             ) {
                 Column(
                     modifier = Modifier.padding(12.dp),
