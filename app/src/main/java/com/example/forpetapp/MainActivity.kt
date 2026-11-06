@@ -5604,7 +5604,7 @@ fun MyPageScreen(
                         color = Color(0xFF94A3B8)
                     )
                     Text(
-                        "사업장 소재지: 부산광역시 강서구 명지국제8로 150 (명지동)",
+                        "사업장 소재지: 부산광역시 (정식 사업자 등록 후 공시 예정)",
                         fontSize = 10.sp,
                         color = Color(0xFF94A3B8)
                     )
@@ -5614,7 +5614,7 @@ fun MyPageScreen(
                         color = Color(0xFF94A3B8)
                     )
                     Text(
-                        "사업자등록번호: 준비 중 | 통신판매업신고: 제2026-부산강서-0000호",
+                        "사업자등록번호: 등록 준비 중 | 통신판매업신고: 등록 준비 중",
                         fontSize = 10.sp,
                         color = Color(0xFF94A3B8)
                     )
