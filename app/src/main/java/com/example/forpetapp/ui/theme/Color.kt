@@ -14,5 +14,6 @@ val Pink40 = Color(0xFF7D5260)
 val WarmBeigeBackground = Color(0xFFEFE5D5) // 눈에 편안하고 확실히 느껴지는 웜 베이지
 val WarmBeigeSurface = Color(0xFFFFFFFF)    // 카드와 명확한 대비를 이루는 순백 표면
 val WarmBeigeBorder = Color(0xFFDFD4C2)     // 조화로운 내추럴 샌드 베이지 라인
+val WarmBrownBorder = Color(0xFFB08968)     // 클래식하고 따뜻한 웜 브라운 카드 테두리
 val WarmTextPrimary = Color(0xFF0F172A)     // 가독성 높은 다크 슬레이트 텍스트
 val WarmTextSecondary = Color(0xFF64748B)   // 부드러운 보조 텍스트

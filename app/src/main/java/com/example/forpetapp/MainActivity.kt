@@ -6562,13 +6562,46 @@ fun HomeScreenContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 1. 다견·다묘 멀티 펫 프로필 원터치 선택 바 (상단 중복 로고 카드 제거 후 첫 번째 컴포넌트로 연결)
+        // 1. 📢 공지사항 한줄 카드 (맨 위 배치, 브라운 테두리)
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showNoticeDialog = true },
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFB08968))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = Color(0xFF0284C7)
+                        ) {
+                            Text("공지", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        }
+                        Text("발자국동행 1:1 병원 진료 대행 및 안심 이동 케어 서비스 정식 안내", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFF0F172A), maxLines = 1)
+                    }
+                    Text("더보기 ➔", fontSize = 11.sp, color = Color.Gray)
+                }
+            }
+        }
+
+        // 2. 🐾 우리 아이 선택 (다견·다묘 케어)
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, Color(0xFFDFD4C2))
+                border = BorderStroke(1.dp, Color(0xFFB08968))
             ) {
                 Column(
                     modifier = Modifier.padding(12.dp),
@@ -6603,7 +6636,7 @@ fun HomeScreenContent(
                             Surface(
                                 shape = RoundedCornerShape(20.dp),
                                 color = if (isSelected) Color(0xFF0284C7) else Color.White,
-                                border = BorderStroke(1.dp, if (isSelected) Color(0xFF0369A1) else Color(0xFFCBD5E1)),
+                                border = BorderStroke(1.dp, if (isSelected) Color(0xFF0369A1) else Color(0xFFB08968)),
                                 modifier = Modifier.clickable {
                                     activePetId = pet.id
                                     PersistentStorageManager.saveActivePetId(context, pet.id)
@@ -6630,7 +6663,7 @@ fun HomeScreenContent(
                         Surface(
                             shape = RoundedCornerShape(20.dp),
                             color = Color(0xFFF1F5F9),
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
                             modifier = Modifier.clickable { showAddPetModal = true }
                         ) {
                             Row(
@@ -6647,7 +6680,7 @@ fun HomeScreenContent(
             }
         }
 
-        // 2. 핵심 서비스 카드 2종 (우리 아이 선택 바로 밑 배치)
+        // 3. 핵심 서비스 카드 2종 (병원 진료 대행 / 장례식장 연계)
         item {
             Row(
                 modifier = Modifier
@@ -6696,56 +6729,146 @@ fun HomeScreenContent(
             }
         }
 
-        // 1-2. 📢 공지사항 한줄 카드
+        // 4. 🏷️ 서비스 표준 요금표 카드 (병원 진료대행 바로 밑 배치, 브라운 테두리)
         item {
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showNoticeDialog = true },
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9))
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFB08968))
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text("🏷️", fontSize = 16.sp)
+                            Text("발자국동행 서비스 표준 요금표", fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = Color(0xFF0F172A))
+                        }
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = Color(0xFF0284C7)
+                            color = Color(0xFFFFF7ED)
                         ) {
-                            Text("공지", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                            Text(
+                                "투명 정찰제",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFC2410C),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
                         }
-                        Text("발자국동행 1:1 병원 진료 대행 및 안심 이동 케어 서비스 정식 안내", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFF0F172A), maxLines = 1)
                     }
-                    Text("더보기 ➔", fontSize = 11.sp, color = Color.Gray)
+
+                    // 3개 핵심 요금 트림 (예약 진료 / 당일 이동 / 긴급 응급)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFF8FAFC),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text("📅 예약 진료", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                Text("30,000원", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A))
+                                Text("사전 예약 1:1 동행", fontSize = 9.sp, color = Color.Gray)
+                            }
+                        }
+
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFFFFBEB),
+                            border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text("🚗 당일 이동", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                                Text("35,000원", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A))
+                                Text("당일 즉시 접수 케어", fontSize = 9.sp, color = Color.Gray)
+                            }
+                        }
+
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFFEF2F2),
+                            border = BorderStroke(1.dp, Color(0xFFFECDD3))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text("🚨 24시 응급", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                                Text("50,000원", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A))
+                                Text("최우선 즉시 출동", fontSize = 9.sp, color = Color.Gray)
+                            }
+                        }
+                    }
+
+                    // 하단 안심 포함 내역 안내
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color(0xFFF8FAFC))
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "✓ 전 요금 바디캠 라이브 • 안심 시트 • 진료 리포트 기본 포함",
+                            fontSize = 10.sp,
+                            color = Color(0xFF475569),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "상세 보기 ➔",
+                            fontSize = 10.sp,
+                            color = Color(0xFF0284C7),
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.clickable { showBookingNoticeDialog = true }
+                        )
+                    }
                 }
             }
         }
 
-        // 1-3. 🎁 친구 추천 이벤트 배너 (정식 오픈 시 포인트/추천제도와 함께 복구 예정으로 현재 숨김)
-
-        // 1-4. 💊 복약 & 백신 캘린더 & 🚨 24시 응급 직통 가이드 (2분할 카드)
+        // 5. 💊 복약 & 백신 + 📊 반려동물 의료 가계부 (나란히 2분할 배치, 브라운 테두리)
         item {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(92.dp),
+                    .height(105.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                // 좌측: 💊 복약 & 백신
                 Card(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
                         .clickable { showMedicationVaccineDialog = true },
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
-                    border = BorderStroke(1.dp, Color(0xFFBBF7D0))
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFB08968))
                 ) {
                     Column(
                         modifier = Modifier
@@ -6758,29 +6881,30 @@ fun HomeScreenContent(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("💊 복약 & 백신", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF166534))
+                            Text("💊 복약 & 백신", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = Color(0xFF166534))
                             Surface(
                                 shape = RoundedCornerShape(4.dp),
-                                color = Color(0xFF22C55E)
+                                color = Color(0xFFDCFCE7)
                             ) {
-                                Text("D-Day 관리", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                Text("D-Day", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
                             }
                         }
                         Column {
-                            Text("오늘의 복약 체크", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF15803D))
-                            Text("광견병 D-42 / 캘린더 ➔", fontSize = 10.sp, color = Color.Gray)
+                            Text("오늘의 복약 체크", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0F172A))
+                            Text("광견병 D-42 / 캘린더 ➔", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
 
+                // 우측: 📊 반려동물 의료 가계부
                 Card(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clickable { showEmergencyGuideDialog = true },
+                        .clickable { showExpenseDialog = true },
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
-                    border = BorderStroke(1.dp, Color(0xFFFECDD3))
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFB08968))
                 ) {
                     Column(
                         modifier = Modifier
@@ -6793,72 +6917,24 @@ fun HomeScreenContent(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("🚨 24시 응급 & 가이드", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF991B1B))
+                            Text("📊 의료 가계부", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = Color(0xFF0284C7))
                             Surface(
                                 shape = RoundedCornerShape(4.dp),
-                                color = Color(0xFFEF4444)
+                                color = Color(0xFFE0F2FE)
                             ) {
-                                Text("응급실 직통", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                Text("지출 통계", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
                             }
                         }
                         Column {
-                            Text("1초 다이얼 & 골든타임", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFB91C1C))
-                            Text("CPR • 하임리히 • 지혈 ➔", fontSize = 10.sp, color = Color.Gray)
+                            Text("병원 진료 • 약제비 관리", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0F172A))
+                            Text("월별 영수증 아카이브 ➔", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
             }
         }
 
-        // 1-5. 반려동물 의료 가계부 & 영수증 아카이브
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showExpenseDialog = true },
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
-                border = BorderStroke(1.dp, Color(0xFFBBF7D0))
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = Color(0xFF16A34A),
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text("📊", fontSize = 18.sp)
-                            }
-                        }
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("반려동물 의료 가계부", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF14532D))
-                                Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = Color(0xFFDCFCE7)
-                                ) {
-                                    Text("지출 통계", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
-                                }
-                            }
-                            Text("병원 진료비 • 약제비 • 케어카 이동비 월별 영수증 관리 ➔", fontSize = 11.sp, color = Color(0xFF4B5563))
-                        }
-                    }
-                    Text("➔", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A))
-                }
-            }
-        }
-
-        // 3. 부산 제휴병원 & 자주묻는질문 (컴팩트 높이 84dp 보정)
+        // 6. 부산 동물병원 리스트 & 자주 묻는 질문 (컴팩트 2분할, 브라운 테두리)
         item {
             Row(
                 modifier = Modifier
@@ -6872,7 +6948,8 @@ fun HomeScreenContent(
                         .fillMaxHeight()
                         .clickable { showHospitalListDialog = true },
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFB08968))
                 ) {
                     Column(
                         modifier = Modifier
@@ -6892,7 +6969,8 @@ fun HomeScreenContent(
                         .fillMaxHeight()
                         .clickable { showFaqDialog = true },
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFB08968))
                 ) {
                     Column(
                         modifier = Modifier
@@ -6908,7 +6986,7 @@ fun HomeScreenContent(
             }
         }
 
-        // 4. 생생 이용 후기 헤더
+        // 7. 생생 이용 후기 헤더
         item {
             Spacer(modifier = Modifier.height(4.dp))
             Row(
@@ -6937,13 +7015,14 @@ fun HomeScreenContent(
             }
         }
 
-        // 5. 이용 후기 피드 리스트 (홈 화면에는 최신 후기 수록)
+        // 8. 이용 후기 피드 리스트 (홈 화면에는 최신 후기 수록, 브라운 테두리)
         items(reviewsList.size) { index ->
             val review = reviewsList[index]
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFB08968)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Column(
