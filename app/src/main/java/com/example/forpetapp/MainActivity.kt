@@ -6495,6 +6495,7 @@ fun HomeScreenContent(
     val context = LocalContext.current
     var showBookingDialog by remember { mutableStateOf(false) }
     var showBookingNoticeDialog by remember { mutableStateOf(false) }
+    var showPricingDetailDialog by remember { mutableStateOf(false) }
     var isHospitalReserved by remember { mutableStateOf(true) }
     var selectedTrimType by remember { mutableStateOf("📅 예약 진료 (예약 O)") }
     var showEmergencyDialog by remember { mutableStateOf(false) }
@@ -6824,28 +6825,35 @@ fun HomeScreenContent(
                         }
                     }
 
-                    // 하단 안심 포함 내역 안내
+                    // 하단 대기요금 안내 & 상세 보기 버튼 (클릭 시 상세 요금 및 대기요금 팝업 노출)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(Color(0xFFF8FAFC))
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFFFFBEB))
+                            .border(BorderStroke(1.dp, Color(0xFFFDE68A)), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 10.dp, vertical = 8.dp)
+                            .clickable { showPricingDetailDialog = true },
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text("⏱️", fontSize = 11.sp)
+                            Text(
+                                text = "대기시간 30분당 5,000원 (응급 10,000원)",
+                                fontSize = 10.5.sp,
+                                color = Color(0xFF92400E),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                         Text(
-                            text = "✓ 전 요금 바디캠 라이브 • 안심 시트 • 진료 리포트 기본 포함",
-                            fontSize = 10.sp,
-                            color = Color(0xFF475569),
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "상세 보기 ➔",
-                            fontSize = 10.sp,
-                            color = Color(0xFF0284C7),
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable { showBookingNoticeDialog = true }
+                            text = "상세보기 ➔",
+                            fontSize = 10.5.sp,
+                            color = Color(0xFFB45309),
+                            fontWeight = FontWeight.ExtraBold
                         )
                     }
                 }
@@ -7609,6 +7617,152 @@ fun HomeScreenContent(
             onAddBooking = { newBooking ->
                 onAddBooking(newBooking)
                 onNavigateToBookingTab()
+            }
+        )
+    }
+
+    // 🏷️ 투명 정찰제 상세 요금 & 대기시간 요금 안내 팝업 (예약창 이동 대신 상세 규정 안내)
+    if (showPricingDetailDialog) {
+        AlertDialog(
+            onDismissRequest = { showPricingDetailDialog = false },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("🏷️", fontSize = 22.sp)
+                    Column {
+                        Text("발자국동행 투명 안심 요금표", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF0F172A))
+                        Text("정찰제 운임 및 병원 대기시간 안내", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Medium)
+                    }
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // 1. ⏱️ 병원 대기시간 요금 규정 (핵심 안내)
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFFFBEB),
+                        border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text("⏱️", fontSize = 16.sp)
+                                Text("병원 진료 대기시간 요금 규정", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E))
+                            }
+                            HorizontalDivider(color = Color(0xFFFDE68A))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("• 일반 예약 / 당일 이동 대기:", fontSize = 12.sp, color = Color(0xFF78350F))
+                                Text("30분당 5,000원", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFB45309))
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("• 🚨 긴급(응급) 출동 대기:", fontSize = 12.sp, color = Color(0xFF991B1B))
+                                Text("30분당 10,000원", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFDC2626))
+                            }
+                            Text(
+                                "※ 병원 도착 후 접수부터 진료/처방 수납 완료 시점까지의 실제 가드 대기시간을 기준으로 투명하게 정산됩니다.",
+                                fontSize = 10.sp,
+                                color = Color(0xFFB45309),
+                                lineHeight = 14.sp
+                            )
+                        }
+                    }
+
+                    // 2. 🚗 기본 서비스 운임 (3대 트림)
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF8FAFC),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("🚗 기본 서비스 트림 운임", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            HorizontalDivider()
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text("📅 예약 진료 (사전 예약)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                    Text("지정 일시 1:1 수석가드 안심 동행", fontSize = 10.sp, color = Color.Gray)
+                                }
+                                Text("30,000원", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A))
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text("🚗 당일 이동 (미예약 이동)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                                    Text("당일 즉시 픽업 & 현장 수속 접수", fontSize = 10.sp, color = Color.Gray)
+                                }
+                                Text("35,000원", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A))
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text("🚨 24시 응급 출동 (최우선)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                                    Text("24시 응급실 직통 연결 즉시 출동", fontSize = 10.sp, color = Color.Gray)
+                                }
+                                Text("50,000원", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A))
+                            }
+                        }
+                    }
+
+                    // 3. ✨ 기본 무료 제공 혜택
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF0FDF4),
+                        border = BorderStroke(1.dp, Color(0xFFBBF7D0))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text("✨ 전 요금 기본 포함 안심 케어", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF166534))
+                            Text("• 1:1 수석 가드 전담 안심 동행 (보호자 부재 케어 가능)", fontSize = 11.sp, color = Color(0xFF15803D))
+                            Text("• 실시간 고화질 바디캠 라이브 스트리밍 시청", fontSize = 11.sp, color = Color(0xFF15803D))
+                            Text("• 레이 전용 펫시트 & 안전 펜스 & 차내 공기케어", fontSize = 11.sp, color = Color(0xFF15803D))
+                            Text("• 수의사 진료 소견 리포트 & 영수증/처방전 사진 전송", fontSize = 11.sp, color = Color(0xFF15803D))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showPricingDetailDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("확인 닫기", fontWeight = FontWeight.Bold)
+                }
             }
         )
     }
