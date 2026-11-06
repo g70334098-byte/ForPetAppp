@@ -120,7 +120,9 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            ForPetApp()
+            com.example.forpetapp.ui.theme.ForpetappTheme {
+                ForPetApp()
+            }
         }
     }
 }
@@ -134,7 +136,6 @@ fun ForPetApp() {
     var isAdminUser by remember { mutableStateOf(false) }
     var currentAdminName by remember { mutableStateOf("최지훈 대표님") }
     var securityWarningMessage by remember { mutableStateOf<String?>(null) }
-    var isDarkMode by remember { mutableStateOf(PersistentStorageManager.loadDarkMode(context)) }
     var isLargeFontMode by remember { mutableStateOf(PersistentStorageManager.loadLargeFontMode(context)) }
 
     // 🚀 필수 최신 버전 체크 및 구글 플레이 강제 업데이트 상태
@@ -297,7 +298,7 @@ fun ForPetApp() {
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = if (isDarkMode) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+            color = Color(0xFFFAF7F2)
         ) {
             when (currentScreen) {
                 ScreenState.LOGIN -> LoginScreen(
@@ -327,12 +328,7 @@ fun ForPetApp() {
                 )
                 ScreenState.MAIN -> ForPetMainScreen(
                     isAdminUser = isAdminUser,
-                    isDarkMode = isDarkMode,
                     isLargeFontMode = isLargeFontMode,
-                    onToggleDarkMode = { enabled ->
-                        isDarkMode = enabled
-                        PersistentStorageManager.saveDarkMode(context, isDarkMode)
-                    },
                     onToggleLargeFontMode = { enabled ->
                         isLargeFontMode = enabled
                         PersistentStorageManager.saveLargeFontMode(context, isLargeFontMode)
@@ -343,11 +339,6 @@ fun ForPetApp() {
                     }
                 )
                 ScreenState.DRIVER -> DriverMainDashboardScreen(
-                    isDarkMode = isDarkMode,
-                    onToggleDarkMode = {
-                        isDarkMode = !isDarkMode
-                        PersistentStorageManager.saveDarkMode(context, isDarkMode)
-                    },
                     onLogout = { currentScreen = ScreenState.LOGIN }
                 )
                 ScreenState.ADMIN -> AdminMainDashboardScreen(
@@ -427,8 +418,6 @@ fun AdaptiveAppIcon(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DriverMainDashboardScreen(
-    isDarkMode: Boolean = false,
-    onToggleDarkMode: () -> Unit = {},
     onLogout: () -> Unit
 ) {
     val context = LocalContext.current
@@ -503,24 +492,21 @@ fun DriverMainDashboardScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("👨‍✈️ 담당 가드 워크스페이스", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = if (isDarkMode) Color.White else Color(0xFF0F172A))
-                        Text("박찬헌 가드 (차량: 부산 38가 5394)", fontSize = 11.sp, color = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7), fontWeight = FontWeight.Medium)
+                        Text("👨‍✈️ 담당 가드 워크스페이스", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color(0xFF0F172A))
+                        Text("박찬헌 가드 (차량: 부산 38가 5394)", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Medium)
                     }
                 },
                 actions = {
-                    IconButton(onClick = onToggleDarkMode) {
-                        Text(if (isDarkMode) "🌙" else "☀️", fontSize = 16.sp)
-                    }
                     TextButton(onClick = onLogout) {
                         Text("로그아웃", color = Color.Red, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = if (isDarkMode) Color(0xFF1E293B) else Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFFAF7F2))
             )
         },
         bottomBar = {
             NavigationBar(
-                containerColor = if (isDarkMode) Color(0xFF1E293B) else Color.White,
+                containerColor = Color(0xFFFAF7F2),
                 tonalElevation = 8.dp
             ) {
                 NavigationBarItem(
@@ -530,8 +516,8 @@ fun DriverMainDashboardScreen(
                     label = { Text("오더 관리", fontWeight = if (currentGuardTab == 0) FontWeight.Bold else FontWeight.Normal) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color(0xFF0284C7),
-                        selectedTextColor = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7),
-                        indicatorColor = if (isDarkMode) Color(0xFF334155) else Color(0xFFE0F2FE)
+                        selectedTextColor = Color(0xFF0284C7),
+                        indicatorColor = Color(0xFFE0F2FE)
                     )
                 )
                 NavigationBarItem(
@@ -541,8 +527,8 @@ fun DriverMainDashboardScreen(
                     label = { Text("관제 지도", fontWeight = if (currentGuardTab == 1) FontWeight.Bold else FontWeight.Normal) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color(0xFF0284C7),
-                        selectedTextColor = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7),
-                        indicatorColor = if (isDarkMode) Color(0xFF334155) else Color(0xFFE0F2FE)
+                        selectedTextColor = Color(0xFF0284C7),
+                        indicatorColor = Color(0xFFE0F2FE)
                     )
                 )
             }
@@ -553,7 +539,7 @@ fun DriverMainDashboardScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .background(if (isDarkMode) Color(0xFF0F172A) else Color(0xFFF8FAFC))
+                    .background(Color(0xFFFAF7F2))
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
@@ -2393,9 +2379,7 @@ object PersistentStorageManager {
 @Composable
 fun ForPetMainScreen(
     isAdminUser: Boolean = false,
-    isDarkMode: Boolean = false,
     isLargeFontMode: Boolean = false,
-    onToggleDarkMode: (Boolean) -> Unit = {},
     onToggleLargeFontMode: (Boolean) -> Unit = {},
     onLogout: () -> Unit
 ) {
@@ -2514,7 +2498,7 @@ fun ForPetMainScreen(
                                     "발자국동행",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 18.sp,
-                                    color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                    color = Color(0xFF0F172A)
                                 )
                             } else {
                                 Text(
@@ -2525,21 +2509,21 @@ fun ForPetMainScreen(
                                     },
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 18.sp,
-                                    color = if (isDarkMode) Color.White else Color(0xFF0F172A)
+                                    color = Color(0xFF0F172A)
                                 )
                             }
                         }
                         Text(
                             text = locationStatusText,
                             fontSize = 10.sp,
-                            color = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7),
+                            color = Color(0xFF0284C7),
                             fontWeight = FontWeight.Medium
                         )
                     }
                 },
                 actions = {
                     IconButton(onClick = { showDisplaySettingsDialog = true }) {
-                        Text(if (isDarkMode) "🌙" else "☀️", fontSize = 16.sp)
+                        Text("🔤", fontSize = 16.sp)
                     }
                     IconButton(onClick = { showNotificationCenter = true }) {
                         Text("🔔", fontSize = 16.sp)
@@ -2549,13 +2533,13 @@ fun ForPetMainScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (isDarkMode) Color(0xFF1E293B) else Color.White
+                    containerColor = Color(0xFFFAF7F2)
                 )
             )
         },
         bottomBar = {
             Surface(
-                color = if (isDarkMode) Color(0xFF1E293B) else Color.White,
+                color = Color(0xFFFAF7F2),
                 shadowElevation = 8.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -2575,7 +2559,7 @@ fun ForPetMainScreen(
                         Text(
                             "홈",
                             fontSize = 11.sp,
-                            color = if (selectedTab == 0) (if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7)) else (if (isDarkMode) Color(0xFF94A3B8) else Color.Gray),
+                            color = if (selectedTab == 0) Color(0xFF0284C7) else Color(0xFF64748B),
                             fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
                         )
                     }
@@ -2587,7 +2571,7 @@ fun ForPetMainScreen(
                         Text(
                             "예약",
                             fontSize = 11.sp,
-                            color = if (selectedTab == 1) (if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7)) else (if (isDarkMode) Color(0xFF94A3B8) else Color.Gray),
+                            color = if (selectedTab == 1) Color(0xFF0284C7) else Color(0xFF64748B),
                             fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
                         )
                     }
@@ -2599,7 +2583,7 @@ fun ForPetMainScreen(
                         Text(
                             "내 반려동물",
                             fontSize = 11.sp,
-                            color = if (selectedTab == 2) (if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7)) else (if (isDarkMode) Color(0xFF94A3B8) else Color.Gray),
+                            color = if (selectedTab == 2) Color(0xFF0284C7) else Color(0xFF64748B),
                             fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal
                         )
                     }
@@ -2611,7 +2595,7 @@ fun ForPetMainScreen(
                         Text(
                             "마이페이지",
                             fontSize = 11.sp,
-                            color = if (selectedTab == 3) (if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF0284C7)) else (if (isDarkMode) Color(0xFF94A3B8) else Color.Gray),
+                            color = if (selectedTab == 3) Color(0xFF0284C7) else Color(0xFF64748B),
                             fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Normal
                         )
                     }
@@ -2623,7 +2607,7 @@ fun ForPetMainScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(if (isDarkMode) Color(0xFF0F172A) else Color(0xFFF8FAFC))
+                .background(Color(0xFFFAF7F2))
         ) {
             when (selectedTab) {
                 0 -> HomeScreenContent(
@@ -2726,9 +2710,7 @@ fun ForPetMainScreen(
     }
     if (showDisplaySettingsDialog) {
         DisplaySettingsDialog(
-            isDarkMode = isDarkMode,
             isLargeFontMode = isLargeFontMode,
-            onToggleDarkMode = onToggleDarkMode,
             onToggleLargeFontMode = onToggleLargeFontMode,
             onDismiss = { showDisplaySettingsDialog = false }
         )
@@ -4744,12 +4726,10 @@ fun AiHealthChatDialog(
     )
 }
 
-// 🎨 화면 및 시각 안심 설정 다이얼로그 (야간 다크모드 / 고대비 큰 글씨)
+// 🎨 화면 및 시각 안심 설정 다이얼로그 (고대비 큰 글씨 안심 모드)
 @Composable
 fun DisplaySettingsDialog(
-    isDarkMode: Boolean,
     isLargeFontMode: Boolean,
-    onToggleDarkMode: (Boolean) -> Unit,
     onToggleLargeFontMode: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -4760,10 +4740,10 @@ fun DisplaySettingsDialog(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("🎨", fontSize = 22.sp)
+                Text("🔤", fontSize = 22.sp)
                 Column {
-                    Text("화면 및 시각 안심 설정", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = if (isDarkMode) Color.White else Color(0xFF0F172A))
-                    Text("야간 운행 및 가독성 최적화 모드", fontSize = 11.sp, color = Color.Gray)
+                    Text("글자 크기 안심 설정", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
+                    Text("시각 및 가독성 최적화 모드", fontSize = 11.sp, color = Color.Gray)
                 }
             }
         },
@@ -4772,40 +4752,11 @@ fun DisplaySettingsDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // 1. 야간 운행 다크 모드 카드
+                // 고대비 큰 글씨 모드 카드
                 Card(
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = if (isDarkMode) Color(0xFF1E293B) else Color(0xFFF1F5F9))
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(if (isDarkMode) "🌙" else "☀️", fontSize = 24.sp)
-                            Column {
-                                Text("야간 운행 다크 모드", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = if (isDarkMode) Color.White else Color(0xFF0F172A))
-                                Text("야간 진료/운행 시 눈부심을 완화하고 배터리를 절약합니다.", fontSize = 10.sp, color = Color.Gray, lineHeight = 14.sp)
-                            }
-                        }
-                        Switch(
-                            checked = isDarkMode,
-                            onCheckedChange = onToggleDarkMode
-                        )
-                    }
-                }
-
-                // 2. 고대비 큰 글씨 모드 카드
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = if (isDarkMode) Color(0xFF1E293B) else Color(0xFFF1F5F9))
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFEFE9DE))
                 ) {
                     Row(
                         modifier = Modifier
@@ -4821,8 +4772,8 @@ fun DisplaySettingsDialog(
                         ) {
                             Text("🔍", fontSize = 24.sp)
                             Column {
-                                Text("고대비 큰 글씨 안심 모드", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = if (isDarkMode) Color.White else Color(0xFF0F172A))
-                                Text("글자 크기를 125% 확대하여 보호자 및 기사님의 시인성을 높입니다.", fontSize = 10.sp, color = Color.Gray, lineHeight = 14.sp)
+                                Text("고대비 큰 글씨 안심 모드", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                Text("글자 크기를 125% 확대하여 보호자 및 가드님의 시인성을 높입니다.", fontSize = 10.sp, color = Color.Gray, lineHeight = 14.sp)
                             }
                         }
                         Switch(
@@ -4835,15 +4786,16 @@ fun DisplaySettingsDialog(
                 // 안내 팁
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = if (isDarkMode) Color(0xFF1E293B) else Color(0xFFEFF6FF)
+                    color = Color(0xFFFAF7F2),
+                    border = BorderStroke(1.dp, Color(0xFFEFE9DE))
                 ) {
                     Row(
                         modifier = Modifier.padding(10.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("💡", fontSize = 14.sp)
-                        Text("밤 20:00 ~ 아침 06:00 야간 운행 시 다크 모드를 켜시면 차내 조명 반사 없이 안전하게 화면을 확인하실 수 있습니다.", fontSize = 10.sp, color = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF1D4ED8), lineHeight = 14.sp)
+                        Text("🐾", fontSize = 14.sp)
+                        Text("발자국동행은 아이들의 편안함과 보호자님의 시인성을 위해 눈이 편안한 웜 베이지 테마를 제공합니다.", fontSize = 10.sp, color = Color(0xFF0284C7), lineHeight = 14.sp)
                     }
                 }
             }
