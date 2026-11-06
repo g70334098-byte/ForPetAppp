@@ -3978,7 +3978,8 @@ fun BookingHistoryScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFB08968))
                     ) {
                         Column(
                             modifier = Modifier.padding(24.dp),
@@ -4020,6 +4021,7 @@ fun BookingHistoryScreen(
                                 .clickable { selectedBookingForDetail = booking },
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFB08968)),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
                             Column(
@@ -4142,93 +4144,126 @@ fun BookingHistoryScreen(
             }
         } else {
             // 📋 2. 이전 예약 및 수의사 진료 리포트
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(pastList.size) { index ->
-                    val booking = pastList[index]
+            if (pastList.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        border = BorderStroke(1.dp, Color(0xFFB08968))
                     ) {
                         Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                            modifier = Modifier.padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                            Text("📋", fontSize = 48.sp)
+                            Text("이전 예약 및 진료 리포트 내역이 없습니다.", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
+                            Text(
+                                "서비스 이용이 완료되면 이곳에 수의사 진료 리포트와 영수증이 보관됩니다.",
+                                fontSize = 12.sp,
+                                color = Color.Gray,
+                                textAlign = TextAlign.Center,
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(pastList.size) { index ->
+                        val booking = pastList[index]
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFB08968)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFFDCFCE7)
+                                    ) {
+                                        Text(
+                                            text = booking.status,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF15803D),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+
+                                    Text(
+                                        text = booking.time,
+                                        fontSize = 12.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+
+                                HorizontalDivider()
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(if (booking.species == "강아지") "🐶" else "🐱", fontSize = 22.sp)
+                                    Column {
+                                        Text(
+                                            text = "${booking.petName} (보호자: ${booking.ownerName})",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp,
+                                            color = Color(0xFF0F172A)
+                                        )
+                                        Text(
+                                            text = "진료병원: ${booking.hospitalName}",
+                                            fontSize = 13.sp,
+                                            color = Color(0xFF334155),
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+
                                 Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = Color(0xFFDCFCE7)
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFFF8FAFC)
                                 ) {
-                                    Text(
-                                        text = booking.status,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF15803D),
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
+                                    Column(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text("🚙 이송 차량: ${booking.vehicleInfo}", fontSize = 12.sp, color = Color(0xFF0284C7))
+                                        Text("💳 최종 결제: ${booking.estimatedPrice}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                                    }
                                 }
 
-                                Text(
-                                    text = booking.time,
-                                    fontSize = 12.sp,
-                                    color = Color.Gray
-                                )
-                            }
-
-                            HorizontalDivider()
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(if (booking.species == "강아지") "🐶" else "🐱", fontSize = 22.sp)
-                                Column {
-                                    Text(
-                                        text = "${booking.petName} (보호자: ${booking.ownerName})",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp,
-                                        color = Color(0xFF0F172A)
-                                    )
-                                    Text(
-                                        text = "진료병원: ${booking.hospitalName}",
-                                        fontSize = 13.sp,
-                                        color = Color(0xFF334155),
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFFF8FAFC)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(10.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                Button(
+                                    onClick = { selectedReportBooking = booking },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
                                 ) {
-                                    Text("🚙 이송 차량: ${booking.vehicleInfo}", fontSize = 12.sp, color = Color(0xFF0284C7))
-                                    Text("💳 최종 결제: ${booking.estimatedPrice}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                                    Text("📄 수의사 진료 리포트 보기", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 }
-                            }
-
-                            Button(
-                                onClick = { selectedReportBooking = booking },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
-                            ) {
-                                Text("📄 수의사 진료 리포트 보기", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             }
                         }
                     }
@@ -5295,7 +5330,8 @@ fun MyPageScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFB08968))
             ) {
                 Column(
                     modifier = Modifier
@@ -5383,7 +5419,8 @@ fun MyPageScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFB08968))
             ) {
                 Column(
                     modifier = Modifier
@@ -5467,7 +5504,8 @@ fun MyPageScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFB08968))
             ) {
                 Column(
                     modifier = Modifier
@@ -5539,7 +5577,8 @@ fun MyPageScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFB08968))
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -11474,7 +11513,8 @@ fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): S
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFB08968))
             ) {
                 Column(
                     modifier = Modifier.padding(14.dp),
@@ -11572,7 +11612,8 @@ fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): S
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFB08968))
             ) {
                 Column(
                     modifier = Modifier
@@ -11634,7 +11675,8 @@ fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): S
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFB08968))
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -11727,7 +11769,8 @@ fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): S
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFB08968))
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
