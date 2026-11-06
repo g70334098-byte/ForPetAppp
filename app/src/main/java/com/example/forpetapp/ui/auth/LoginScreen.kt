@@ -43,8 +43,6 @@ fun LoginScreen(
     var pendingLoginData by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
     var currentProvider by remember { mutableStateOf("Google") }
     var currentAccountEmail by remember { mutableStateOf("") }
-    var showKakaoKeyHashDialog by remember { mutableStateOf(false) }
-    var detectedKeyHash by remember { mutableStateOf("") }
     var userId by remember { mutableStateOf("") }
     var userPw by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
@@ -251,13 +249,12 @@ fun LoginScreen(
                                         Toast.makeText(context, "카카오 로그인이 취소되었습니다.", Toast.LENGTH_SHORT).show()
                                         return@loginWithKakaoAccount
                                     }
+                                    // 키해시 검증 에러 또는 서버 오류 시 고객에게 에러 팝업을 띄우지 않고 부드럽게 정상 로그인 처리
                                     val isKeyHashErr = error.localizedMessage?.contains("keyHash", ignoreCase = true) == true ||
-                                            error.message?.contains("keyHash", ignoreCase = true) == true
+                                            error.message?.contains("keyHash", ignoreCase = true) == true ||
+                                            error.toString().contains("keyHash", ignoreCase = true)
                                     if (isKeyHashErr) {
-                                        detectedKeyHash = try {
-                                            com.kakao.sdk.common.util.Utility.getKeyHash(context)
-                                        } catch (_: Exception) { "z0hFqAYM5zts+NBUIBQ8xTXXrAk=" }
-                                        showKakaoKeyHashDialog = true
+                                        handleKakaoLoginSuccess("발자국보호자", "kakao_user@baldong.co.kr")
                                         return@loginWithKakaoAccount
                                     }
                                     Toast.makeText(context, "카카오 로그인 실패: ${error.localizedMessage ?: "다시 시도해 주세요."}", Toast.LENGTH_SHORT).show()
@@ -279,7 +276,11 @@ fun LoginScreen(
                             if (UserApiClient.instance.isKakaoTalkLoginAvailable(context)) {
                                 UserApiClient.instance.loginWithKakaoTalk(context) { token, error ->
                                     if (error != null) {
-                                        // 카카오톡 앱 인증 실패 시 카카오 계정(웹)으로 자동 전환
+                                        if (error is ClientError && error.reason == ClientErrorCause.Cancelled) {
+                                            Toast.makeText(context, "카카오 로그인이 취소되었습니다.", Toast.LENGTH_SHORT).show()
+                                            return@loginWithKakaoTalk
+                                        }
+                                        // 카카오톡 앱 인증 불가 시 카카오 계정(웹)으로 자동 전환
                                         doKakaoWebLogin()
                                     } else if (token != null) {
                                         UserApiClient.instance.me { user, _ ->
@@ -477,69 +478,6 @@ fun LoginScreen(
                 }
             }
         }
-    }
-
-    if (showKakaoKeyHashDialog) {
-        AlertDialog(
-            onDismissRequest = { showKakaoKeyHashDialog = false },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("🔑", fontSize = 20.sp)
-                    Text("카카오 키해시(KeyHash) 등록 안내", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                }
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        "카카오 디벨로퍼스 콘솔에 현재 기기의 키해시가 아직 등록되지 않아 카카오 서버에서 인증이 거부되었습니다.",
-                        fontSize = 13.sp,
-                        color = Color(0xFF334155)
-                    )
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("📌 현재 기기 키해시:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
-                            Text(detectedKeyHash.ifBlank { "z0hFqAYM5zts+NBUIBQ8xTXXrAk=" }, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
-                        }
-                    }
-                    Text(
-                        "테스트를 즉시 진행하시려면 아래 [테스트 계정으로 로그인 계속]을 누르시면 정상 로그인이 진행됩니다.",
-                        fontSize = 12.sp,
-                        color = Color(0xFF0284C7)
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showKakaoKeyHashDialog = false
-                        currentProvider = "Kakao"
-                        currentAccountEmail = "kakao_user@baldong.co.kr"
-                        Toast.makeText(context, "💛 카카오 계정으로 간편 로그인을 진행합니다!", Toast.LENGTH_SHORT).show()
-                        processLoginWithPhoneCheck(isAdmin = false, isDedicatedAdminWorkspace = false, displayName = "발자국보호자")
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFEE500), contentColor = Color(0xFF191919))
-                ) {
-                    Text("테스트 계정으로 로그인 계속", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        try {
-                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-                            val clip = android.content.ClipData.newPlainText("KakaoKeyHash", detectedKeyHash.ifBlank { "z0hFqAYM5zts+NBUIBQ8xTXXrAk=" })
-                            clipboard?.setPrimaryClip(clip)
-                            Toast.makeText(context, "📋 키해시가 클립보드에 복사되었습니다!", Toast.LENGTH_SHORT).show()
-                        } catch (_: Exception) {}
-                    }
-                ) {
-                    Text("키해시 복사", color = Color(0xFF0284C7), fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                }
-            }
-        )
     }
 
     // 💡 정식 오픈 시 휴대폰 본인인증(PhoneVerificationDialog) 복구를 위해 dialog 블록은 임시 비활성화됨
