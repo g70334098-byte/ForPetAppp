@@ -199,13 +199,22 @@ fun LoginScreen(
                 Button(
                     onClick = {
                         try {
-                            val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
-                                com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
-                            ).requestEmail().build()
-                            val googleSignInClient = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
-                            googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                            val intent = com.google.android.gms.common.AccountPicker.newChooseAccountIntent(
+                                com.google.android.gms.common.AccountPicker.AccountChooserOptions.Builder()
+                                    .setAllowableAccountsTypes(listOf("com.google"))
+                                    .build()
+                            )
+                            googleSignInLauncher.launch(intent)
                         } catch (_: Exception) {
-                            Toast.makeText(context, "Google 로그인 실행 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                            try {
+                                val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
+                                    com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
+                                ).requestEmail().build()
+                                val googleSignInClient = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
+                                googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                            } catch (_: Exception) {
+                                Toast.makeText(context, "Google 로그인 실행 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     },
                     modifier = Modifier
@@ -233,35 +242,34 @@ fun LoginScreen(
                             processLoginWithPhoneCheck(isAdmin = false, isDedicatedAdminWorkspace = false, displayName = nick)
                         }
 
+                        val doKakaoWebLogin = {
+                            UserApiClient.instance.loginWithKakaoAccount(context) { token, error ->
+                                if (error != null) {
+                                    if (error is ClientError && error.reason == ClientErrorCause.Cancelled) {
+                                        Toast.makeText(context, "카카오 로그인이 취소되었습니다.", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "카카오 로그인 실패: ${error.localizedMessage ?: "다시 시도해 주세요."}", Toast.LENGTH_SHORT).show()
+                                    }
+                                    return@loginWithKakaoAccount
+                                }
+                                if (token != null) {
+                                    UserApiClient.instance.me { user, _ ->
+                                        val nick = user?.kakaoAccount?.profile?.nickname
+                                            ?: user?.properties?.get("nickname")
+                                            ?: "발자국보호자"
+                                        val email = user?.kakaoAccount?.email ?: "kakao_${user?.id ?: "user"}@kakao.com"
+                                        handleKakaoLoginSuccess(nick, email)
+                                    }
+                                }
+                            }
+                        }
+
                         try {
                             if (UserApiClient.instance.isKakaoTalkLoginAvailable(context)) {
                                 UserApiClient.instance.loginWithKakaoTalk(context) { token, error ->
                                     if (error != null) {
-                                        // 사용자가 카카오톡에서 취소/뒤로가기를 누른 경우
-                                        if (error is ClientError && error.reason == ClientErrorCause.Cancelled) {
-                                            Toast.makeText(context, "카카오 로그인이 취소되었습니다.", Toast.LENGTH_SHORT).show()
-                                            return@loginWithKakaoTalk
-                                        }
-                                        // 카카오톡 로그인 불가능 시 카카오계정(웹)으로 진행
-                                        UserApiClient.instance.loginWithKakaoAccount(context) { token2, error2 ->
-                                            if (error2 != null) {
-                                                if (error2 is ClientError && error2.reason == ClientErrorCause.Cancelled) {
-                                                    Toast.makeText(context, "카카오 로그인이 취소되었습니다.", Toast.LENGTH_SHORT).show()
-                                                } else {
-                                                    Toast.makeText(context, "카카오 로그인에 실패하였습니다.", Toast.LENGTH_SHORT).show()
-                                                }
-                                                return@loginWithKakaoAccount
-                                            }
-                                            if (token2 != null) {
-                                                UserApiClient.instance.me { user, _ ->
-                                                    val nick = user?.kakaoAccount?.profile?.nickname
-                                                        ?: user?.properties?.get("nickname")
-                                                        ?: "발자국보호자"
-                                                    val email = user?.kakaoAccount?.email ?: "kakao_${user?.id ?: "user"}@kakao.com"
-                                                    handleKakaoLoginSuccess(nick, email)
-                                                }
-                                            }
-                                        }
+                                        // 카카오톡 앱 인증 실패 시 카카오 계정(웹)으로 자동 전환
+                                        doKakaoWebLogin()
                                     } else if (token != null) {
                                         UserApiClient.instance.me { user, _ ->
                                             val nick = user?.kakaoAccount?.profile?.nickname
@@ -273,28 +281,10 @@ fun LoginScreen(
                                     }
                                 }
                             } else {
-                                UserApiClient.instance.loginWithKakaoAccount(context) { token, error ->
-                                    if (error != null) {
-                                        if (error is ClientError && error.reason == ClientErrorCause.Cancelled) {
-                                            Toast.makeText(context, "카카오 로그인이 취소되었습니다.", Toast.LENGTH_SHORT).show()
-                                        } else {
-                                            Toast.makeText(context, "카카오 로그인에 실패하였습니다.", Toast.LENGTH_SHORT).show()
-                                        }
-                                        return@loginWithKakaoAccount
-                                    }
-                                    if (token != null) {
-                                        UserApiClient.instance.me { user, _ ->
-                                            val nick = user?.kakaoAccount?.profile?.nickname
-                                                ?: user?.properties?.get("nickname")
-                                                ?: "발자국보호자"
-                                            val email = user?.kakaoAccount?.email ?: "kakao_${user?.id ?: "user"}@kakao.com"
-                                            handleKakaoLoginSuccess(nick, email)
-                                        }
-                                    }
-                                }
+                                doKakaoWebLogin()
                             }
                         } catch (_: Exception) {
-                            Toast.makeText(context, "카카오 로그인 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                            doKakaoWebLogin()
                         }
                     },
                     modifier = Modifier

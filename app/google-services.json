@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "797590460763-2heflmlas1rd5c9mkortes80ih01s139.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.baldong.app",
+            "certificate_hash": "cf4845a8060ce73b6cf8d05420143cc535d7ac09"
+          }
+        },
+        {
           "client_id": "797590460763-ld3q8bklck0o75d92h53q8dh38s4gu9n.apps.googleusercontent.com",
           "client_type": 3
         }
