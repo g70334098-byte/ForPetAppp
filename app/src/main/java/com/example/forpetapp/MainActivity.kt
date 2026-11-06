@@ -1362,9 +1362,26 @@ fun AdminMainDashboardScreen(adminName: String = "최지훈 대표님", onLogout
         }
     }
 
-    // ☁️ 실시간 Cloud Firestore 오더 동기화 리스너 (관리자 통합 대시보드)
+    // ☁️ 실시간 Cloud Firestore 오더 및 회원 DB 동기화 리스너 (관리자 통합 대시보드)
     DisposableEffect(Unit) {
-        val listener = FirebaseSyncManager.listenToCloudOrders { cloudOrders ->
+        val userListener = FirebaseSyncManager.listenToCloudUsers { cloudUsers ->
+            if (cloudUsers.isNotEmpty()) {
+                val defaultAdmins = listOf(
+                    Triple("최지훈 대표님", "010-3786-5394", "🔴 Google 계정 (g70334098@gmail.com) | 초코 (말티즈) | 3,000P"),
+                    Triple("이선하 대표님", "010-7521-7399", "🔐 ID/PW 계정 (seonha2525) | 해피 (푸들) | 6,000P")
+                )
+                val adminPhones = defaultAdmins.map { it.second }.toSet()
+                val merged = defaultAdmins.toMutableList()
+                cloudUsers.forEach { user ->
+                    if (user.second !in adminPhones) {
+                        merged.add(user)
+                    }
+                }
+                adminMembersList.clear()
+                adminMembersList.addAll(merged)
+            }
+        }
+        val orderListener = FirebaseSyncManager.listenToCloudOrders { cloudOrders ->
             if (cloudOrders.isNotEmpty()) {
                 adminBookingOrders.clear()
                 adminBookingOrders.addAll(cloudOrders)
@@ -1372,9 +1389,16 @@ fun AdminMainDashboardScreen(adminName: String = "최지훈 대표님", onLogout
             }
         }
         onDispose {
-            listener?.remove()
+            userListener?.remove()
+            orderListener?.remove()
         }
     }
+
+    val todayTotalAmount = adminBookingOrders.sumOf { order ->
+        val digitsOnly = order.estimatedPrice.replace(Regex("[^0-9]"), "")
+        digitsOnly.toIntOrNull() ?: 0
+    }
+    val formattedTotalAmount = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(todayTotalAmount)
 
     Scaffold(
         topBar = {
@@ -1426,19 +1450,19 @@ fun AdminMainDashboardScreen(adminName: String = "최지훈 대표님", onLogout
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("👥 총 가입 회원", fontSize = 10.sp, color = Color.Gray)
-                            Text("0 명", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
+                            Text("${adminMembersList.size} 명", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("🚘 오늘 배차 건수", fontSize = 10.sp, color = Color.Gray)
-                            Text("0 건", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF4ADE80))
+                            Text("${adminBookingOrders.size} 건", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF4ADE80))
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("💰 오늘 가결제액", fontSize = 10.sp, color = Color.Gray)
-                            Text("0 원", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFFFBBF24))
+                            Text("${formattedTotalAmount} 원", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFFFBBF24))
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("⭐ 평균 평점", fontSize = 10.sp, color = Color.Gray)
-                            Text("-", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
+                            Text("5.0", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
                         }
                     }
                 }

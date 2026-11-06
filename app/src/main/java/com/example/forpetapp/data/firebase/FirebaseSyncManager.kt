@@ -455,6 +455,46 @@ object FirebaseSyncManager {
     }
 
     /**
+     * 9. Cloud Firestore 전체 가입 회원 목록 실시간 동기화 리스너 (관리자 대시보드 연동)
+     */
+    fun listenToCloudUsers(onUsersUpdated: (List<Triple<String, String, String>>) -> Unit): ListenerRegistration? {
+        return try {
+            firestore.collection(USERS_COLLECTION)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.w(TAG, "listenToCloudUsers error: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        val list = snapshot.documents.mapNotNull { doc ->
+                            try {
+                                val name = doc.getString("name") ?: "발자국보호자"
+                                val phone = doc.getString("phone") ?: ""
+                                val email = doc.getString("email") ?: ""
+                                val provider = doc.getString("provider") ?: "일반"
+                                val points = doc.getLong("points")?.toInt() ?: 0
+                                val providerIcon = when (provider) {
+                                    "Google" -> "🔴 Google"
+                                    "Kakao" -> "💛 카카오톡"
+                                    else -> "🔐 일반"
+                                }
+                                val formattedPoints = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(points)
+                                val detail = "$providerIcon 계정${if (email.isNotBlank()) " ($email)" else ""} | ${formattedPoints}P"
+                                Triple(name, if (phone.isNotBlank()) phone else "연락처 미등록", detail)
+                            } catch (_: Exception) {
+                                null
+                            }
+                        }
+                        onUsersUpdated(list)
+                    }
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "listenToCloudUsers error: ${e.message}")
+            null
+        }
+    }
+
+    /**
      * 5. 앱 필수 최소 버전 실시간 감지 (강제 업데이트 체크)
      */
     fun listenToAppVersionConfig(
