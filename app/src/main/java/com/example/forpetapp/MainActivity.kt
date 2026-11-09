@@ -2700,6 +2700,17 @@ fun ForPetMainScreen(
                     onUpdatePoints = {
                         userPoints = it
                         PersistentStorageManager.saveUserPoints(context, it)
+                        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserProfileToCloud(
+                            userId = currentUserId,
+                            name = userNickname,
+                            phone = userPhone,
+                            email = currentUserEmail,
+                            provider = PersistentStorageManager.loadUserProvider(context),
+                            address = userAddress,
+                            detailAddress = userDetailAddress,
+                            points = it,
+                            petSummary = "$savedPetName ($savedPetType, ${savedPetWeight}kg)"
+                        )
                     },
                     userReferralCode = userReferralCode,
                     userNickname = userNickname,
@@ -2709,7 +2720,7 @@ fun ForPetMainScreen(
                     currentGpsLocation = locationStatusText,
                     onAddBooking = { newBooking ->
                         bookingList.add(0, newBooking)
-                        PersistentStorageManager.saveBookingList(context, bookingList)
+                        PersistentStorageManager.saveBookingList(context, bookingList, currentUserId)
                         try {
                             com.example.forpetapp.widget.ForPetAppWidgetProvider.updateAllWidgets(context)
                         } catch (_: Exception) {}
@@ -2769,6 +2780,19 @@ fun ForPetMainScreen(
                             symptoms = symptoms,
                             birthMillis = birthMillis
                         )
+
+                        // ☁️ Cloud Firestore 및 홈페이지(관리자 포털)에 반려동물 프로필 즉시 동기화
+                        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserProfileToCloud(
+                            userId = currentUserId,
+                            name = userNickname,
+                            phone = userPhone,
+                            email = currentUserEmail,
+                            provider = PersistentStorageManager.loadUserProvider(context),
+                            address = userAddress,
+                            detailAddress = userDetailAddress,
+                            points = userPoints,
+                            petSummary = "$name ($type, ${weight}kg)"
+                        )
                     }
                 )
                 3 -> MyPageScreen(
@@ -2791,6 +2815,19 @@ fun ForPetMainScreen(
 
                         // 디스크 파일(SharedPreferences)에 영구 보존
                         PersistentStorageManager.saveUserProfile(context, newNick, newPhone, newAddress, newDetailAddress, savedRegisteredCard)
+
+                        // ☁️ Cloud Firestore 및 홈페이지(관리자 포털)에 변경된 회원 프로필 즉시 동기화
+                        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserProfileToCloud(
+                            userId = currentUserId,
+                            name = newNick,
+                            phone = newPhone,
+                            email = currentUserEmail,
+                            provider = PersistentStorageManager.loadUserProvider(context),
+                            address = newAddress,
+                            detailAddress = newDetailAddress,
+                            points = userPoints,
+                            petSummary = "$savedPetName ($savedPetType, ${savedPetWeight}kg)"
+                        )
                     },
                     onDeleteAccount = onLogout
                 )

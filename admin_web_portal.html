@@ -1549,14 +1549,14 @@
                         }
                     }, function(err) { console.log("GPS listen error", err); });
 
-                // 1. 실시간 회원 DB (users 컬렉션) 동기화
+                // 1. 실시간 회원 DB (users 컬렉션) 동기화 (탈퇴 시 마지막 1명까지 0명으로 즉시 반영)
                 db.collection("users").onSnapshot((snapshot) => {
                     const statusText = document.getElementById('db-status-text');
                     if (statusText) {
                         statusText.innerHTML = "🟢 실시간 연동 정상 (forpetapp-c603e)";
                         statusText.style.color = "#047857";
                     }
-                    if (snapshot && !snapshot.empty) {
+                    if (snapshot) {
                         const cloudUsers = [];
                         snapshot.forEach(doc => {
                             const d = doc.data();
@@ -1572,17 +1572,10 @@
                                 points: typeof d.points === 'number' ? d.points : 0
                             });
                         });
-                        if (cloudUsers.length > 0) {
-                            usersData = cloudUsers;
-                            localStorage.setItem('baljaguk_users', JSON.stringify(usersData));
-                            renderUsersTable();
-                            console.log("☁️ Firestore 실시간 회원 동기화 완료:", cloudUsers.length, "명");
-                        }
-                    } else if (snapshot && snapshot.empty) {
-                        if (statusText) {
-                            statusText.innerHTML = "🟢 실시간 연결됨 (신규 가입 대기 중)";
-                            statusText.style.color = "#0284c7";
-                        }
+                        usersData = cloudUsers;
+                        localStorage.setItem('baljaguk_users', JSON.stringify(usersData));
+                        renderUsersTable();
+                        console.log("☁️ Firestore 실시간 회원 동기화 완료:", cloudUsers.length, "명");
                     }
                 }, (err) => {
                     console.warn("Firestore users sync:", err);
@@ -1593,9 +1586,9 @@
                     }
                 });
 
-                // 2. 실시간 오더 DB (orders 컬렉션) 동기화
+                // 2. 실시간 오더 DB (orders 컬렉션) 동기화 (취소/삭제 시 마지막 1건까지 0건으로 즉시 반영)
                 db.collection("orders").onSnapshot((snapshot) => {
-                    if (snapshot && !snapshot.empty) {
+                    if (snapshot) {
                         const cloudOrders = [];
                         snapshot.forEach(doc => {
                             const d = doc.data();
@@ -1616,12 +1609,10 @@
                                 prescription: d.prescription || ""
                             });
                         });
-                        if (cloudOrders.length > 0) {
-                            ordersData = cloudOrders;
-                            localStorage.setItem('baljaguk_orders', JSON.stringify(ordersData));
-                            renderOrdersTable();
-                            console.log("☁️ Firestore 실시간 오더 동기화 완료:", cloudOrders.length, "건");
-                        }
+                        ordersData = cloudOrders;
+                        localStorage.setItem('baljaguk_orders', JSON.stringify(ordersData));
+                        renderOrdersTable();
+                        console.log("☁️ Firestore 실시간 오더 동기화 완료:", cloudOrders.length, "건");
                     }
                 }, (err) => console.warn("Firestore orders sync:", err));
 
@@ -1925,10 +1916,15 @@
         // 오더 삭제 (고객 실수 예약건 직접 취소/삭제)
         function deleteOrder(index) {
             const item = ordersData[index];
-            if (item && confirm(`정말로 고객 [${item.owner}] 님의 실수 오더 [${item.id}] 항목을 관리자 권한으로 삭제하시겠습니까?`)) {
+            if (item && confirm(`정말로 고객 [${item.owner}] 님의 실수 오더 [${item.id}] 항목을 관리자 권한으로 삭제하시겠습니까?\nFirestore DB 및 포털에서 즉시 제거됩니다.`)) {
+                if (item.id && typeof firebase !== 'undefined' && firebase.apps.length) {
+                    firebase.firestore().collection("orders").doc(item.id).delete()
+                        .then(() => console.log("☁️ Firestore 오더 삭제 완료:", item.id))
+                        .catch(e => console.warn("Firestore 오더 삭제 오류:", e));
+                }
                 ordersData.splice(index, 1);
                 persistData();
-                alert(`🗑️ [${item.owner}] 고객님의 오더 [${item.id}] 항목이 관제 포털에서 완전히 삭제되었습니다.`);
+                alert(`🗑️ [${item.owner}] 고객님의 오더 [${item.id}] 항목이 관제 포털 및 DB에서 완전히 삭제되었습니다.`);
             }
         }
 

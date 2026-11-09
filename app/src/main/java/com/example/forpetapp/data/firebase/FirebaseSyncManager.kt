@@ -295,7 +295,7 @@ object FirebaseSyncManager {
                         return@addSnapshotListener
                     }
 
-                    if ((snapshot != null) && !snapshot.isEmpty) {
+                    if (snapshot != null) {
                         val list = snapshot.documents.mapNotNull { doc ->
                             try {
                                 BookingItem(
@@ -437,11 +437,17 @@ object FirebaseSyncManager {
         address: String = "",
         detailAddress: String = "",
         points: Int = 0,
+        petSummary: String? = null,
         onComplete: ((Boolean) -> Unit)? = null
     ) {
         try {
+            val targetId = userId.ifBlank { email.ifBlank { phone } }.trim()
+            if (targetId.isBlank()) {
+                onComplete?.invoke(false)
+                return
+            }
             val userMap = hashMapOf<String, Any>(
-                "userId" to userId,
+                "userId" to targetId,
                 "name" to name,
                 "phone" to phone,
                 "email" to email,
@@ -452,15 +458,18 @@ object FirebaseSyncManager {
                 "role" to "USER",
                 "lastLoginAt" to System.currentTimeMillis()
             )
+            if (!petSummary.isNullOrBlank()) {
+                userMap["pet"] = petSummary
+            }
 
-            val docRef = firestore.collection(USERS_COLLECTION).document(userId)
+            val docRef = firestore.collection(USERS_COLLECTION).document(targetId)
             docRef.get().addOnSuccessListener { doc ->
                 if (!doc.exists()) {
                     userMap["createdAt"] = System.currentTimeMillis()
                 }
                 docRef.set(userMap, SetOptions.merge())
                     .addOnSuccessListener {
-                        Log.d(TAG, "User profile successfully synced to Firestore: $userId ($name)")
+                        Log.d(TAG, "User profile successfully synced to Firestore: $targetId ($name)")
                         onComplete?.invoke(true)
                     }
                     .addOnFailureListener { e ->
@@ -586,26 +595,40 @@ object FirebaseSyncManager {
         onComplete: ((Boolean) -> Unit)? = null
     ) {
         try {
-            val docIds = listOf(userId, email, phone).filter { it.isNotBlank() }.distinct()
+            val docIds = listOf(userId, email, phone).map { it.trim() }.filter { it.isNotBlank() }.distinct()
             docIds.forEach { id ->
                 firestore.collection(USERS_COLLECTION).document(id).delete()
             }
-            if (email.isNotBlank()) {
-                firestore.collection(USERS_COLLECTION)
-                    .whereEqualTo("email", email)
-                    .get()
-                    .addOnSuccessListener { qs ->
-                        for (doc in qs.documents) {
-                            doc.reference.delete()
-                        }
-                        onComplete?.invoke(true)
-                    }
-                    .addOnFailureListener {
-                        onComplete?.invoke(true)
-                    }
-            } else {
-                onComplete?.invoke(true)
+
+            // 1. users 컬렉션에서 userId, email, phone 일치 문서 전수 삭제
+            if (userId.isNotBlank()) {
+                firestore.collection(USERS_COLLECTION).whereEqualTo("userId", userId.trim()).get()
+                    .addOnSuccessListener { qs -> qs.documents.forEach { it.reference.delete() } }
             }
+            if (phone.isNotBlank()) {
+                firestore.collection(USERS_COLLECTION).whereEqualTo("phone", phone.trim()).get()
+                    .addOnSuccessListener { qs -> qs.documents.forEach { it.reference.delete() } }
+            }
+            if (email.isNotBlank()) {
+                firestore.collection(USERS_COLLECTION).whereEqualTo("email", email.trim()).get()
+                    .addOnSuccessListener { qs -> qs.documents.forEach { it.reference.delete() } }
+            }
+
+            // 2. orders 컬렉션에서도 탈퇴 회원의 예약/오더 내역 전수 삭제 (DB 및 홈페이지 완전 파기)
+            if (userId.isNotBlank()) {
+                firestore.collection(ORDERS_COLLECTION).whereEqualTo("userId", userId.trim()).get()
+                    .addOnSuccessListener { qs -> qs.documents.forEach { it.reference.delete() } }
+            }
+            if (email.isNotBlank()) {
+                firestore.collection(ORDERS_COLLECTION).whereEqualTo("userEmail", email.trim()).get()
+                    .addOnSuccessListener { qs -> qs.documents.forEach { it.reference.delete() } }
+            }
+            if (phone.isNotBlank()) {
+                firestore.collection(ORDERS_COLLECTION).whereEqualTo("ownerPhone", phone.trim()).get()
+                    .addOnSuccessListener { qs -> qs.documents.forEach { it.reference.delete() } }
+            }
+
+            onComplete?.invoke(true)
         } catch (e: Exception) {
             Log.e(TAG, "deleteUserProfileFromCloud error: ${e.message}")
             onComplete?.invoke(false)
