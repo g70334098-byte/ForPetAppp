@@ -447,6 +447,13 @@ fun LoginScreen(
                                 "driver" -> {
                                     if (trimmedPw == "942800") {
                                         errorMessage = ""
+                                        // 🛡️ 승인된 가드 단말기 인증 플래그 저장
+                                        context.getSharedPreferences("BaljagukAppDiskPrefs", android.content.Context.MODE_PRIVATE)
+                                            .edit()
+                                            .putBoolean("is_guard_authorized_device", true)
+                                            .putString("logged_guard_name", "박찬헌 가드")
+                                            .apply()
+
                                         Toast.makeText(context, "👨‍✈️ 담당 가드(박찬헌 가드) 계정으로 인증되었습니다!", Toast.LENGTH_SHORT).show()
                                         val hasCamera = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED
                                         val hasAudio = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED

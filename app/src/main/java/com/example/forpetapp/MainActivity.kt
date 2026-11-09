@@ -2462,6 +2462,18 @@ fun ForPetMainScreen(
                 }
             }
 
+            // 이전 상태와 비교하여 가드가 상태를 변경했으면 보호자에게 실시간 상단 푸시 알림 트리거
+            myOrders.forEach { newOrder ->
+                val prevOrder = bookingList.firstOrNull { it.id == newOrder.id }
+                if (prevOrder != null && prevOrder.status != newOrder.status) {
+                    sendSystemPushNotification(
+                        context,
+                        "🐾 [발자국동행 케어 현황] ${newOrder.petName}",
+                        newOrder.status
+                    )
+                }
+            }
+
             bookingList.clear()
             bookingList.addAll(myOrders)
             PersistentStorageManager.saveBookingList(context, myOrders, currentUserId)
@@ -4438,23 +4450,50 @@ fun BookingHistoryScreen(
                         }
                     }
 
-                    // 전화걸기 버튼
-                    Button(
-                        onClick = {
-                            try {
-                                val intent = Intent(Intent.ACTION_DIAL, "tel:${driverPhone.replace("-", "")}".toUri())
-                                context.startActivity(intent)
-                            } catch (_: Exception) {
-                                Toast.makeText(context, "전화 앱을 열 수 없습니다.", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(44.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                    // 담당 가드 직통 연락 (전화 및 안심 문자 소통)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("📞 담당 가드에게 전화 걸기", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Button(
+                            onClick = {
+                                try {
+                                    val intent = Intent(Intent.ACTION_DIAL, "tel:${driverPhone.replace("-", "")}".toUri())
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {
+                                    Toast.makeText(context, "전화 앱을 열 수 없습니다.", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(44.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                        ) {
+                            Text("📞 안심 통화", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+
+                        Button(
+                            onClick = {
+                                try {
+                                    val cleanPhone = driverPhone.replace("-", "")
+                                    val defaultMsg = "안녕하세요 가드님! 발자국동행 [${booking.petName}] 보호자입니다. (오더: ${booking.id})"
+                                    val intent = Intent(Intent.ACTION_SENDTO, "smsto:$cleanPhone".toUri()).apply {
+                                        putExtra("sms_body", defaultMsg)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {
+                                    Toast.makeText(context, "메시지 앱을 열 수 없습니다.", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(44.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                        ) {
+                            Text("💬 1:1 메시지", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
                     }
                 }
             },
@@ -5584,12 +5623,24 @@ fun MyPageScreen(
 
                         OutlinedButton(
                             onClick = {
-                                Toast.makeText(context, "1:1 문의하기 페이지로 연결됩니다.", Toast.LENGTH_SHORT).show()
+                                try {
+                                    val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                        data = "mailto:k7turbo@naver.com".toUri()
+                                        putExtra(Intent.EXTRA_SUBJECT, "[발자국동행] 1:1 고객 문의 접수")
+                                        putExtra(
+                                            Intent.EXTRA_TEXT,
+                                            "회원명: $userNickname\n연락처: $userPhone\n\n[문의 내용]:\n"
+                                        )
+                                    }
+                                    context.startActivity(Intent.createChooser(emailIntent, "관리자에게 문의 이메일 발송"))
+                                } catch (_: Exception) {
+                                    Toast.makeText(context, "이메일 앱을 열 수 없습니다. (k7turbo@naver.com)", Toast.LENGTH_LONG).show()
+                                }
                             },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("💬 1:1 카톡 문의", fontSize = 13.sp, color = Color(0xFF0284C7))
+                            Text("✉️ 대표 1:1 문의", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                         }
                     }
                 }

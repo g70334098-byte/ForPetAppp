@@ -17,9 +17,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 
 /**
- * 📡 법인 가드 단말기 전용 24시간 백그라운드 GPS 위치 추적 포그라운드 서비스
- * - 가드 로그인 이력이 있는 법인 단말기(S23 FE)에서 화면이 꺼지거나 앱이 닫혀도
- *   24시간 지속적으로 GPS 좌표를 수신하여 관제센터 포털(Google Maps)로 실시간 동기화합니다.
+ * 📡 법인 가드 단말기 전용 백그라운드 GPS 위치 추적 포그라운드 서비스
+ * - 오직 본사 승인을 받은 정식 가드(드라이버) 계정으로 인증된 기기에서만 가동됩니다.
+ * - 일반 보호자 또는 미인증 사용자 환경에서는 시작 즉시 자체 종료(stopSelf)하여 배터리 및 개인정보를 보호합니다.
  */
 class GuardGpsForegroundService : Service() {
 
@@ -29,6 +29,15 @@ class GuardGpsForegroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         try {
+            // 🛡️ 승인된 가드 계정 검증: SharedPreferences에 guard_verified_auth 플래그 확인
+            val pref = getSharedPreferences("BaljagukAppDiskPrefs", MODE_PRIVATE)
+            val isGuardAuthorized = pref.getBoolean("is_guard_authorized_device", false)
+            if (!isGuardAuthorized) {
+                android.util.Log.w("GuardGpsService", "Unauthorized GPS attempt detected. Stopping service.")
+                stopSelf()
+                return
+            }
+
             startForegroundServiceNotification()
             startContinuousGpsTracking()
         } catch (e: Exception) {
