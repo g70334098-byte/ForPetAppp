@@ -637,6 +637,44 @@ fun DriverMainDashboardScreen(
 
                             HorizontalDivider()
 
+                            if (order.status.contains("승낙 대기") || order.status.contains("접수 대기") || order.status.contains("대기")) {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = Color(0xFFFEF3C7),
+                                    border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text("⏳ 새로운 예약 승낙 대기 중", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFB45309))
+                                            Text("가드가 승낙하기 전까지 보호자가 직접 취소 가능합니다.", fontSize = 10.sp, color = Color(0xFF92400E))
+                                        }
+                                        Button(
+                                            onClick = {
+                                                val updatedOrder = order.copy(status = "배차 확정 (가드 수락 완료)")
+                                                driverOrders[index] = updatedOrder
+                                                PersistentStorageManager.saveBookingList(context, driverOrders, "DRIVER_ALL")
+                                                FirebaseSyncManager.updateOrderStatus(context, order.id, "배차 확정 (가드 수락 완료)", order.petName)
+                                                FirebaseSyncManager.syncOrderToCloud(updatedOrder)
+                                                sendSystemPushNotification(context, "✅ [발자국동행] 가드 배차 수락", "[${order.petName}] 담당 가드가 오더를 승낙 및 배차 확정하였습니다.")
+                                                Toast.makeText(context, "✅ [${order.petName}] 오더를 승낙하였습니다.", Toast.LENGTH_SHORT).show()
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                        ) {
+                                            Text("⚡ 오더 승낙", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                                        }
+                                    }
+                                }
+                            }
+
                             // 고객 및 환묘/환견 정보
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -2680,7 +2718,16 @@ fun ForPetMainScreen(
                 )
                 1 -> BookingHistoryScreen(
                     bookingList = bookingList,
-                    onNavigateToHome = { selectedTab = 0 }
+                    onNavigateToHome = { selectedTab = 0 },
+                    onDeleteBooking = { targetBooking ->
+                        bookingList.removeAll { it.id == targetBooking.id }
+                        PersistentStorageManager.saveBookingList(context, bookingList, currentUserId)
+                        com.example.forpetapp.data.firebase.FirebaseSyncManager.deleteOrderFromCloud(targetBooking.id)
+                        try {
+                            com.example.forpetapp.widget.ForPetAppWidgetProvider.updateAllWidgets(context)
+                        } catch (_: Exception) {}
+                        Toast.makeText(context, "🗑️ [${targetBooking.petName}] 예약이 취소 및 삭제되었습니다. (가결제 자동 승인 취소)", Toast.LENGTH_LONG).show()
+                    }
                 )
                 2 -> MyPetDetailScreen(
                     savedImageUri = savedPetImageUri,
@@ -3960,12 +4007,14 @@ fun PetHandOffSignatureDialog(
 @Composable
 fun BookingHistoryScreen(
     bookingList: List<BookingItem>,
-    onNavigateToHome: () -> Unit
+    onNavigateToHome: () -> Unit,
+    onDeleteBooking: (BookingItem) -> Unit = {}
 ) {
     val context = LocalContext.current
     var historyTab by remember { mutableIntStateOf(0) } // 0: 진행 중, 1: 이전 예약 내역
     var selectedBookingForDetail by remember { mutableStateOf<BookingItem?>(null) }
     var selectedReportBooking by remember { mutableStateOf<BookingItem?>(null) }
+    var bookingToCancel by remember { mutableStateOf<BookingItem?>(null) }
 
     var showGpsMapForBooking by remember { mutableStateOf<BookingItem?>(null) }
     var showBodycamForBooking by remember { mutableStateOf<BookingItem?>(null) }
@@ -4171,6 +4220,67 @@ fun BookingHistoryScreen(
                                         contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
                                     ) {
                                         Text("💬 안심 톡", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                    }
+                                }
+
+                                val isCancellable = !booking.isCompleted &&
+                                        (booking.status.contains("대기") || booking.status.contains("접수") || booking.status == "예약 확정 (배차 완료)") &&
+                                        !booking.status.contains("출발") && !booking.status.contains("픽업") &&
+                                        !booking.status.contains("도착") && !booking.status.contains("진료") &&
+                                        !booking.status.contains("이동") && !booking.status.contains("귀가") &&
+                                        !booking.status.contains("수락") && !booking.status.contains("배차 확정 (가드 수락 완료)")
+
+                                if (isCancellable) {
+                                    Surface(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color(0xFFFEF2F2),
+                                        border = BorderStroke(1.dp, Color(0xFFFECACA))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text("⏳ 가드 배차 승낙 대기 중", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                                                Text("가드가 승낙하기 전까지 100% 무료 취소/삭제 가능", fontSize = 10.sp, color = Color(0xFF991B1B))
+                                            }
+                                            OutlinedButton(
+                                                onClick = { bookingToCancel = booking },
+                                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDC2626)),
+                                                border = BorderStroke(1.dp, Color(0xFFEF4444)),
+                                                shape = RoundedCornerShape(6.dp),
+                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                            ) {
+                                                Text("🗑️ 예약 취소/삭제", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Surface(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color(0xFFF0FDF4),
+                                        border = BorderStroke(1.dp, Color(0xFFBBF7D0))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text("🔒", fontSize = 11.sp)
+                                            Text(
+                                                "가드가 승낙하여 배차 완료/운행 중입니다. (취소 문의: 고객센터 1588-0000)",
+                                                fontSize = 10.sp,
+                                                color = Color(0xFF166534),
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -4498,8 +4608,34 @@ fun BookingHistoryScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { selectedBookingForDetail = null }) {
-                    Text("닫기", fontWeight = FontWeight.Bold)
+                val isCancellable = !booking.isCompleted &&
+                        (booking.status.contains("대기") || booking.status.contains("접수") || booking.status == "예약 확정 (배차 완료)") &&
+                        !booking.status.contains("출발") && !booking.status.contains("픽업") &&
+                        !booking.status.contains("도착") && !booking.status.contains("진료") &&
+                        !booking.status.contains("이동") && !booking.status.contains("귀가") &&
+                        !booking.status.contains("수락") && !booking.status.contains("배차 확정 (가드 수락 완료)")
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (isCancellable) {
+                        OutlinedButton(
+                            onClick = {
+                                bookingToCancel = booking
+                                selectedBookingForDetail = null
+                            },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDC2626)),
+                            border = BorderStroke(1.dp, Color(0xFFEF4444)),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("🗑️ 예약 취소/삭제", fontWeight = FontWeight.Bold, color = Color(0xFFDC2626), fontSize = 12.sp)
+                        }
+                    }
+                    Button(
+                        onClick = { selectedBookingForDetail = null },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                    ) {
+                        Text("확인 닫기", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         )
@@ -4665,6 +4801,58 @@ fun BookingHistoryScreen(
                     ) {
                         Text("확인 완료", fontWeight = FontWeight.Bold)
                     }
+                }
+            }
+        )
+    }
+
+    // 🗑️ 예약 취소/삭제 확인 팝업
+    bookingToCancel?.let { target ->
+        AlertDialog(
+            onDismissRequest = { bookingToCancel = null },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text("🗑️", fontSize = 20.sp)
+                    Text("예약 취소 및 삭제 확인", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFDC2626))
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFF8FAFC),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("• 반려동물: ${target.petName} (${target.species})", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("• 방문병원: ${target.hospitalName}", fontSize = 12.sp)
+                            Text("• 예약시간: ${target.time}", fontSize = 12.sp)
+                            Text("• 가결제액: ${target.estimatedPrice}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                        }
+                    }
+                    Text("⚠️ 정말 예약을 취소하시겠습니까?", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                    Text("• 아직 가드가 배차를 승낙하기 전이므로 별도 위약금 없이 즉시 100% 무료 취소됩니다.", fontSize = 11.sp, color = Color(0xFF475569))
+                    Text("• 사전 가결제된 금액은 즉시 간편결제/카드사 승인 취소되며, 사용하신 포인트 및 쿠폰도 즉시 안전하게 원상 복원됩니다.", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Medium)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val toDelete = target
+                        bookingToCancel = null
+                        onDeleteBooking(toDelete)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                ) {
+                    Text("예약 취소 및 삭제", fontWeight = FontWeight.Bold, color = Color.White)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { bookingToCancel = null }) {
+                    Text("예약 유지", color = Color.Gray)
                 }
             }
         )
@@ -8055,29 +8243,51 @@ fun HomeScreenContent(
 
         // 💳 간편결제 수단 선택 (네이버페이 / 카카오페이 / 토스페이 / 일반 신용카드)
         var selectedPaymentMethod by remember { mutableStateOf("네이버페이") }
+        var bookingStep by remember { mutableIntStateOf(1) }
 
         AlertDialog(
-            onDismissRequest = { showBookingDialog = false },
+            onDismissRequest = {
+                showBookingDialog = false
+                bookingStep = 1
+            },
             title = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text("🏥", fontSize = 20.sp)
-                        Text(selectedTrimType, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = if (selectedTrimType.contains("긴급")) Color(0xFFDC2626) else Color(0xFF0F172A))
+                if (bookingStep == 1) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text("🏥", fontSize = 20.sp)
+                            Text("$selectedTrimType (1/2: 정보 입력)", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = if (selectedTrimType.contains("긴급")) Color(0xFFDC2626) else Color(0xFF0F172A))
+                        }
+                        Text(
+                            if (selectedTrimType.contains("긴급")) "24시 응급실 직통 수속 연결 케어카가 최우선 즉시 배차됩니다."
+                            else if (selectedTrimType.contains("예약 O")) "예약 완료하신 동물병원 명칭을 기재해 주시면 가드가 1:1 안심 케어합니다."
+                            else "당일 미예약 건: 가드가 도착 후 인근 추천/희망 병원으로 현장 접수를 도와드립니다.",
+                            fontSize = 11.sp,
+                            color = Color(0xFF0284C7)
+                        )
                     }
-                    Text(
-                        if (selectedTrimType.contains("긴급")) "24시 응급실 직통 수속 연결 케어카가 최우선 즉시 배차됩니다."
-                        else if (selectedTrimType.contains("예약 O")) "예약 완료하신 동물병원 명칭을 기재해 주시면 가드가 1:1 안심 케어합니다."
-                        else "당일 미예약 건: 가드가 도착 후 인근 추천/희망 병원으로 현장 접수를 도와드립니다.",
-                        fontSize = 11.sp,
-                        color = Color(0xFF0284C7)
-                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text("💳", fontSize = 20.sp)
+                            Text("최종 주문 확인 및 가결제 (2/2)", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color(0xFF0F172A))
+                        }
+                        Text(
+                            "예약 상세 내역을 확인하시고 간편결제 수단으로 사전 가승인을 진행해 주세요.",
+                            fontSize = 11.sp,
+                            color = Color(0xFF0284C7)
+                        )
+                    }
                 }
             },
             text = {
-                LazyColumn(
+                if (bookingStep == 1) {
+                    LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(460.dp),
@@ -8802,7 +9012,183 @@ fun HomeScreenContent(
                         }
                     }
 
-                    // 9. 간편결제 수단 선택 (네이버페이 / 카카오페이 / 토스페이 / 일반 카드)
+                    // 8. 차량 배차 안내
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFF0F9FF)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text("🚙", fontSize = 20.sp)
+                                Column {
+                                    Text("발자국동행 기아 레이(RAY) 펫 전용차 배차", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0369A1))
+                                    Text("슬라이딩 도어 승하차 & 실시간 바디캠 라이브 연동", fontSize = 10.sp, color = Color(0xFF0284C7))
+                                }
+                            }
+                        }
+                    }
+
+                    // 9. 예상 금액 미리보기 카드
+                    item {
+                        val basePrice = when {
+                            selectedServiceTrim.contains("긴급") -> 50000
+                            selectedServiceTrim.contains("미예약") -> 35000
+                            else -> 30000
+                        }
+                        val calculatedPriceValue = basePrice + (if (isMedicineSelected) 5000 else 0) + (if (isSurgerySelected) 10000 else 0)
+                        val couponDiscount = selectedCoupon?.discountAmount ?: 0
+                        val finalPrice = (calculatedPriceValue - couponDiscount - usePointsAmount).coerceAtLeast(0)
+                        val formattedPriceStr = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(finalPrice)
+
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFFFFBEB),
+                            border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text("💳 예상 가결제 금액", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E))
+                                    Text("다음 단계에서 예약 요약 확인 및 결제 수단을 선택합니다.", fontSize = 10.sp, color = Color(0xFFB45309))
+                                }
+                                Text("${formattedPriceStr}원", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFFD97706))
+                            }
+                        }
+                    }
+                }
+            } else {
+                // 💳 Step 2: 최종 주문 확인 및 가결제 독립 화면
+                val purposeList = mutableListOf<String>()
+                if (isCareSelected) purposeList.add("병원 진찰")
+                if (isMedicineSelected) purposeList.add("처방약 수령")
+                if (isSurgerySelected) purposeList.add("수술/마취 검사")
+                val purposeStr = if (purposeList.isNotEmpty()) purposeList.joinToString(", ") else "일반 진료"
+
+                val entrySummary = when {
+                    homeEntryType.contains("도어락") && doorlockPassword.isNotEmpty() -> "출입: 비밀번호 암호화"
+                    homeEntryType.contains("블루투스") || homeEntryType.contains("스마트키") -> "출입: 블루투스 스마트키 ($homeEntryNote)"
+                    homeEntryType.contains("경비실") || homeEntryType.contains("보관함") -> "출입: 경비실/보관함 ($homeEntryNote)"
+                    else -> "출입: 보호자 직접 배웅"
+                }
+
+                val symptomStr = if (selectedSymptoms.isNotEmpty()) selectedSymptoms.joinToString(", ") else "상세상담"
+                val finalHospital = customHospitalName.trim().ifEmpty { if (isHospitalReserved) "명지24시온누리메디컬센터" else "명지 인근 24시 추천 병원" }
+                val reservationTag = if (isHospitalReserved) "(병원 예약 완료)" else "(당일 현장 접수)"
+                val currentPickupAddr = ("$userAddress $userDetailAddress").trim().ifEmpty { "보호자 자택 (픽업 주소)" }
+
+                val basePrice = when {
+                    selectedServiceTrim.contains("긴급") -> 50000
+                    selectedServiceTrim.contains("미예약") -> 35000
+                    else -> 30000
+                }
+                val addOptionsPrice = (if (isMedicineSelected) 5000 else 0) + (if (isSurgerySelected) 10000 else 0)
+                val calculatedPriceValue = basePrice + addOptionsPrice
+                val couponDiscount = selectedCoupon?.discountAmount ?: 0
+                val finalPrice = (calculatedPriceValue - couponDiscount - usePointsAmount).coerceAtLeast(0)
+                val formattedPriceStr = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(finalPrice)
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(460.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // 1. 📋 예약 상세 내역 확인 카드
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("📋", fontSize = 16.sp)
+                                    Text("예약 상세 내역 확인", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                }
+                                HorizontalDivider(color = Color(0xFFE2E8F0))
+                                Text("• 동행 서비스: $selectedServiceTrim", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                Text("• 대상 아이: $bookingPetName ($selectedSpecies)", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                Text("• 보호자 정보: $bookingOwnerName ($userPhone)", fontSize = 12.sp, color = Color(0xFF475569))
+                                Text("• 방문 병원: $finalHospital $reservationTag", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                                Text("• 픽업 일시: 오늘 $selectedBookingTime", fontSize = 12.sp, color = Color(0xFF475569))
+                                Text("• 픽업 위치: $currentPickupAddr", fontSize = 12.sp, color = Color(0xFF475569))
+                                Text("• 자택 출입: $entrySummary", fontSize = 12.sp, color = Color(0xFF0284C7))
+                                Text("• 목적/과목: $purposeStr | $selectedDepartment ($symptomStr)", fontSize = 12.sp, color = Color(0xFF334155))
+                                if (customSymptomNote.isNotEmpty()) {
+                                    Text("• 특이사항 메모: $customSymptomNote", fontSize = 11.sp, color = Color.Gray)
+                                }
+                                if (hasPetInsurance) {
+                                    Text("• 🐾 펫보험: $selectedInsuranceCompany (서류 발급 요청)", fontSize = 11.sp, color = Color(0xFF059669), fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+
+                    // 2. 💰 결제 금액 산정 카드
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB)),
+                            border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text("💰 최종 결제 금액 산정", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E))
+                                HorizontalDivider(color = Color(0xFFFDE68A))
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text("기본 케어 이동 요금", fontSize = 12.sp, color = Color(0xFF78350F))
+                                    Text("${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(basePrice)}원", fontSize = 12.sp)
+                                }
+                                if (addOptionsPrice > 0) {
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("추가 서비스 (약수령/수술검사)", fontSize = 12.sp, color = Color(0xFF78350F))
+                                        Text("+${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(addOptionsPrice)}원", fontSize = 12.sp)
+                                    }
+                                }
+                                if (couponDiscount > 0) {
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("쿠폰 할인 (${selectedCoupon?.title})", fontSize = 12.sp, color = Color(0xFFDC2626))
+                                        Text("-${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(couponDiscount)}원", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                                    }
+                                }
+                                if (usePointsAmount > 0) {
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("포인트 사용", fontSize = 12.sp, color = Color(0xFFDC2626))
+                                        Text("-${usePointsAmount}P", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                                    }
+                                }
+                                HorizontalDivider(color = Color(0xFFFDE68A))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("최종 가결제 승인액", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E))
+                                    Text("${formattedPriceStr}원", fontWeight = FontWeight.Bold, fontSize = 19.sp, color = Color(0xFFD97706))
+                                }
+                            }
+                        }
+                    }
+
+                    // 3. ⚡ 간편결제 수단 선택 카드
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -8811,12 +9197,12 @@ fun HomeScreenContent(
                             border = BorderStroke(1.dp, Color(0xFFE2E8F0))
                         ) {
                             Column(
-                                modifier = Modifier.padding(12.dp),
+                                modifier = Modifier.padding(14.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Text("⚡", fontSize = 15.sp)
-                                    Text("결제 수단 선택 (간편결제 지원)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                    Text("결제 수단 선택", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
                                 }
 
                                 Row(
@@ -8898,8 +9284,8 @@ fun HomeScreenContent(
 
                                 Text(
                                     when (selectedPaymentMethod) {
-                                        "네이버페이" -> "• 네이버페이 포인트/머니 및 등록 카드로 간편 결제됩니다."
-                                        "카카오페이" -> "• 카카오톡 및 카카오페이 머니/카드로 1초 결제됩니다."
+                                        "네이버페이" -> "• 네이버페이 포인트/머니 및 등록 카드로 1초 간편 결제됩니다."
+                                        "카카오페이" -> "• 카카오톡 및 카카오페이 머니/카드로 안전 결제됩니다."
                                         "토스페이" -> "• 토스 앱 인증을 통해 쉽고 안전하게 결제됩니다."
                                         else -> "• 앱에 등록된 신용/체크카드로 안심 정산됩니다."
                                     },
@@ -8910,167 +9296,138 @@ fun HomeScreenContent(
                         }
                     }
 
-                    // 10. 가결제 예상 금액 및 환불 안내
-                    item {
-                        val basePrice = when {
-                            selectedServiceTrim.contains("긴급") -> 50000
-                            selectedServiceTrim.contains("미예약") -> 35000
-                            else -> 30000
-                        }
-                        val calculatedPriceValue = basePrice + (if (isMedicineSelected) 5000 else 0) + (if (isSurgerySelected) 10000 else 0)
-                        val couponDiscount = selectedCoupon?.discountAmount ?: 0
-                        val finalPrice = (calculatedPriceValue - couponDiscount - usePointsAmount).coerceAtLeast(0)
-                        val formattedPriceStr = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(finalPrice)
-
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFFFFFBEB),
-                            border = BorderStroke(1.dp, Color(0xFFFDE68A))
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text("💳 가결제 예정 금액", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E))
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        if (usePointsAmount > 0 || couponDiscount > 0) {
-                                            val discounts = mutableListOf<String>()
-                                            if (couponDiscount > 0) discounts.add("쿠폰 -${couponDiscount}원")
-                                            if (usePointsAmount > 0) discounts.add("포인트 -${usePointsAmount}P")
-                                            Text("원래 금액: ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(calculatedPriceValue)}원 (${discounts.joinToString(", ")})", fontSize = 10.sp, color = Color.Gray, textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough)
-                                        }
-                                        Text("${formattedPriceStr}원", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFD97706))
-                                    }
-                                }
-                                HorizontalDivider(color = Color(0xFFFDE68A))
-                                Text("• [$selectedPaymentMethod] 사전 가결제되며, 진료 완료 후 선택하신 케어 서비스 항목에 따라 안전하게 자동 최종 정산(추가금 결제 / 차액 환불)됩니다.", fontSize = 11.sp, color = Color(0xFFB45309), lineHeight = 15.sp)
-                                Text("• ℹ️ 픽업 전담 가드 출동 전 취소 시 100% 즉시 환불됩니다.", fontSize = 11.sp, color = Color(0xFFB45309), fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-
-                    // 9. 차량 배차 안내
+                    // 4. 🛡️ 안심 결제 및 무료 취소 정책 카드
                     item {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
-                            color = Color(0xFFF0F9FF)
+                            color = Color(0xFFF0FDF4),
+                            border = BorderStroke(1.dp, Color(0xFFBBF7D0))
                         ) {
-                            Row(
-                                modifier = Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text("🚙", fontSize = 20.sp)
-                                Column {
-                                    Text("발자국동행 기아 레이(RAY) 펫 전용차 배차", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0369A1))
-                                    Text("슬라이딩 도어 승하차 & 실시간 바디캠 라이브 연동", fontSize = 10.sp, color = Color(0xFF0284C7))
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text("🛡️", fontSize = 14.sp)
+                                    Text("안심 사전 가결제 & 무료 취소 보장 안내", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF166534))
                                 }
+                                Text("• 사전 가결제(한도 가승인)는 진료 완료 후 실제 케어 시간에 따라 최종 정산(차액 환불/추가 청구)됩니다.", fontSize = 11.sp, color = Color(0xFF14532D), lineHeight = 15.sp)
+                                Text("• 💡 관리자(가드)가 배차를 승낙하기 전까지 [예약 내역]에서 본인이 직접 언제든지 100% 무료 취소/삭제 및 가결제 승인 자동 취소가 가능합니다.", fontSize = 11.sp, color = Color(0xFF166534), fontWeight = FontWeight.Bold, lineHeight = 15.sp)
                             }
                         }
                     }
                 }
+            }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        val purposeList = mutableListOf<String>()
-                        if (isCareSelected) purposeList.add("병원 진찰")
-                        if (isMedicineSelected) purposeList.add("처방약 수령")
-                        if (isSurgerySelected) purposeList.add("수술/마취 검사")
-                        val purposeStr = if (purposeList.isNotEmpty()) purposeList.joinToString(", ") else "일반 진료"
+                if (bookingStep == 1) {
+                    Button(
+                        onClick = { bookingStep = 2 },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                    ) {
+                        Text("다음: 주문 확인 및 가결제 ➔", fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    val basePrice = when {
+                        selectedServiceTrim.contains("긴급") -> 50000
+                        selectedServiceTrim.contains("미예약") -> 35000
+                        else -> 30000
+                    }
+                    val calculatedPriceValue = basePrice + (if (isMedicineSelected) 5000 else 0) + (if (isSurgerySelected) 10000 else 0)
+                    val couponDiscount = selectedCoupon?.discountAmount ?: 0
+                    val finalPrice = (calculatedPriceValue - couponDiscount - usePointsAmount).coerceAtLeast(0)
+                    val formattedPriceStr = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(finalPrice)
 
-                        val entrySummary = when {
-                            homeEntryType.contains("도어락") && doorlockPassword.isNotEmpty() -> "출입: 비밀번호 암호화"
-                            homeEntryType.contains("블루투스") || homeEntryType.contains("스마트키") -> "출입: 블루투스 스마트키 ($homeEntryNote)"
-                            homeEntryType.contains("경비실") || homeEntryType.contains("보관함") -> "출입: 경비실/보관함 ($homeEntryNote)"
-                            else -> "출입: 보호자 직접 배웅"
-                        }
+                    Button(
+                        onClick = {
+                            val purposeList = mutableListOf<String>()
+                            if (isCareSelected) purposeList.add("병원 진찰")
+                            if (isMedicineSelected) purposeList.add("처방약 수령")
+                            if (isSurgerySelected) purposeList.add("수술/마취 검사")
+                            val purposeStr = if (purposeList.isNotEmpty()) purposeList.joinToString(", ") else "일반 진료"
 
-                        val symptomStr = if (selectedSymptoms.isNotEmpty()) selectedSymptoms.joinToString(", ") else "상세상담"
-                        val addressSummary = "📍 주소: $userAddress $userDetailAddress"
-                        val insuranceNote = if (hasPetInsurance) " | 🐾 펫보험: $selectedInsuranceCompany (진단서/영수증 첨부 필수)" else ""
-                        val combinedNote = "$addressSummary | 목적: $purposeStr | 과목: $selectedDepartment ($symptomStr) | $entrySummary" +
-                                (if (customSymptomNote.isNotEmpty()) " | 메모: $customSymptomNote" else "") + insuranceNote
-
-                        val finalHospital = customHospitalName.trim().ifEmpty { if (isHospitalReserved) "명지24시온누리메디컬센터" else "명지 인근 24시 추천 병원" }
-                        val reservationTag = if (isHospitalReserved) "(병원 예약 완료건)" else "(병원 미예약 당일 접수건)"
-
-                        val basePrice = when {
-                            selectedServiceTrim.contains("긴급") -> 50000
-                            selectedServiceTrim.contains("미예약") -> 35000
-                            else -> 30000
-                        }
-                        val calculatedPriceValue = basePrice + (if (isMedicineSelected) 5000 else 0) + (if (isSurgerySelected) 10000 else 0)
-                        val couponDiscount = selectedCoupon?.discountAmount ?: 0
-                        val finalPrice = (calculatedPriceValue - couponDiscount - usePointsAmount).coerceAtLeast(0)
-                        val formattedPriceStr = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(finalPrice)
-
-                        val currentPickupAddr = ("$userAddress $userDetailAddress").trim().ifEmpty { "보호자 자택 (픽업 주소)" }
-                        val currentUserId = PersistentStorageManager.loadUserId(context)
-                        val currentUserEmail = PersistentStorageManager.loadUserEmail(context)
-
-                        val newBooking = BookingItem(
-                            userId = currentUserId,
-                            userEmail = currentUserEmail,
-                            serviceTrim = selectedServiceTrim,
-                            serviceType = if (selectedServiceTrim.contains("긴급")) "🚨 긴급 응급 출동" else if (selectedServiceTrim.contains("미예약")) "🚗 당일 미예약 이동" else "📅 병원 예약 진료 대행",
-                            species = selectedSpecies,
-                            petName = bookingPetName,
-                            ownerName = bookingOwnerName,
-                            ownerPhone = userPhone,
-                            pickupAddress = currentPickupAddr,
-                            hospitalName = finalHospital,
-                            time = "오늘 $selectedBookingTime",
-                            status = "예약 확정 (배차 완료)",
-                            vehicleInfo = "발자국동행 기아 레이(RAY) 펫전용차",
-                            symptomNote = combinedNote,
-                            estimatedPrice = "[$selectedPaymentMethod] ${formattedPriceStr}원",
-                            doorlockPhotoUri = doorlockPhotoUri?.toString()
-                        )
-                        Toast.makeText(context, "⚡ $selectedPaymentMethod 사전 가결제 승인이 완료되었습니다!", Toast.LENGTH_SHORT).show()
-                        if (usePointsAmount > 0) {
-                            onUpdatePoints((userPoints - usePointsAmount).coerceAtLeast(0))
-                        }
-                        if (selectedCoupon != null) {
-                            val allCoupons = PersistentStorageManager.loadCouponList(context)
-                            val updatedCoupons = allCoupons.map { c ->
-                                if (c.id == selectedCoupon!!.id) c.copy(isUsed = true) else c
+                            val entrySummary = when {
+                                homeEntryType.contains("도어락") && doorlockPassword.isNotEmpty() -> "출입: 비밀번호 암호화"
+                                homeEntryType.contains("블루투스") || homeEntryType.contains("스마트키") -> "출입: 블루투스 스마트키 ($homeEntryNote)"
+                                homeEntryType.contains("경비실") || homeEntryType.contains("보관함") -> "출입: 경비실/보관함 ($homeEntryNote)"
+                                else -> "출입: 보호자 직접 배웅"
                             }
-                            PersistentStorageManager.saveCouponList(context, updatedCoupons)
-                        }
-                        onAddBooking(newBooking)
 
-                        // ☁️ Cloud Firestore 실시간 연동 및 FCM 알림 (오프라인 큐 안전 동기화 지원)
-                        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncOrderToCloud(newBooking, context)
-                        com.example.forpetapp.service.ForPetFirebaseMessagingService.sendLocalNotification(
-                            context,
-                            "🚗 [배차 접수 완료] $bookingPetName",
-                            "발자국동행 레이 펫케어카 배차 및 실시간 클라우드 동기화가 완료되었습니다."
-                        )
+                            val symptomStr = if (selectedSymptoms.isNotEmpty()) selectedSymptoms.joinToString(", ") else "상세상담"
+                            val addressSummary = "📍 주소: $userAddress $userDetailAddress"
+                            val insuranceNote = if (hasPetInsurance) " | 🐾 펫보험: $selectedInsuranceCompany (진단서/영수증 첨부 필수)" else ""
+                            val combinedNote = "$addressSummary | 목적: $purposeStr | 과목: $selectedDepartment ($symptomStr) | $entrySummary" +
+                                    (if (customSymptomNote.isNotEmpty()) " | 메모: $customSymptomNote" else "") + insuranceNote
 
-                        Toast.makeText(
-                            context,
-                            "[$selectedSpecies] '$bookingPetName' 아이의 수술/진료 대행 예약이 완료되었습니다!",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        showBookingDialog = false
-                        onNavigateToBookingTab()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
-                ) {
-                    Text("예약 완료하기", fontWeight = FontWeight.Bold)
+                            val finalHospital = customHospitalName.trim().ifEmpty { if (isHospitalReserved) "명지24시온누리메디컬센터" else "명지 인근 24시 추천 병원" }
+                            val currentPickupAddr = ("$userAddress $userDetailAddress").trim().ifEmpty { "보호자 자택 (픽업 주소)" }
+                            val currentUserId = PersistentStorageManager.loadUserId(context)
+                            val currentUserEmail = PersistentStorageManager.loadUserEmail(context)
+
+                            val newBooking = BookingItem(
+                                userId = currentUserId,
+                                userEmail = currentUserEmail,
+                                serviceTrim = selectedServiceTrim,
+                                serviceType = if (selectedServiceTrim.contains("긴급")) "🚨 긴급 응급 출동" else if (selectedServiceTrim.contains("미예약")) "🚗 당일 미예약 이동" else "📅 병원 예약 진료 대행",
+                                species = selectedSpecies,
+                                petName = bookingPetName,
+                                ownerName = bookingOwnerName,
+                                ownerPhone = userPhone,
+                                pickupAddress = currentPickupAddr,
+                                hospitalName = finalHospital,
+                                time = "오늘 $selectedBookingTime",
+                                status = "접수 대기 (가드 승낙 대기)",
+                                vehicleInfo = "발자국동행 기아 레이(RAY) 펫전용차",
+                                symptomNote = combinedNote,
+                                estimatedPrice = "[$selectedPaymentMethod] ${formattedPriceStr}원",
+                                doorlockPhotoUri = doorlockPhotoUri?.toString()
+                            )
+                            Toast.makeText(context, "⚡ $selectedPaymentMethod 사전 가결제 승인이 완료되었습니다!", Toast.LENGTH_SHORT).show()
+                            if (usePointsAmount > 0) {
+                                onUpdatePoints((userPoints - usePointsAmount).coerceAtLeast(0))
+                            }
+                            if (selectedCoupon != null) {
+                                val allCoupons = PersistentStorageManager.loadCouponList(context)
+                                val updatedCoupons = allCoupons.map { c ->
+                                    if (c.id == selectedCoupon!!.id) c.copy(isUsed = true) else c
+                                }
+                                PersistentStorageManager.saveCouponList(context, updatedCoupons)
+                            }
+                            onAddBooking(newBooking)
+
+                            // ☁️ Cloud Firestore 실시간 연동 및 FCM 알림
+                            com.example.forpetapp.data.firebase.FirebaseSyncManager.syncOrderToCloud(newBooking, context)
+                            com.example.forpetapp.service.ForPetFirebaseMessagingService.sendLocalNotification(
+                                context,
+                                "🚗 [예약 접수 완료] $bookingPetName",
+                                "가드 배차 승낙 대기 중입니다. 가드가 승낙하기 전까지 무료 취소 가능합니다."
+                            )
+
+                            Toast.makeText(
+                                context,
+                                "[$selectedSpecies] '$bookingPetName' 아이의 예약이 접수되었습니다! 가드가 승낙할 때까지 무료 취소 가능합니다.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            showBookingDialog = false
+                            bookingStep = 1
+                            onNavigateToBookingTab()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                    ) {
+                        Text("${formattedPriceStr}원 가결제 승인 및 예약 확정 🔒", fontWeight = FontWeight.Bold)
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showBookingDialog = false }) {
-                    Text("취소")
+                if (bookingStep == 1) {
+                    TextButton(onClick = {
+                        showBookingDialog = false
+                        bookingStep = 1
+                    }) {
+                        Text("취소", color = Color.Gray)
+                    }
+                } else {
+                    OutlinedButton(onClick = { bookingStep = 1 }) {
+                        Text("← 이전 (정보 수정)", color = Color.Gray)
+                    }
                 }
             }
         )

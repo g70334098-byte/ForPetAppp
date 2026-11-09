@@ -205,6 +205,28 @@ object FirebaseSyncManager {
     }
 
     /**
+     * 1-2. 오더 취소/삭제 (보호자 실수 취소 또는 관리자 삭제 시 Firestore에서 즉시 제거)
+     */
+    fun deleteOrderFromCloud(orderId: String, onComplete: ((Boolean) -> Unit)? = null) {
+        try {
+            firestore.collection(ORDERS_COLLECTION)
+                .document(orderId)
+                .delete()
+                .addOnSuccessListener {
+                    Log.d(TAG, "Order successfully deleted from Firestore: $orderId")
+                    onComplete?.invoke(true)
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "Failed to delete order from Firestore: ${e.message}")
+                    onComplete?.invoke(false)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Delete order exception: ${e.message}")
+            onComplete?.invoke(false)
+        }
+    }
+
+    /**
      * 2. 가드 이동 6단계 동선 상태 실시간 업데이트 및 보호자 푸시 알림 트리거 (오프라인 큐 보증)
      */
     fun updateOrderStatus(context: Context, orderId: String, newStatus: String, petName: String = "아이") {
@@ -285,6 +307,8 @@ object FirebaseSyncManager {
                                     species = doc.getString("species") ?: "강아지",
                                     petName = doc.getString("petName") ?: "아이",
                                     ownerName = doc.getString("ownerName") ?: "보호자",
+                                    ownerPhone = doc.getString("ownerPhone") ?: "",
+                                    pickupAddress = doc.getString("pickupAddress") ?: "",
                                     hospitalName = doc.getString("hospitalName") ?: "동물병원",
                                     time = doc.getString("time") ?: "",
                                     status = doc.getString("status") ?: "예약 확정",
