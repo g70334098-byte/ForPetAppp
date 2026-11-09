@@ -689,11 +689,12 @@ fun DriverMainDashboardScreen(
                             }
 
                             // 🔑 자택 도어락/출입키 보안 열람 카드
+                            val isDoorlockPurged = order.doorlockPurged || order.isCompleted || order.status.contains("안전 귀가 완료")
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(10.dp),
-                                color = if (isDoorlockUnlocked) Color(0xFFFFFBEB) else Color(0xFFF8FAFC),
-                                border = BorderStroke(1.dp, if (isDoorlockUnlocked) Color(0xFFFDE68A) else Color(0xFFE2E8F0))
+                                color = if (isDoorlockPurged) Color(0xFFF1F5F9) else if (isDoorlockUnlocked) Color(0xFFFFFBEB) else Color(0xFFF8FAFC),
+                                border = BorderStroke(1.dp, if (isDoorlockPurged) Color(0xFFE2E8F0) else if (isDoorlockUnlocked) Color(0xFFFDE68A) else Color(0xFFE2E8F0))
                             ) {
                                 Column(
                                     modifier = Modifier.padding(12.dp),
@@ -704,23 +705,63 @@ fun DriverMainDashboardScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("🔑 자택 출입 & 도어락 보안 정보", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF92400E))
-                                        TextButton(
-                                            onClick = {
-                                                unlockedDoorlockId = if (isDoorlockUnlocked) null else order.id
-                                            },
-                                            contentPadding = PaddingValues(0.dp)
-                                        ) {
-                                            Text(if (isDoorlockUnlocked) "🔒 보안 잠금" else "🔓 출입키 암호 해제", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Text(if (isDoorlockPurged) "🔒" else "🔑", fontSize = 14.sp)
+                                            Text(
+                                                if (isDoorlockPurged) "자택 출입키 정보 (영구 파기됨)" else "자택 출입 & 도어락 보안 정보",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp,
+                                                color = if (isDoorlockPurged) Color(0xFF64748B) else Color(0xFF92400E)
+                                            )
+                                        }
+                                        if (!isDoorlockPurged) {
+                                            TextButton(
+                                                onClick = {
+                                                    unlockedDoorlockId = if (isDoorlockUnlocked) null else order.id
+                                                },
+                                                contentPadding = PaddingValues(0.dp)
+                                            ) {
+                                                Text(if (isDoorlockUnlocked) "🔒 보안 잠금" else "🔓 출입키 암호 해제", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                                            }
                                         }
                                     }
 
-                                    if (isDoorlockUnlocked) {
-                                        Text("• 공동현관 비밀번호: #1234*", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
-                                        Text("• 세대 도어락 비밀번호: 5678#", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
-                                        Text("※ 출동 중에만 암호 해제되며 이송 완료 시 즉시 영구 파기됩니다.", fontSize = 10.sp, color = Color.Gray)
+                                    if (isDoorlockPurged) {
+                                        Text("✅ 케어 완료로 비밀번호 및 현관 사진이 DB에서 영구 파기(삭제)되었습니다. (개인정보보호법 준수)", fontSize = 11.sp, color = Color(0xFF16A34A), fontWeight = FontWeight.Medium)
+                                    } else if (isDoorlockUnlocked) {
+                                        val decryptedPassword = remember(order.encryptedDoorlock) {
+                                            if (!order.encryptedDoorlock.isNullOrBlank()) {
+                                                com.example.forpetapp.security.DoorlockSecurityManager.decrypt(order.encryptedDoorlock)
+                                            } else null
+                                        }
+
+                                        if (!decryptedPassword.isNullOrBlank()) {
+                                            Text("• 복호화된 자택 도어락 비번: $decryptedPassword", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFB45309))
+                                        } else {
+                                            Text("• 세대 출입: 보호자 직접 인계 또는 사전 전달된 출입키", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
+                                        }
+                                        if (!order.doorlockPhotoUri.isNullOrBlank()) {
+                                            Text("• 현관 위치 사진 첨부됨 (인계 서명 시 확인 가능)", fontSize = 11.sp, color = Color(0xFF0284C7))
+                                        }
+                                        Text("※ 출동 중에만 암호 해제되며 안심 귀가 완료 시 클라우드에서 즉시 영구 파기(삭제)됩니다.", fontSize = 10.sp, color = Color.Gray)
+
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                            TextButton(
+                                                onClick = {
+                                                    val updatedOrder = order.copy(encryptedDoorlock = null, doorlockPhotoUri = null, doorlockPurged = true)
+                                                    driverOrders[index] = updatedOrder
+                                                    PersistentStorageManager.saveBookingList(context, driverOrders, "DRIVER_ALL")
+                                                    FirebaseSyncManager.purgeDoorlockFromCloud(order.id)
+                                                    FirebaseSyncManager.syncOrderToCloud(updatedOrder)
+                                                    Toast.makeText(context, "🗑️ 고객님의 자택 도어락 정보가 즉시 영구 파기(삭제)되었습니다.", Toast.LENGTH_SHORT).show()
+                                                },
+                                                contentPadding = PaddingValues(0.dp)
+                                            ) {
+                                                Text("🗑️ 도어락 정보 즉시 수동 파기", fontSize = 10.5.sp, color = Color(0xFFEF4444), fontWeight = FontWeight.Bold)
+                                            }
+                                        }
                                     } else {
-                                        Text("🔒 시한부 암호화 보관 중 ('출입키 암호 해제' 클릭 시 확인 가능)", fontSize = 11.sp, color = Color.Gray)
+                                        Text("🔒 AES-256 금융급 암호화 보관 중 ('출입키 암호 해제' 클릭 시 확인 가능)", fontSize = 11.sp, color = Color.Gray)
                                     }
                                 }
                             }
@@ -730,19 +771,36 @@ fun DriverMainDashboardScreen(
 
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 listOf(
-                                    "1. 픽업 출동 출발 🚗",
+                                    "1. 픽업 출동 (운행 시작) 🚗",
                                     "2. 자택 도착 및 아이 안심 픽업 완료 🐶",
-                                    "3. 병원 이동 중 🏥",
-                                    "4. 병원 접수 & 진료 진행 🩺",
+                                    "3. 병원 도착 및 진료 대행 접수 🏥",
+                                    "4. 진료 완료 & 영수증/처방전 등록 🧾",
                                     "5. 귀가 이송 출발 🏠",
-                                    "6. 안전 귀가 완료 🎉"
+                                    "6. 안전 귀가 완료 (비번 자동 파기) 🎉"
                                 ).forEach { statusStep ->
                                     val isSelected = order.status.contains(statusStep.take(2))
                                     FilterChip(
                                         selected = isSelected,
                                         onClick = {
-                                            if (statusStep.contains("2. 자택 도착 및 아이 안심 픽업 완료")) {
+                                            if (statusStep.contains("2. 자택 도착")) {
                                                 selectedOrderForHandOff = order
+                                            } else if (statusStep.contains("4. 진료 완료 & 영수증")) {
+                                                selectedOrderForReport = order
+                                            } else if (statusStep.contains("6. 안전 귀가 완료")) {
+                                                val updatedOrder = order.copy(
+                                                    status = "6. 안전 귀가 완료 🎉",
+                                                    isCompleted = true,
+                                                    doorlockPurged = true,
+                                                    encryptedDoorlock = null,
+                                                    doorlockPhotoUri = null
+                                                )
+                                                driverOrders[index] = updatedOrder
+                                                PersistentStorageManager.saveBookingList(context, driverOrders, "DRIVER_ALL")
+                                                FirebaseSyncManager.updateOrderStatus(context, order.id, "6. 안전 귀가 완료 🎉", order.petName)
+                                                FirebaseSyncManager.purgeDoorlockFromCloud(order.id)
+                                                FirebaseSyncManager.syncOrderToCloud(updatedOrder)
+                                                sendSystemPushNotification(context, "🎉 [발자국동행] 안전 귀가 완료 & 콜 마감", "[${order.petName}] 아이의 안심 이송이 완료되었습니다. 도어락 비번 등 개인정보가 100% 영구 파기되었으며 가드 바디캠이 종료되었습니다.")
+                                                Toast.makeText(context, "🔒 안심 귀가 완료: 도어락 비번이 영구 파기되었으며 가드 바디캠이 자동 OFF 종료되었습니다.", Toast.LENGTH_LONG).show()
                                             } else {
                                                 val updatedOrder = order.copy(status = statusStep)
                                                 driverOrders[index] = updatedOrder
@@ -750,21 +808,15 @@ fun DriverMainDashboardScreen(
                                                 FirebaseSyncManager.updateOrderStatus(context, order.id, statusStep, order.petName)
                                                 FirebaseSyncManager.syncOrderToCloud(updatedOrder)
 
-                                                if (statusStep.contains("6. 안전 귀가 완료")) {
-                                                    sendSystemPushNotification(context, "🎉 [발자국동행] 안전 귀가 완료 & 콜 마감", "[${order.petName}] 아이의 안심 이송이 완료되었습니다. 가드 바디캠이 자동 종료(OFF) 처리되었습니다.")
-                                                    Toast.makeText(context, "🔒 오더 마감: 가드 바디캠 및 카메라/마이크가 자동 OFF 종료되었습니다. (사생활 보호)", Toast.LENGTH_LONG).show()
-                                                } else if (statusStep.contains("2. 픽업 출발")) {
-                                                    sendSystemPushNotification(context, "🚗 [발자국동행] 픽업 출동 출발", "[${order.petName}] 아이를 만나러 보호자님 댁으로 안심 레이 케어카가 출발했습니다.")
-                                                    Toast.makeText(context, "🚗 픽업 출동 알림이 보호자님께 전송되었습니다.", Toast.LENGTH_SHORT).show()
-                                                } else if (statusStep.contains("3. 픽업 완료")) {
-                                                    sendSystemPushNotification(context, "🐾 [발자국동행] 픽업 탑승 완료", "[${order.petName}] 아이와 전용 케어카에 안심 탑승하여 병원으로 이동 중입니다.")
-                                                    Toast.makeText(context, "🐾 픽업 완료 알림이 보호자님께 전송되었습니다.", Toast.LENGTH_SHORT).show()
-                                                } else if (statusStep.contains("4. 병원 도착")) {
-                                                    sendSystemPushNotification(context, "🏥 [발자국동행] 동물병원 안전 도착", "[${order.petName}] ${order.hospitalName}에 안전하게 도착하여 진료 접수 중입니다.")
+                                                if (statusStep.contains("1. 픽업 출동")) {
+                                                    sendSystemPushNotification(context, "🚗 [발자국동행] 픽업 출동 출발 / 운행 시작", "[${order.petName}] 아이를 만나러 보호자님 댁으로 안심 레이 케어카가 출발했습니다.")
+                                                    Toast.makeText(context, "🚗 픽업 출동 및 운행 시작 알림이 보호자님께 전송되었습니다.", Toast.LENGTH_SHORT).show()
+                                                } else if (statusStep.contains("3. 병원 도착")) {
+                                                    sendSystemPushNotification(context, "🏥 [발자국동행] 동물병원 안전 도착", "[${order.petName}] ${order.hospitalName}에 안전하게 도착하여 진료 대행 접수 중입니다.")
                                                     Toast.makeText(context, "🏥 병원 도착 알림이 보호자님께 전송되었습니다.", Toast.LENGTH_SHORT).show()
-                                                } else if (statusStep.contains("5. 진료 완료")) {
-                                                    sendSystemPushNotification(context, "💊 [발자국동행] 진료 및 처방 완료", "[${order.petName}] 수의사 진료 및 처방약 수령을 마치고 귀가 준비 중입니다.")
-                                                    Toast.makeText(context, "💊 진료 완료 알림이 보호자님께 전송되었습니다.", Toast.LENGTH_SHORT).show()
+                                                } else if (statusStep.contains("5. 귀가 이송")) {
+                                                    sendSystemPushNotification(context, "🏠 [발자국동행] 귀가 이송 출발", "[${order.petName}] 진료 및 처방약 수령을 마치고 안전하게 자택으로 귀가 이동 중입니다.")
+                                                    Toast.makeText(context, "🏠 귀가 이송 출발 알림이 보호자님께 전송되었습니다.", Toast.LENGTH_SHORT).show()
                                                 } else {
                                                     sendSystemPushNotification(context, "📹 [발자국동행] 바디캠 자동 가동 ON", "[${order.petName}] 아이 이송 중: 가드 바디캠 라이브 송출 가동 ON")
                                                     Toast.makeText(context, "📹 오더 수행 중: 바디캠 라이브 송출 가동 ON", Toast.LENGTH_SHORT).show()
@@ -777,7 +829,7 @@ fun DriverMainDashboardScreen(
                                 }
                             }
 
-                            // ✍️ 안심 서명, 🗺️ 이동 지도, 💬 톡, 📄 소견 작성 버튼
+                            // ✍️ 안심 서명, 🗺️ 이동 지도, 💬 톡, 🧾 영수증/소견 버튼
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -818,12 +870,13 @@ fun DriverMainDashboardScreen(
                                     Text("📱 알림", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
                                 }
 
-                                OutlinedButton(
+                                Button(
                                     onClick = { selectedOrderForReport = order },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(10.dp)
+                                    modifier = Modifier.weight(1.3f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
                                 ) {
-                                    Text("📄 소견", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF0284C7))
+                                    Text("🧾 영수증/소견", fontWeight = FontWeight.Bold, fontSize = 10.5.sp, color = Color.White)
                                 }
                             }
                         }
@@ -2154,6 +2207,10 @@ object PersistentStorageManager {
                 put("receiptImageUri", item.receiptImageUri ?: "")
                 put("prescriptionImageUri", item.prescriptionImageUri ?: "")
                 put("doorlockPhotoUri", item.doorlockPhotoUri ?: "")
+                put("encryptedDoorlock", item.encryptedDoorlock ?: "")
+                put("doorlockPurged", item.doorlockPurged)
+                put("usedPoints", item.usedPoints)
+                put("couponId", item.couponId ?: "")
             }
             jsonArray.put(obj)
         }
@@ -2192,7 +2249,11 @@ object PersistentStorageManager {
                         prescription = obj.optString("prescription"),
                         receiptImageUri = obj.optString("receiptImageUri").ifEmpty { null },
                         prescriptionImageUri = obj.optString("prescriptionImageUri").ifEmpty { null },
-                        doorlockPhotoUri = obj.optString("doorlockPhotoUri").ifEmpty { null }
+                        doorlockPhotoUri = obj.optString("doorlockPhotoUri").ifEmpty { null },
+                        encryptedDoorlock = obj.optString("encryptedDoorlock").ifEmpty { null },
+                        doorlockPurged = obj.optBoolean("doorlockPurged", false),
+                        usedPoints = obj.optInt("usedPoints", 0),
+                        couponId = obj.optString("couponId").ifEmpty { null }
                     )
                 )
             }
@@ -3030,7 +3091,50 @@ fun ForPetMainScreen(
                         try {
                             com.example.forpetapp.widget.ForPetAppWidgetProvider.updateAllWidgets(context)
                         } catch (_: Exception) {}
-                        Toast.makeText(context, "🗑️ [${targetBooking.petName}] 예약이 취소 및 삭제되었습니다. (가결제 자동 승인 취소)", Toast.LENGTH_LONG).show()
+
+                        // 💰 포인트 자동 환불 처리 (예약 시 차감된 포인트 전액 즉시 복원)
+                        var refundPoints = targetBooking.usedPoints
+                        if (refundPoints <= 0 && targetBooking.symptomNote.contains("포인트")) {
+                            val match = Regex("""포인트\s*([\d,]+)\s*P""").find(targetBooking.symptomNote)
+                            if (match != null) {
+                                refundPoints = match.groupValues[1].replace(",", "").toIntOrNull() ?: 0
+                            }
+                        }
+
+                        if (refundPoints > 0) {
+                            val restoredPoints = userPoints + refundPoints
+                            userPoints = restoredPoints
+                            PersistentStorageManager.saveUserPoints(context, restoredPoints, currentUserId)
+                            PersistentStorageManager.recordPointTransaction(
+                                context = context,
+                                title = "🔄 [예약 취소 환불] ${targetBooking.petName} 예약 사용 포인트 전액 환원",
+                                amount = refundPoints,
+                                isEarned = true,
+                                customStatusText = "예약 취소 환불 완료 (복원 후: ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(restoredPoints)}P)",
+                                userId = currentUserId
+                            )
+                            com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserProfileToCloud(
+                                userId = currentUserId,
+                                name = userNickname,
+                                phone = userPhone,
+                                email = currentUserEmail,
+                                points = restoredPoints
+                            )
+                        }
+
+                        // 🎟️ 사용된 쿠폰 복원 (다시 사용할 수 있도록 isUsed = false)
+                        if (!targetBooking.couponId.isNullOrBlank()) {
+                            try {
+                                val allCoupons = PersistentStorageManager.loadCouponList(context)
+                                val restoredCoupons = allCoupons.map { c ->
+                                    if (c.id == targetBooking.couponId) c.copy(isUsed = false) else c
+                                }
+                                PersistentStorageManager.saveCouponList(context, restoredCoupons)
+                            } catch (_: Exception) {}
+                        }
+
+                        val pointMsg = if (refundPoints > 0) " (사용 포인트 ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(refundPoints)}P 즉시 전액 환원)" else ""
+                        Toast.makeText(context, "🗑️ [${targetBooking.petName}] 예약이 취소되었습니다. (가결제 자동 승인 취소)$pointMsg", Toast.LENGTH_LONG).show()
                     }
                 )
                 2 -> MyPetDetailScreen(
@@ -4372,6 +4476,7 @@ fun BookingHistoryScreen(
     var showTimelineForBooking by remember { mutableStateOf<BookingItem?>(null) }
     var showChatForBooking by remember { mutableStateOf<BookingItem?>(null) }
     var showReceiptForBooking by remember { mutableStateOf<BookingItem?>(null) }
+    var previewImageBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
 
     val activeList = bookingList.filter { !it.isCompleted }
     val pastList = bookingList.filter { it.isCompleted }
@@ -4888,6 +4993,65 @@ fun BookingHistoryScreen(
                         }
                     }
 
+                    // 📸 담당 가드가 등록한 병원 영수증 / 처방전 실물 사진 카드
+                    if (!booking.receiptImageUri.isNullOrBlank() || !booking.prescriptionImageUri.isNullOrBlank()) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFF0FDF4),
+                            border = BorderStroke(1.dp, Color(0xFFBBF7D0))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("🧾", fontSize = 16.sp)
+                                        Text("등록된 병원 영수증 & 처방전 사진", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF15803D))
+                                    }
+                                    Text("터치 시 확대", fontSize = 10.sp, color = Color(0xFF166534))
+                                }
+                                booking.receiptImageUri?.takeIf { it.isNotBlank() }?.let { rUri ->
+                                    val bmp = remember(rUri) { FirebaseSyncManager.decodeImageFromUriOrDataUrl(context, rUri) }
+                                    bmp?.let {
+                                        Text("• 병원 진료비 영수증 (터치하여 고화질 확대)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF166534))
+                                        Image(
+                                            bitmap = it.asImageBitmap(),
+                                            contentDescription = "영수증 사진",
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(140.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .clickable { previewImageBitmap = it },
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    }
+                                }
+                                booking.prescriptionImageUri?.takeIf { it.isNotBlank() }?.let { pUri ->
+                                    val bmp = remember(pUri) { FirebaseSyncManager.decodeImageFromUriOrDataUrl(context, pUri) }
+                                    bmp?.let {
+                                        Text("• 처방전 및 약 봉투 (터치하여 고화질 확대)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF166534))
+                                        Image(
+                                            bitmap = it.asImageBitmap(),
+                                            contentDescription = "처방전 사진",
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(140.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .clickable { previewImageBitmap = it },
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // 드라이버 현재 위치 GPS
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
@@ -5099,14 +5263,15 @@ fun BookingHistoryScreen(
                                     report.receiptImageUri?.takeIf { it.isNotBlank() }?.let { rUri ->
                                         val bmp = remember(rUri) { FirebaseSyncManager.decodeImageFromUriOrDataUrl(context, rUri) }
                                         bmp?.let {
-                                            Text("🧾 병원 진료비 영수증", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
+                                            Text("🧾 병원 진료비 영수증 (터치하여 고화질 확대)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
                                             Image(
                                                 bitmap = it.asImageBitmap(),
                                                 contentDescription = "영수증 사진",
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .height(160.dp)
-                                                    .clip(RoundedCornerShape(8.dp)),
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .clickable { previewImageBitmap = it },
                                                 contentScale = ContentScale.Crop
                                             )
                                         }
@@ -5114,14 +5279,15 @@ fun BookingHistoryScreen(
                                     report.prescriptionImageUri?.takeIf { it.isNotBlank() }?.let { pUri ->
                                         val bmp = remember(pUri) { FirebaseSyncManager.decodeImageFromUriOrDataUrl(context, pUri) }
                                         bmp?.let {
-                                            Text("💊 처방전 및 약 봉투 사진", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
+                                            Text("💊 처방전 및 약 봉투 사진 (터치하여 고화질 확대)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
                                             Image(
                                                 bitmap = it.asImageBitmap(),
                                                 contentDescription = "처방전 사진",
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .height(160.dp)
-                                                    .clip(RoundedCornerShape(8.dp)),
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .clickable { previewImageBitmap = it },
                                                 contentScale = ContentScale.Crop
                                             )
                                         }
@@ -5276,6 +5442,51 @@ fun BookingHistoryScreen(
 
     showReceiptForBooking?.let { booking ->
         DigitalReceiptDialog(booking = booking, onDismiss = { showReceiptForBooking = null })
+    }
+
+    // 🔍 영수증 / 처방전 원본 고화질 확대 모달 팝업
+    previewImageBitmap?.let { bmp ->
+        androidx.compose.ui.window.Dialog(onDismissRequest = { previewImageBitmap = null }) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(14.dp)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🔍 영수증 / 처방전 원본 확대", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        IconButton(onClick = { previewImageBitmap = null }) {
+                            Text("✕", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Image(
+                        bitmap = bmp.asImageBitmap(),
+                        contentDescription = "확대 영수증",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 480.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                    Button(
+                        onClick = { previewImageBitmap = null },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("닫기", fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -6346,6 +6557,37 @@ fun MyPageScreen(
                     HorizontalDivider()
 
                     TextButton(
+                        onClick = {
+                            val pkg = context.packageName
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$pkg")).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                })
+                            } catch (_: Exception) {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$pkg")).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                })
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("⭐", fontSize = 14.sp)
+                                Text("구글 플레이스토어 앱 평가 및 리뷰 작성 (+3,000P)", color = Color(0xFFD97706), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Text("➔", color = Color(0xFFD97706), fontSize = 13.sp)
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    TextButton(
                         onClick = { showTermsDialog = true },
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = PaddingValues(0.dp)
@@ -7350,7 +7592,7 @@ fun EventAndPointRewardsDialog(
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Text("⭐ 스토어 이동", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
+                                    Text("⭐ 리뷰 쓰러 가기", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
                                 }
 
                                 Button(
@@ -10717,6 +10959,10 @@ fun HomeScreenContent(
                             val currentUserId = PersistentStorageManager.loadUserId(context)
                             val currentUserEmail = PersistentStorageManager.loadUserEmail(context)
 
+                            val encryptedDoorlock = if (homeEntryType.contains("도어락") && doorlockPassword.isNotBlank()) {
+                                com.example.forpetapp.security.DoorlockSecurityManager.encrypt(doorlockPassword.trim())
+                            } else null
+
                             val newBooking = BookingItem(
                                 userId = currentUserId,
                                 userEmail = currentUserEmail,
@@ -10733,7 +10979,11 @@ fun HomeScreenContent(
                                 vehicleInfo = "발자국동행 기아 레이(RAY) 펫전용차",
                                 symptomNote = combinedNote,
                                 estimatedPrice = "[$selectedPaymentMethod] ${formattedPriceStr}원",
-                                doorlockPhotoUri = doorlockPhotoUri?.toString()
+                                doorlockPhotoUri = doorlockPhotoUri?.toString(),
+                                encryptedDoorlock = encryptedDoorlock,
+                                doorlockPurged = false,
+                                usedPoints = usePointsAmount,
+                                couponId = selectedCoupon?.id
                             )
                             Toast.makeText(context, "⚡ $selectedPaymentMethod 사전 가결제 승인이 완료되었습니다!", Toast.LENGTH_SHORT).show()
                             if (usePointsAmount > 0) {

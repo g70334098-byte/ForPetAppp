@@ -57,6 +57,10 @@ data class BookingItem(
     val receiptImageUri: String? = null,
     val prescriptionImageUri: String? = null,
     val doorlockPhotoUri: String? = null,
+    val encryptedDoorlock: String? = null,
+    val doorlockPurged: Boolean = false,
+    val usedPoints: Int = 0,
+    val couponId: String? = null,
 )
 
 // 💬 1:1 안심 톡 메시지 데이터 클래스

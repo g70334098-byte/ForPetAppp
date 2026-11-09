@@ -5,6 +5,7 @@ import android.content.Context
 import android.util.Log
 import com.example.forpetapp.data.model.BookingItem
 import com.example.forpetapp.service.ForPetFirebaseMessagingService
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
@@ -119,6 +120,10 @@ object FirebaseSyncManager {
                 put("receiptImageUri", booking.receiptImageUri ?: "")
                 put("prescriptionImageUri", booking.prescriptionImageUri ?: "")
                 put("doorlockPhotoUri", booking.doorlockPhotoUri ?: "")
+                put("encryptedDoorlock", booking.encryptedDoorlock ?: "")
+                put("doorlockPurged", booking.doorlockPurged)
+                put("usedPoints", booking.usedPoints)
+                put("couponId", booking.couponId ?: "")
             }
             array.put(obj)
             prefs.edit().putString(KEY_PENDING_ORDERS, array.toString()).apply()
@@ -173,7 +178,11 @@ object FirebaseSyncManager {
                         prescription = obj.optString("prescription", ""),
                         receiptImageUri = obj.optString("receiptImageUri").ifEmpty { null },
                         prescriptionImageUri = obj.optString("prescriptionImageUri").ifEmpty { null },
-                        doorlockPhotoUri = obj.optString("doorlockPhotoUri").ifEmpty { null }
+                        doorlockPhotoUri = obj.optString("doorlockPhotoUri").ifEmpty { null },
+                        encryptedDoorlock = obj.optString("encryptedDoorlock").ifEmpty { null },
+                        doorlockPurged = obj.optBoolean("doorlockPurged", false),
+                        usedPoints = obj.optInt("usedPoints", 0),
+                        couponId = obj.optString("couponId").ifEmpty { null }
                     )
                     syncOrderToCloud(booking, context)
                 }
@@ -231,6 +240,10 @@ object FirebaseSyncManager {
                 "receiptImageUri" to (encodedReceipt ?: ""),
                 "prescriptionImageUri" to (encodedPrescription ?: ""),
                 "doorlockPhotoUri" to (encodedDoorlock ?: ""),
+                "encryptedDoorlock" to (booking.encryptedDoorlock ?: ""),
+                "doorlockPurged" to booking.doorlockPurged,
+                "usedPoints" to booking.usedPoints,
+                "couponId" to (booking.couponId ?: ""),
                 "updatedAt" to System.currentTimeMillis(),
             )
 
@@ -271,6 +284,36 @@ object FirebaseSyncManager {
                 }
         } catch (e: Exception) {
             Log.e(TAG, "Delete order exception: ${e.message}")
+            onComplete?.invoke(false)
+        }
+    }
+
+    /**
+     * 1-3. 🔒 케어 완료 후 자택 도어락 비번 및 출입 정보 자동 영구 파기 (개인정보보호법 및 ISMS-P 준수)
+     */
+    fun purgeDoorlockFromCloud(orderId: String, onComplete: ((Boolean) -> Unit)? = null) {
+        try {
+            firestore.collection(ORDERS_COLLECTION)
+                .document(orderId)
+                .update(
+                    mapOf(
+                        "encryptedDoorlock" to FieldValue.delete(),
+                        "doorlockPassword" to FieldValue.delete(),
+                        "doorlockPhotoUri" to FieldValue.delete(),
+                        "doorlockPurged" to true,
+                        "doorlockPurgedAt" to System.currentTimeMillis()
+                    )
+                )
+                .addOnSuccessListener {
+                    Log.d(TAG, "🔒 Doorlock sensitive data successfully purged for order: $orderId")
+                    onComplete?.invoke(true)
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "Failed to purge doorlock data: ${e.message}")
+                    onComplete?.invoke(false)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "purgeDoorlockFromCloud exception: ${e.message}")
             onComplete?.invoke(false)
         }
     }
@@ -370,6 +413,10 @@ object FirebaseSyncManager {
                                     receiptImageUri = doc.getString("receiptImageUri"),
                                     prescriptionImageUri = doc.getString("prescriptionImageUri"),
                                     doorlockPhotoUri = doc.getString("doorlockPhotoUri"),
+                                    encryptedDoorlock = doc.getString("encryptedDoorlock"),
+                                    doorlockPurged = doc.getBoolean("doorlockPurged") ?: false,
+                                    usedPoints = (doc.getLong("usedPoints") ?: 0L).toInt(),
+                                    couponId = doc.getString("couponId")
                                 )
                             } catch (_: Exception) {
                                 null
