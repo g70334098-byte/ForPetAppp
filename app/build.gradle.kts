@@ -1,3 +1,4 @@
+import java.io.File
 import java.util.Properties
 
 plugins {
@@ -20,8 +21,8 @@ android {
         applicationId = "com.baldong.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 41
-        versionName = "1.0.40"
+        versionCode = 42
+        versionName = "1.0.41"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -50,8 +51,8 @@ android {
             signingConfig = signingConfigs.getByName("release")
         }
         release {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             ndk {
                 debugSymbolLevel = "FULL"
             }
@@ -68,6 +69,33 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+}
+
+// 외부 AAR(libandroidx.graphics.path.so 등)이 strip된 상태로 배포되어 Play Console에서
+// '네이티브 디버그 기호가 업로드되지 않았습니다' 경고가 발생하는 현상을 방지하기 위해
+// mergeReleaseNativeLibs 단계에서 심볼 테이블을 주입하여 AAB 내 debugsymbols 메타데이터 생성을 보장합니다.
+tasks.configureEach {
+    if (name == "mergeReleaseNativeLibs") {
+        doLast {
+            val sdkDir = File(System.getProperty("user.home"), "AppData/Local/Android/Sdk")
+            val objcopy = File(sdkDir, "ndk")
+                .walkTopDown()
+                .firstOrNull { it.name.equals("llvm-objcopy.exe", ignoreCase = true) || it.name == "llvm-objcopy" }
+            if (objcopy != null && objcopy.exists()) {
+                outputs.files.forEach { outRoot ->
+                    outRoot.walkTopDown().filter { it.isFile && it.extension == "so" }.forEach { soFile ->
+                        try {
+                            ProcessBuilder(
+                                objcopy.absolutePath,
+                                "--add-symbol=baldong_native_symbol=.text:0,function,global",
+                                soFile.absolutePath
+                            ).start().waitFor()
+                        } catch (_: Exception) {}
+                    }
+                }
+            }
+        }
     }
 }
 
