@@ -851,7 +851,7 @@ object FirebaseSyncManager {
                             }
                         }
                         if (changed) {
-                            editor.commit()
+                            editor.apply()
                             onRestored?.invoke()
                         }
                     }
@@ -1035,36 +1035,40 @@ object FirebaseSyncManager {
             firestore.collection(USERS_COLLECTION)
                 .document(userId.trim())
                 .addSnapshotListener { snapshot, error ->
-                    if (error != null || snapshot == null || !snapshot.exists()) return@addSnapshotListener
-                    val prefs = context.getSharedPreferences("BaljagukAppDiskPrefs", Context.MODE_PRIVATE)
-                    val editor = prefs.edit()
-                    var updated = false
+                    try {
+                        if (error != null || snapshot == null || !snapshot.exists()) return@addSnapshotListener
+                        val prefs = context.getSharedPreferences("BaljagukAppDiskPrefs", Context.MODE_PRIVATE)
+                        val editor = prefs.edit()
+                        var updated = false
 
-                    val cloudLogs = snapshot.getString("point_logs_json")
-                    val cloudLogsTs = snapshot.getLong("point_logs_json_ts") ?: 0L
-                    val localLogsKey = if (sanitized.isNotBlank()) "point_logs_json_$sanitized" else "point_logs_json"
-                    val localLogsTs = prefs.getLong("${localLogsKey}_ts", 0L)
-                    if (cloudLogs != null && cloudLogsTs >= localLogsTs) {
-                        editor.putString(localLogsKey, cloudLogs)
-                        editor.putString("point_logs_json", cloudLogs)
-                        editor.putLong("${localLogsKey}_ts", cloudLogsTs)
-                        updated = true
-                    }
-
-                    val cloudPoints = snapshot.getLong("points")?.toInt()
-                    if (cloudPoints != null) {
-                        val logsJson = prefs.getString(localLogsKey, null)
-                        val hasSpent = logsJson?.contains("\"amount\":-") == true || logsJson?.contains("\"isEarned\":false") == true
-                        val finalPoints = if (cloudPoints <= 0 && !hasSpent) 1000 else cloudPoints
-                        editor.putInt("user_points", finalPoints)
-                        if (sanitized.isNotBlank()) {
-                            editor.putInt("user_points_$sanitized", finalPoints)
+                        val cloudLogs = snapshot.getString("point_logs_json")
+                        val cloudLogsTs = snapshot.getLong("point_logs_json_ts") ?: 0L
+                        val localLogsKey = if (sanitized.isNotBlank()) "point_logs_json_$sanitized" else "point_logs_json"
+                        val localLogsTs = prefs.getLong("${localLogsKey}_ts", 0L)
+                        if (cloudLogs != null && cloudLogsTs >= localLogsTs) {
+                            editor.putString(localLogsKey, cloudLogs)
+                            editor.putString("point_logs_json", cloudLogs)
+                            editor.putLong("${localLogsKey}_ts", cloudLogsTs)
+                            updated = true
                         }
-                        updated = true
-                        editor.commit()
-                        onPointsChanged(finalPoints)
-                    } else if (updated) {
-                        editor.commit()
+
+                        val cloudPoints = snapshot.getLong("points")?.toInt()
+                        if (cloudPoints != null) {
+                            val logsJson = prefs.getString(localLogsKey, null)
+                            val hasSpent = logsJson?.contains("\"amount\":-") == true || logsJson?.contains("\"isEarned\":false") == true
+                            val finalPoints = if (cloudPoints <= 0 && !hasSpent) 1000 else cloudPoints
+                            editor.putInt("user_points", finalPoints)
+                            if (sanitized.isNotBlank()) {
+                                editor.putInt("user_points_$sanitized", finalPoints)
+                            }
+                            updated = true
+                            editor.apply()
+                            onPointsChanged(finalPoints)
+                        } else if (updated) {
+                            editor.apply()
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "listenToCurrentUserPointsRealtime snapshot error: ${e.message}")
                     }
                 }
         } catch (e: Exception) {

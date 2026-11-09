@@ -1831,47 +1831,44 @@ object PersistentStorageManager {
         return if (sanitized.isNotBlank()) sanitized else "guest"
     }
 
-    // 보유 포인트 영구 저장/로드 (.commit()으로 100% 동기 디스크 쓰기 보장 + 계정별 격리 저장)
+    // 보유 포인트 영구 저장/로드 (.apply()로 UI 지연 없는 비동기 저장 + 계정별 격리 저장)
     fun saveUserPoints(context: android.content.Context, points: Int, userId: String? = null) {
-        val sanitized = getSanitizedUserKey(context, userId)
-        getPrefs(context).edit(commit = true) {
-            putInt("user_points_$sanitized", points)
-            putInt("user_points", points)
-        }
+        try {
+            val sanitized = getSanitizedUserKey(context, userId)
+            getPrefs(context).edit {
+                putInt("user_points_$sanitized", points)
+                putInt("user_points", points)
+            }
+        } catch (_: Exception) {}
     }
 
     fun loadUserPoints(context: android.content.Context, defaultVal: Int = 1000, userId: String? = null): Int {
-        val prefs = getPrefs(context)
-        val sanitized = getSanitizedUserKey(context, userId)
-        val perUserKey = "user_points_$sanitized"
-        val pts = if (prefs.contains(perUserKey)) {
-            prefs.getInt(perUserKey, defaultVal)
-        } else if (prefs.contains("user_points")) {
-            val v = prefs.getInt("user_points", defaultVal)
-            prefs.edit(commit = true) { putInt(perUserKey, v) }
-            v
-        } else {
+        return try {
+            val prefs = getPrefs(context)
+            val sanitized = getSanitizedUserKey(context, userId)
+            val perUserKey = "user_points_$sanitized"
+            val pts = if (prefs.contains(perUserKey)) {
+                prefs.getInt(perUserKey, defaultVal)
+            } else if (prefs.contains("user_points")) {
+                val v = prefs.getInt("user_points", defaultVal)
+                prefs.edit { putInt(perUserKey, v) }
+                v
+            } else {
+                defaultVal
+            }
+
+            // 🛡️ 웰컴 1,000 포인트 보장: 아직 포인트를 사용(차감)한 적이 없는데 0P 이하로 잘못 저장되어 있는 경우 웰컴 1,000P 자동 복구 (동기 UI 블로킹 및 네트워크 호출 배제)
+            val logs = try { loadPointLogs(context, userId) } catch (_: Exception) { emptyList() }
+            val hasSpentPoints = logs.any { !it.isEarned && it.amount < 0 }
+            if (pts <= 0 && !hasSpentPoints) {
+                saveUserPoints(context, 1000, userId)
+                1000
+            } else {
+                pts
+            }
+        } catch (_: Exception) {
             defaultVal
         }
-
-        // 🛡️ 웰컴 1,000 포인트 보장: 아직 포인트를 사용(차감)한 적이 없는데 0P 이하로 잘못 저장되어 있는 경우 웰컴 1,000P 자동 복구 및 클라우드 동기화
-        val logs = loadPointLogs(context, userId)
-        val hasSpentPoints = logs.any { !it.isEarned && it.amount < 0 }
-        if (pts <= 0 && !hasSpentPoints) {
-            saveUserPoints(context, 1000, userId)
-            val rawUid = if (!userId.isNullOrBlank()) userId else loadUserId(context)
-            if (rawUid.isNotBlank()) {
-                com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserProfileToCloud(
-                    userId = rawUid,
-                    name = loadUserNickname(context, "발자국동행보호자"),
-                    phone = loadUserPhone(context, ""),
-                    email = loadUserEmail(context),
-                    points = 1000
-                )
-            }
-            return 1000
-        }
-        return pts
     }
 
     // 💰 포인트 적립/차감/소멸 내역 (PointLog) 계정별 영구 저장/로드 + 1년 후 자동 소멸일 계산
@@ -6101,7 +6098,14 @@ fun MyPageScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("💰 내 계정 적립 포인트", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
+                        Text(
+                            "💰 내 계정 적립 포인트",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color(0xFF0F172A),
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFE0F2FE)) {
                             Text(
                                 text = "계정: ${(currentUserEmail.ifBlank { currentUserId }).ifBlank { userNickname }}",
