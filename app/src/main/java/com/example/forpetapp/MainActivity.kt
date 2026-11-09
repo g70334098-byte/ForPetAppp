@@ -2124,8 +2124,12 @@ object PersistentStorageManager {
             jsonArray.put(obj)
         }
         val jsonStr = jsonArray.toString()
-        getPrefs(context).edit(commit = true) { putString("multi_pet_list_json", jsonStr) }
-        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserExtendedDataToCloud(loadUserId(context), "multi_pet_list_json", jsonStr)
+        val now = System.currentTimeMillis()
+        getPrefs(context).edit(commit = true) {
+            putString("multi_pet_list_json", jsonStr)
+            putLong("multi_pet_list_json_ts", now)
+        }
+        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserExtendedDataToCloud(loadUserId(context), "multi_pet_list_json", jsonStr, now)
     }
 
     fun loadMultiPetList(context: android.content.Context): MutableList<PetProfile> {
@@ -2244,8 +2248,12 @@ object PersistentStorageManager {
             jsonArray.put(obj)
         }
         val jsonStr = jsonArray.toString()
-        getPrefs(context).edit(commit = true) { putString("medication_list_json", jsonStr) }
-        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserExtendedDataToCloud(loadUserId(context), "medication_list_json", jsonStr)
+        val now = System.currentTimeMillis()
+        getPrefs(context).edit(commit = true) {
+            putString("medication_list_json", jsonStr)
+            putLong("medication_list_json_ts", now)
+        }
+        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserExtendedDataToCloud(loadUserId(context), "medication_list_json", jsonStr, now)
     }
 
     fun loadMedicationList(context: android.content.Context): MutableList<MedicationItem> {
@@ -2273,7 +2281,7 @@ object PersistentStorageManager {
                 )
             }
         } catch (_: Exception) {}
-        return list.ifEmpty { defaultList }
+        return list
     }
 
     // 💉 연간 예방접종 캘린더 디스크 영구 저장/로드 (.commit() 보장 + Cloud 자동 백업)
@@ -2292,8 +2300,12 @@ object PersistentStorageManager {
             jsonArray.put(obj)
         }
         val jsonStr = jsonArray.toString()
-        getPrefs(context).edit(commit = true) { putString("vaccine_list_json", jsonStr) }
-        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserExtendedDataToCloud(loadUserId(context), "vaccine_list_json", jsonStr)
+        val now = System.currentTimeMillis()
+        getPrefs(context).edit(commit = true) {
+            putString("vaccine_list_json", jsonStr)
+            putLong("vaccine_list_json_ts", now)
+        }
+        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserExtendedDataToCloud(loadUserId(context), "vaccine_list_json", jsonStr, now)
     }
 
     fun loadVaccineList(context: android.content.Context): MutableList<VaccineScheduleItem> {
@@ -2323,7 +2335,7 @@ object PersistentStorageManager {
                 )
             }
         } catch (_: Exception) {}
-        return list.ifEmpty { defaultList }
+        return list
     }
 
     // 🎟️ 보유 할인 쿠폰 목록 디스크 영구 저장/로드 (.commit() 보장 + Cloud 자동 백업)
@@ -2341,8 +2353,12 @@ object PersistentStorageManager {
             jsonArray.put(obj)
         }
         val jsonStr = jsonArray.toString()
-        getPrefs(context).edit(commit = true) { putString("coupon_list_json", jsonStr) }
-        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserExtendedDataToCloud(loadUserId(context), "coupon_list_json", jsonStr)
+        val now = System.currentTimeMillis()
+        getPrefs(context).edit(commit = true) {
+            putString("coupon_list_json", jsonStr)
+            putLong("coupon_list_json_ts", now)
+        }
+        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserExtendedDataToCloud(loadUserId(context), "coupon_list_json", jsonStr, now)
     }
 
     fun loadCouponList(context: android.content.Context): MutableList<CouponItem> {
@@ -2368,7 +2384,7 @@ object PersistentStorageManager {
                 )
             }
         } catch (_: Exception) {}
-        return list.ifEmpty { defaultList }
+        return list
     }
 
     // 📊 반려동물 의료 가계부 디스크 영구 저장/로드 (.commit() 보장 + Cloud 자동 백업)
@@ -2389,8 +2405,12 @@ object PersistentStorageManager {
             jsonArray.put(obj)
         }
         val jsonStr = jsonArray.toString()
-        getPrefs(context).edit(commit = true) { putString("pet_expense_list_json", jsonStr) }
-        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserExtendedDataToCloud(loadUserId(context), "pet_expense_list_json", jsonStr)
+        val now = System.currentTimeMillis()
+        getPrefs(context).edit(commit = true) {
+            putString("pet_expense_list_json", jsonStr)
+            putLong("pet_expense_list_json_ts", now)
+        }
+        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserExtendedDataToCloud(loadUserId(context), "pet_expense_list_json", jsonStr, now)
     }
 
     fun loadExpenseList(context: android.content.Context): MutableList<PetExpenseItem> {
@@ -2421,7 +2441,7 @@ object PersistentStorageManager {
                 )
             }
         } catch (_: Exception) {}
-        return list.ifEmpty { defaultList }
+        return list
     }
 
     fun saveActivePetId(context: android.content.Context, id: String) {
@@ -6080,7 +6100,7 @@ fun MyPageScreen(
                         color = Color(0xFF94A3B8)
                     )
                     Text(
-                        "공식 웹사이트: www.baldong.co.kr | 이메일: contact@baldong.co.kr",
+                        "공식 웹사이트: www.baldong.co.kr | 이메일: k7turbo@naver.com",
                         fontSize = 10.sp,
                         color = Color(0xFF94A3B8)
                     )
@@ -7344,8 +7364,13 @@ fun HomeScreenContent(
                             }
                         }
                         Column {
-                            Text("오늘의 복약 체크", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0F172A))
-                            Text("광견병 D-42 / 캘린더 ➔", fontSize = 10.sp, color = Color(0xFF64748B))
+                            val currentMeds = remember(showMedicationVaccineDialog) { PersistentStorageManager.loadMedicationList(context) }
+                            val currentVacs = remember(showMedicationVaccineDialog) { PersistentStorageManager.loadVaccineList(context) }
+                            val nextVac = currentVacs.minByOrNull { it.dDay }
+                            val medSummaryText = if (currentMeds.isEmpty()) "복약 일정 등록하기" else "오늘의 복약 체크 (${currentMeds.count { it.isTaken }}/${currentMeds.size})"
+                            val vacSummaryText = if (nextVac != null) "${nextVac.vaccineName.take(7)} D-${nextVac.dDay} / 캘린더 ➔" else "예방접종 & D-Day 캘린더 ➔"
+                            Text(medSummaryText, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0F172A))
+                            Text(vacSummaryText, fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -10856,6 +10881,7 @@ fun HomeScreenContent(
 }
 
 // 💊 복약 알리미 & 백신 캘린더 컴포저블
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MedicationVaccineCalendarDialog(
     onDismiss: () -> Unit,
@@ -10990,72 +11016,88 @@ fun MedicationVaccineCalendarDialog(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(medications.size) { idx ->
-                            val med = medications[idx]
-                            Card(
-                                shape = RoundedCornerShape(10.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (med.isTaken) Color(0xFFF8FAFC) else Color.White
-                                ),
-                                border = BorderStroke(
-                                    1.dp,
-                                    if (med.isTaken) Color(0xFFE2E8F0) else Color(0xFFBFDBFE)
-                                )
-                            ) {
-                                Row(
+                        if (medications.isEmpty()) {
+                            item {
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        .padding(vertical = 32.dp),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Checkbox(
-                                        checked = med.isTaken,
-                                        onCheckedChange = { checked ->
-                                            medications[idx] = med.copy(isTaken = checked)
-                                            PersistentStorageManager.saveMedicationList(context, medications)
-                                            Toast.makeText(
-                                                context,
-                                                if (checked) "✅ [${med.name}] 투약 완료 체크되었습니다!" else "투약 상태가 미완료로 변경되었습니다.",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
+                                    Text("등록된 복약 일정이 없습니다.", color = Color.Gray, fontSize = 12.sp)
+                                }
+                            }
+                        } else {
+                            items(medications.size, key = { medications[it].id }) { idx ->
+                                val med = medications[idx]
+                                Card(
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (med.isTaken) Color(0xFFF8FAFC) else Color.White
+                                    ),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        if (med.isTaken) Color(0xFFE2E8F0) else Color(0xFFBFDBFE)
                                     )
-                                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                        ) {
-                                            Text(
-                                                med.name,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 13.sp,
-                                                color = if (med.isTaken) Color.Gray else Color(0xFF0F172A),
-                                                style = if (med.isTaken) androidx.compose.ui.text.TextStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough) else androidx.compose.ui.text.TextStyle()
-                                            )
-                                            Surface(
-                                                shape = RoundedCornerShape(4.dp),
-                                                color = if (med.isTaken) Color(0xFFE2E8F0) else Color(0xFFDBEAFE)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Checkbox(
+                                            checked = med.isTaken,
+                                            onCheckedChange = { checked ->
+                                                val targetIdx = medications.indexOfFirst { it.id == med.id }
+                                                if (targetIdx >= 0) {
+                                                    medications[targetIdx] = med.copy(isTaken = checked)
+                                                    PersistentStorageManager.saveMedicationList(context, medications)
+                                                    Toast.makeText(
+                                                        context,
+                                                        if (checked) "✅ [${med.name}] 투약 완료 체크되었습니다!" else "투약 상태가 미완료로 변경되었습니다.",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+                                            }
+                                        )
+                                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                                             ) {
                                                 Text(
-                                                    med.time,
-                                                    fontSize = 10.sp,
-                                                    color = if (med.isTaken) Color.Gray else Color(0xFF1D4ED8),
-                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                    med.name,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 13.sp,
+                                                    color = if (med.isTaken) Color.Gray else Color(0xFF0F172A),
+                                                    style = if (med.isTaken) androidx.compose.ui.text.TextStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough) else androidx.compose.ui.text.TextStyle()
                                                 )
+                                                Surface(
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    color = if (med.isTaken) Color(0xFFE2E8F0) else Color(0xFFDBEAFE)
+                                                ) {
+                                                    Text(
+                                                        med.time,
+                                                        fontSize = 10.sp,
+                                                        color = if (med.isTaken) Color.Gray else Color(0xFF1D4ED8),
+                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                    )
+                                                }
                                             }
+                                            Text("${med.dosage} • ${med.note}", fontSize = 11.sp, color = Color.Gray)
                                         }
-                                        Text("${med.dosage} • ${med.note}", fontSize = 11.sp, color = Color.Gray)
-                                    }
-                                    IconButton(
-                                        onClick = {
-                                            medications.removeAt(idx)
-                                            PersistentStorageManager.saveMedicationList(context, medications)
-                                            Toast.makeText(context, "🗑️ 복약 항목이 삭제되었습니다.", Toast.LENGTH_SHORT).show()
-                                        },
-                                        modifier = Modifier.size(24.dp)
-                                    ) {
-                                        Text("✕", fontSize = 12.sp, color = Color.Gray)
+                                        IconButton(
+                                            onClick = {
+                                                medications.remove(med)
+                                                PersistentStorageManager.saveMedicationList(context, medications)
+                                                Toast.makeText(context, "🗑️ 복약 항목이 삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                                            },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Text("✕", fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+                                        }
                                     }
                                 }
                             }
@@ -11075,74 +11117,105 @@ fun MedicationVaccineCalendarDialog(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(vaccines.size) { idx ->
-                            val vac = vaccines[idx]
-                            val isUrgent = vac.dDay <= 7
-                            val isSoon = vac.dDay <= 45
-
-                            Card(
-                                shape = RoundedCornerShape(10.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color.White),
-                                border = BorderStroke(
-                                    1.dp,
-                                    if (isUrgent) Color(0xFFFECDD3) else if (isSoon) Color(0xFFFDE68A) else Color(0xFFE2E8F0)
-                                )
-                            ) {
-                                Column(
+                        if (vaccines.isEmpty()) {
+                            item {
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        .padding(vertical = 32.dp),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                    Text("등록된 예방접종 및 D-Day 일정이 없습니다.", color = Color.Gray, fontSize = 12.sp)
+                                }
+                            }
+                        } else {
+                            items(vaccines.size, key = { vaccines[it].id }) { idx ->
+                                val vac = vaccines[idx]
+                                val isUrgent = vac.dDay <= 7
+                                val isSoon = vac.dDay <= 45
+
+                                Card(
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        if (isUrgent) Color(0xFFFECDD3) else if (isSoon) Color(0xFFFDE68A) else Color(0xFFE2E8F0)
+                                    )
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
                                         Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(vac.vaccineName, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                                            Surface(
-                                                shape = RoundedCornerShape(4.dp),
-                                                color = Color(0xFFF1F5F9)
+                                            Row(
+                                                modifier = Modifier.weight(1f),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                                             ) {
-                                                Text(vac.cycle, fontSize = 10.sp, color = Color(0xFF475569), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                                Text(vac.vaccineName, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A), maxLines = 1)
+                                                Surface(
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    color = Color(0xFFF1F5F9)
+                                                ) {
+                                                    Text(vac.cycle, fontSize = 10.sp, color = Color(0xFF475569), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                                }
+                                            }
+
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    color = if (isUrgent) Color(0xFFEF4444) else if (isSoon) Color(0xFFF59E0B) else Color(0xFF0284C7)
+                                                ) {
+                                                    Text(
+                                                        if (vac.dDay == 0) "D-Day 오늘!" else if (vac.dDay < 0) "D+${-vac.dDay}일 경과" else "D-${vac.dDay}일",
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color.White,
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                                IconButton(
+                                                    onClick = {
+                                                        vaccines.remove(vac)
+                                                        PersistentStorageManager.saveVaccineList(context, vaccines)
+                                                        Toast.makeText(context, "🗑️ 예방접종/D-Day 일정이 삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                                                    },
+                                                    modifier = Modifier.size(22.dp)
+                                                ) {
+                                                    Text("✕", fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+                                                }
                                             }
                                         }
 
-                                        Surface(
-                                            shape = RoundedCornerShape(6.dp),
-                                            color = if (isUrgent) Color(0xFFEF4444) else if (isSoon) Color(0xFFF59E0B) else Color(0xFF0284C7)
-                                        ) {
-                                            Text(
-                                                if (vac.dDay == 0) "D-Day 오늘!" else if (vac.dDay < 0) "D+${-vac.dDay}일 경과" else "D-${vac.dDay}일",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.White,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                            )
+                                        Text("예정일: ${vac.targetDate}", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.SemiBold)
+                                        if (vac.description.isNotBlank()) {
+                                            Text(vac.description, fontSize = 11.sp, color = Color.Gray)
                                         }
-                                    }
 
-                                    Text("예정일: ${vac.targetDate}", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.SemiBold)
-                                    Text(vac.description, fontSize = 11.sp, color = Color.Gray)
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.End
-                                    ) {
-                                        OutlinedButton(
-                                            onClick = {
-                                                onDismiss()
-                                                onNavigateToBooking()
-                                            },
-                                            shape = RoundedCornerShape(6.dp),
-                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                            modifier = Modifier.height(28.dp)
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.End
                                         ) {
-                                            Text("🏥 접종 병원 예약 ➔", fontSize = 10.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                                            OutlinedButton(
+                                                onClick = {
+                                                    onDismiss()
+                                                    onNavigateToBooking()
+                                                },
+                                                shape = RoundedCornerShape(6.dp),
+                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                                modifier = Modifier.height(28.dp)
+                                            ) {
+                                                Text("🏥 접종 병원 예약 ➔", fontSize = 10.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                                            }
                                         }
                                     }
                                 }
@@ -11156,7 +11229,7 @@ fun MedicationVaccineCalendarDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D9488)),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("➕ 예방접종 일정 등록하기", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("➕ 예방접종 & D-Day 일정 등록하기", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
             }
@@ -11214,6 +11287,7 @@ fun MedicationVaccineCalendarDialog(
                     onClick = {
                         if (newMedName.isNotBlank()) {
                             val item = MedicationItem(
+                                id = System.currentTimeMillis().toString(),
                                 name = newMedName.trim(),
                                 time = newMedTime.trim(),
                                 dosage = newMedDosage.trim(),
@@ -11240,48 +11314,128 @@ fun MedicationVaccineCalendarDialog(
 
     if (showAddVacDialog) {
         var newVacName by remember { mutableStateOf("") }
-        var newVacDate by remember { mutableStateOf("2026.12.30") }
+        var newVacDate by remember {
+            val sdf = SimpleDateFormat("yyyy.MM.dd", Locale.KOREA)
+            mutableStateOf(sdf.format(Date(System.currentTimeMillis() + 30L * 24 * 60 * 60 * 1000)))
+        }
         var newVacCycle by remember { mutableStateOf("매년 1회") }
-        var newVacDDay by remember { mutableStateOf("60") }
+        var newVacDDay by remember { mutableStateOf("30") }
         var newVacDesc by remember { mutableStateOf("") }
+        var showVacCalendarPicker by remember { mutableStateOf(false) }
+
+        val presetTitles = listOf("💉 광견병 백신", "💊 심장사상충", "🩺 종합 건강검진", "💉 종합백신(DHPPi)", "✂️ 미용/위생", "💊 구충제")
 
         AlertDialog(
             onDismissRequest = { showAddVacDialog = false },
-            title = { Text("💉 새 예방접종 일정 등록", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+            title = { Text("💉 새 예방접종 & D-Day 일정 등록", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("빠른 항목 선택", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF475569))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        presetTitles.forEach { preset ->
+                            FilterChip(
+                                selected = (newVacName == preset),
+                                onClick = { newVacName = preset },
+                                label = { Text(preset, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                            )
+                        }
+                    }
+
                     OutlinedTextField(
                         value = newVacName,
                         onValueChange = { newVacName = it },
-                        label = { Text("백신 이름") },
-                        placeholder = { Text("예: 인플루엔자, 켄넬코프") },
-                        modifier = Modifier.fillMaxWidth()
+                        label = { Text("일정 / 백신 이름") },
+                        placeholder = { Text("예: 인플루엔자, 심장사상충, 건강검진") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
                     )
-                    OutlinedTextField(
-                        value = newVacDate,
-                        onValueChange = { newVacDate = it },
-                        label = { Text("접종 예정일") },
-                        placeholder = { Text("YYYY.MM.DD") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = newVacDate,
+                            onValueChange = { newVacDate = it },
+                            label = { Text("예정일 (YYYY.MM.DD)") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true
+                        )
+                        OutlinedButton(
+                            onClick = { showVacCalendarPicker = true },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.height(52.dp)
+                        ) {
+                            Text("📅 달력", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                        }
+                    }
+
+                    if (showVacCalendarPicker) {
+                        val pickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
+                        DatePickerDialog(
+                            onDismissRequest = { showVacCalendarPicker = false },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        pickerState.selectedDateMillis?.let { millis ->
+                                            newVacDate = SimpleDateFormat("yyyy.MM.dd", Locale.KOREA).format(Date(millis))
+                                            val todayCal = Calendar.getInstance().apply {
+                                                set(Calendar.HOUR_OF_DAY, 0)
+                                                set(Calendar.MINUTE, 0)
+                                                set(Calendar.SECOND, 0)
+                                                set(Calendar.MILLISECOND, 0)
+                                            }
+                                            val targetCal = Calendar.getInstance().apply {
+                                                timeInMillis = millis
+                                                set(Calendar.HOUR_OF_DAY, 0)
+                                                set(Calendar.MINUTE, 0)
+                                                set(Calendar.SECOND, 0)
+                                                set(Calendar.MILLISECOND, 0)
+                                            }
+                                            val diff = ((targetCal.timeInMillis - todayCal.timeInMillis) / (1000L * 60 * 60 * 24)).toInt()
+                                            newVacDDay = diff.toString()
+                                        }
+                                        showVacCalendarPicker = false
+                                    }
+                                ) { Text("선택") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showVacCalendarPicker = false }) { Text("취소") }
+                            }
+                        ) {
+                            DatePicker(state = pickerState)
+                        }
+                    }
+
                     OutlinedTextField(
                         value = newVacCycle,
                         onValueChange = { newVacCycle = it },
-                        label = { Text("접종 주기") },
-                        placeholder = { Text("예: 매년 1회, 매월 1회") },
-                        modifier = Modifier.fillMaxWidth()
+                        label = { Text("반복 주기") },
+                        placeholder = { Text("예: 매년 1회, 매월 1회, 1회성") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
                     )
                     OutlinedTextField(
                         value = newVacDDay,
                         onValueChange = { newVacDDay = it },
                         label = { Text("남은 일수 (D-Day 숫자)") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
                     )
                     OutlinedTextField(
                         value = newVacDesc,
                         onValueChange = { newVacDesc = it },
                         label = { Text("설명 및 참고사항") },
-                        placeholder = { Text("예: 기초 3차 완료 후 추가 접종") },
+                        placeholder = { Text("예: 기초 접종 완료 후 추가 접종") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -11292,6 +11446,7 @@ fun MedicationVaccineCalendarDialog(
                         if (newVacName.isNotBlank()) {
                             val dDayInt = newVacDDay.toIntOrNull() ?: 30
                             val item = VaccineScheduleItem(
+                                id = System.currentTimeMillis().toString(),
                                 vaccineName = newVacName.trim(),
                                 targetDate = newVacDate.trim(),
                                 cycle = newVacCycle.trim(),
@@ -11302,7 +11457,7 @@ fun MedicationVaccineCalendarDialog(
                             vaccines.add(item)
                             PersistentStorageManager.saveVaccineList(context, vaccines)
                             showAddVacDialog = false
-                            Toast.makeText(context, "💉 새 예방접종 일정이 등록되었습니다!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "💉 새 예방접종/D-Day 일정이 등록되었습니다!", Toast.LENGTH_SHORT).show()
                         }
                     }
                 ) {
@@ -11645,23 +11800,13 @@ fun PetMedicalExpenseDialog(
 
     val categoryFilters = listOf("전체", "🏥 병원 진료비", "💊 약제/처방전", "🚙 동행 케어비", "🥩 영양/기타")
 
-    val filteredExpenses = remember(expenses.size, selectedCategoryFilter) {
-        if (selectedCategoryFilter == "전체") expenses.toList()
-        else expenses.filter { it.category == selectedCategoryFilter }
-    }
+    val filteredExpenses = if (selectedCategoryFilter == "전체") expenses.toList()
+    else expenses.filter { it.category == selectedCategoryFilter }
 
-    val totalExpense = remember(expenses.size) {
-        expenses.sumOf { it.amount }
-    }
-    val hospitalTotal = remember(expenses.size) {
-        expenses.filter { it.category == "🏥 병원 진료비" }.sumOf { it.amount }
-    }
-    val medicineTotal = remember(expenses.size) {
-        expenses.filter { it.category == "💊 약제/처방전" }.sumOf { it.amount }
-    }
-    val careCarTotal = remember(expenses.size) {
-        expenses.filter { it.category == "🚙 동행 케어비" }.sumOf { it.amount }
-    }
+    val totalExpense = expenses.sumOf { it.amount }
+    val hospitalTotal = expenses.filter { it.category == "🏥 병원 진료비" }.sumOf { it.amount }
+    val medicineTotal = expenses.filter { it.category == "💊 약제/처방전" }.sumOf { it.amount }
+    val careCarTotal = expenses.filter { it.category == "🚙 동행 케어비" }.sumOf { it.amount }
 
     val decFormat = java.text.DecimalFormat("#,###")
 
@@ -12209,28 +12354,6 @@ fun MyPetDetailScreen(
     var genderDropdownExpanded by remember { mutableStateOf(false) }
 
     var showDatePickerDialog by remember { mutableStateOf(false) }
-    var showAddDDayDialog by remember { mutableStateOf(false) }
-
-    // D-Day 일정을 자유롭게 추가/삭제/수정 가능한 리스트
-    val ddayList = remember {
-        mutableStateListOf(
-            PetDDayItem(
-                id = "1",
-                title = "💉 광견병 백신",
-                targetDateMillis = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 14) }.timeInMillis
-            ),
-            PetDDayItem(
-                id = "2",
-                title = "💊 심장사상충",
-                targetDateMillis = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 3) }.timeInMillis
-            ),
-            PetDDayItem(
-                id = "3",
-                title = "🩺 종합 건강검진",
-                targetDateMillis = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 30) }.timeInMillis
-            )
-        )
-    }
 
     var showAddPetModal by remember { mutableStateOf(false) }
     var newPetNameInput by remember { mutableStateOf("") }
@@ -12453,100 +12576,7 @@ fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): S
             }
         }
 
-        // 💉 예방접종 & 건강 D-Day 수첩 카드 (자유로운 커스텀 일정 추가/삭제 연동)
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, Color(0xFFB08968))
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("💉 예방접종 & 건강 D-Day 수첩", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
-                        TextButton(
-                            onClick = { showAddDDayDialog = true },
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Text("+ 일정 추가", fontSize = 12.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
-                        }
-                    }
 
-                    if (ddayList.isEmpty()) {
-                        Text("등록된 D-Day 건강 일정이 없습니다. 우측 상단 '+ 일정 추가'를 누르시면 자유롭게 등록하실 수 있습니다!", fontSize = 11.sp, color = Color.Gray, modifier = Modifier.padding(vertical = 8.dp))
-                    } else {
-                        androidx.compose.foundation.lazy.LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            items(ddayList.size) { index ->
-                                val item = ddayList[index]
-
-                                val todayCal = Calendar.getInstance().apply {
-                                    set(Calendar.HOUR_OF_DAY, 0)
-                                    set(Calendar.MINUTE, 0)
-                                    set(Calendar.SECOND, 0)
-                                    set(Calendar.MILLISECOND, 0)
-                                }
-                                val targetCal = Calendar.getInstance().apply {
-                                    timeInMillis = item.targetDateMillis
-                                    set(Calendar.HOUR_OF_DAY, 0)
-                                    set(Calendar.MINUTE, 0)
-                                    set(Calendar.SECOND, 0)
-                                    set(Calendar.MILLISECOND, 0)
-                                }
-                                val diffDays = ((targetCal.timeInMillis - todayCal.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
-                                val ddayStr = when {
-                                    diffDays == 0 -> "D-Day"
-                                    diffDays > 0 -> "D-$diffDays"
-                                    else -> "D+${-diffDays}"
-                                }
-                                val dateFormatted = SimpleDateFormat("MM.dd", Locale.KOREA).format(Date(item.targetDateMillis))
-
-                                Surface(
-                                    modifier = Modifier.width(115.dp),
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = if (diffDays <= 3) Color(0xFFFEF3C7) else Color(0xFFEFF6FF),
-                                    border = BorderStroke(1.dp, if (diffDays <= 3) Color(0xFFFDE68A) else Color(0xFFBFDBFE))
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(10.dp),
-                                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(item.title, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF0F172A), maxLines = 1)
-                                            Text(
-                                                text = "✕",
-                                                fontSize = 11.sp,
-                                                color = Color.Gray,
-                                                fontWeight = FontWeight.Bold,
-                                                modifier = Modifier.clickable {
-                                                    ddayList.remove(item)
-                                                    Toast.makeText(context, "🗑️ 일정['${item.title}']이 삭제되었습니다.", Toast.LENGTH_SHORT).show()
-                                                }
-                                            )
-                                        }
-                                        Text(ddayStr, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = if (diffDays <= 3) Color(0xFFD97706) else Color(0xFF2563EB))
-                                        Text("예정: $dateFormatted", fontSize = 9.sp, color = Color.Gray)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
 
         item {
             Card(
@@ -12779,118 +12809,7 @@ fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): S
         }
     }
 
-    if (showAddDDayDialog) {
-        var newDDayTitle by remember { mutableStateOf("") }
-        var selectedDDayMillis by remember { mutableStateOf<Long?>(System.currentTimeMillis()) }
-        var showDDayDatePicker by remember { mutableStateOf(false) }
 
-        val presetTitles = listOf("💉 예방접종", "💊 심장사상충", "🩺 건강검진", "✂️ 미용", "🎂 생일", "💊 구충제")
-
-        AlertDialog(
-            onDismissRequest = { showAddDDayDialog = false },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("💉", fontSize = 20.sp)
-                    Text("신규 D-Day 건강 일정 추가", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                }
-            },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text("일정 제목 (직접 작성 또는 간편 선택)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-                    
-                    androidx.compose.foundation.lazy.LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(presetTitles.size) { idx ->
-                            val preset = presetTitles[idx]
-                            FilterChip(
-                                selected = (newDDayTitle == preset),
-                                onClick = { newDDayTitle = preset },
-                                label = { Text(preset, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
-                            )
-                        }
-                    }
-
-                    OutlinedTextField(
-                        value = newDDayTitle,
-                        onValueChange = { newDDayTitle = it },
-                        label = { Text("D-Day 일정 이름 직접 입력") },
-                        placeholder = { Text("예: 💉 광견병 백신 2차, ✂️ 미용실 예약") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    val formattedTargetDate = if (selectedDDayMillis != null) {
-                        SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREA).format(Date(selectedDDayMillis!!))
-                    } else "날짜를 선택하세요"
-
-                    OutlinedButton(
-                        onClick = { showDDayDatePicker = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("📅 예정일: $formattedTargetDate", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 13.sp)
-                            Text("달력 변경 ➔", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
-                        }
-                    }
-
-                    if (showDDayDatePicker) {
-                        val ddayPickerState = rememberDatePickerState(
-                            initialSelectedDateMillis = selectedDDayMillis ?: System.currentTimeMillis()
-                        )
-                        DatePickerDialog(
-                            onDismissRequest = { showDDayDatePicker = false },
-                            confirmButton = {
-                                TextButton(
-                                    onClick = {
-                                        selectedDDayMillis = ddayPickerState.selectedDateMillis
-                                        showDDayDatePicker = false
-                                    }
-                                ) { Text("확인") }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = { showDDayDatePicker = false }) { Text("취소") }
-                            }
-                        ) {
-                            DatePicker(state = ddayPickerState)
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (newDDayTitle.isNotEmpty() && selectedDDayMillis != null) {
-                            val newItem = PetDDayItem(
-                                title = newDDayTitle,
-                                targetDateMillis = selectedDDayMillis!!
-                            )
-                            ddayList.add(0, newItem)
-                            Toast.makeText(context, "💉 D-Day 일정['$newDDayTitle']이 성공적으로 추가되었습니다!", Toast.LENGTH_SHORT).show()
-                            showAddDDayDialog = false
-                        } else {
-                            Toast.makeText(context, "일정 이름과 예정일을 입력해 주세요.", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
-                ) {
-                    Text("일정 저장하기", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAddDDayDialog = false }) { Text("취소") }
-            }
-        )
-    }
 
     if (showAddPetModal) {
         AlertDialog(

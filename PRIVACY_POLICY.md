@@ -66,7 +66,7 @@
 
 - **서비스명**: 발자국동행
 - **담당 부서**: 고객안심센터
-- **문의 이메일**: support@baldong.co.kr (또는 contact@baldong.app)
+- **문의 이메일**: k7turbo@naver.com
 
 ---
 

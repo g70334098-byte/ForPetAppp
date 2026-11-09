@@ -772,12 +772,13 @@ object FirebaseSyncManager {
     /**
      * 10. 다중 반려동물, 복약 알리미, 예방접종, 의료 가계부, 보유 쿠폰 데이터를 Firestore users/{userId} 문서에 실시간 백업
      */
-    fun syncUserExtendedDataToCloud(userId: String, fieldKey: String, jsonValue: String) {
+    fun syncUserExtendedDataToCloud(userId: String, fieldKey: String, jsonValue: String, timestamp: Long = System.currentTimeMillis()) {
         try {
             if (userId.isBlank()) return
             val updateMap = hashMapOf<String, Any>(
                 fieldKey to jsonValue,
-                "updatedAt" to System.currentTimeMillis()
+                "${fieldKey}_ts" to timestamp,
+                "updatedAt" to timestamp
             )
             firestore.collection(USERS_COLLECTION)
                 .document(userId.trim())
@@ -813,8 +814,14 @@ object FirebaseSyncManager {
                             "coupon_list_json"
                         ).forEach { key ->
                             val cloudVal = doc.getString(key)
-                            if (!cloudVal.isNullOrBlank()) {
+                            val cloudTs = doc.getLong("${key}_ts") ?: 0L
+                            val localVal = prefs.getString(key, null)
+                            val localTs = prefs.getLong("${key}_ts", 0L)
+                            if (cloudVal != null && (localVal == null || cloudTs > localTs)) {
                                 editor.putString(key, cloudVal)
+                                if (cloudTs > 0L) {
+                                    editor.putLong("${key}_ts", cloudTs)
+                                }
                                 changed = true
                             }
                         }
