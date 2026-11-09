@@ -1586,14 +1586,20 @@
                     }
                 });
 
-                // 2. 실시간 오더 DB (orders 컬렉션) 동기화 (취소/삭제 시 마지막 1건까지 0건으로 즉시 반영)
+                // 2. 실시간 오더 DB (orders 컬렉션) 동기화 & 매출 정산 자동 연동
                 db.collection("orders").onSnapshot((snapshot) => {
                     if (snapshot) {
                         const cloudOrders = [];
+                        const autoSales = [];
                         snapshot.forEach(doc => {
                             const d = doc.data();
+                            const orderId = d.id || doc.id;
+                            const priceStr = d.estimatedPrice || "30,000원";
+                            const numericPrice = parseInt(String(priceStr).replace(/[^0-9]/g, ''), 10) || 30000;
+                            const statusStr = d.status || "1. 배차 대기 중";
+
                             cloudOrders.push({
-                                id: d.id || doc.id,
+                                id: orderId,
                                 trim: d.serviceTrim || "📅 예약 진료",
                                 type: d.species || "🐶 강아지",
                                 pet: d.petName || "아이",
@@ -1602,17 +1608,36 @@
                                 pickup: (d.pickupAddress && d.pickupAddress.trim().length > 0) ? d.pickupAddress : ((d.symptomNote && d.symptomNote.includes("📍")) ? d.symptomNote.split("|")[0].replace("📍", "").trim() : (d.pickup || "주소 미등록 (마이페이지 설정 필요)")),
                                 hospital: d.hospitalName || "동물병원",
                                 time: d.time || "시간 미정",
-                                status: d.status || "1. 배차 대기 중",
+                                status: statusStr,
                                 guard: d.vehicleInfo || "발자국동행 레이",
-                                price: d.estimatedPrice || "30,000원",
+                                price: priceStr,
                                 doctorNote: d.doctorNote || "",
-                                prescription: d.prescription || ""
+                                prescription: d.prescription || "",
+                                receiptImageUri: d.receiptImageUri || "",
+                                prescriptionImageUri: d.prescriptionImageUri || "",
+                                doorlockPhotoUri: d.doorlockPhotoUri || ""
+                            });
+
+                            // 📊 실제 접수/완료 오더를 매출 관리 & 결제 정산 내역에 실시간 자동 반영
+                            autoSales.push({
+                                date: d.time || new Date().toISOString().slice(0, 16).replace('T', ' '),
+                                id: orderId,
+                                type: d.serviceType || "🏥 병원 진료 대행",
+                                owner: `${d.ownerName || "보호자"} (${d.petName || "아이"})`,
+                                price: numericPrice.toLocaleString() + " 원",
+                                discount: "0 원",
+                                final: numericPrice,
+                                method: "💳 카드 자동 가결제",
+                                status: (d.isCompleted || statusStr.includes("완료")) ? "정산 완료" : "가결제 승인"
                             });
                         });
                         ordersData = cloudOrders;
+                        salesData = autoSales;
                         localStorage.setItem('baljaguk_orders', JSON.stringify(ordersData));
+                        localStorage.setItem('baljaguk_sales', JSON.stringify(salesData));
                         renderOrdersTable();
-                        console.log("☁️ Firestore 실시간 오더 동기화 완료:", cloudOrders.length, "건");
+                        renderSalesTable();
+                        console.log("☁️ Firestore 실시간 오더 및 매출 정산 동기화 완료:", cloudOrders.length, "건");
                     }
                 }, (err) => console.warn("Firestore orders sync:", err));
 

@@ -29,6 +29,51 @@ object FirebaseSyncManager {
         FirebaseFirestore.getInstance()
     }
 
+    /**
+     * 📸 스마트폰 로컬 URI 이미지를 압축된 Base64 Data URI로 변환 (가드 ↔ 보호자 ↔ PC 홈페이지 간 100% 사진 공유)
+     */
+    fun encodeImageUriToDataUrl(context: Context, uriStr: String?): String? {
+        if (uriStr.isNullOrBlank()) return null
+        if (uriStr.startsWith("data:image")) return uriStr
+        return try {
+            val uri = android.net.Uri.parse(uriStr)
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                val original = android.graphics.BitmapFactory.decodeStream(input) ?: return uriStr
+                val maxDim = 480
+                val ratio = minOf(maxDim.toFloat() / original.width, maxDim.toFloat() / original.height, 1.0f)
+                val targetW = (original.width * ratio).toInt().coerceAtLeast(1)
+                val targetH = (original.height * ratio).toInt().coerceAtLeast(1)
+                val scaled = android.graphics.Bitmap.createScaledBitmap(original, targetW, targetH, true)
+                val baos = java.io.ByteArrayOutputStream()
+                scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, baos)
+                val base64 = android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.NO_WRAP)
+                "data:image/jpeg;base64,$base64"
+            } ?: uriStr
+        } catch (_: Exception) {
+            uriStr
+        }
+    }
+
+    fun decodeImageFromUriOrDataUrl(context: Context, uriOrData: String?): android.graphics.Bitmap? {
+        if (uriOrData.isNullOrBlank()) return null
+        return try {
+            if (uriOrData.startsWith("data:image")) {
+                val base64Part = uriOrData.substringAfter("base64,", "")
+                if (base64Part.isNotEmpty()) {
+                    val bytes = android.util.Base64.decode(base64Part, android.util.Base64.DEFAULT)
+                    android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                } else null
+            } else {
+                val uri = android.net.Uri.parse(uriOrData)
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    android.graphics.BitmapFactory.decodeStream(input)
+                }
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun isNetworkConnected(context: Context): Boolean {
         return try {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager ?: return true
@@ -159,6 +204,10 @@ object FirebaseSyncManager {
      */
     fun syncOrderToCloud(booking: BookingItem, context: Context? = null, onComplete: ((Boolean) -> Unit)? = null) {
         try {
+            val encodedReceipt = if (context != null) encodeImageUriToDataUrl(context, booking.receiptImageUri) else booking.receiptImageUri
+            val encodedPrescription = if (context != null) encodeImageUriToDataUrl(context, booking.prescriptionImageUri) else booking.prescriptionImageUri
+            val encodedDoorlock = if (context != null) encodeImageUriToDataUrl(context, booking.doorlockPhotoUri) else booking.doorlockPhotoUri
+
             val orderMap = hashMapOf(
                 "id" to booking.id,
                 "userId" to booking.userId,
@@ -179,9 +228,9 @@ object FirebaseSyncManager {
                 "isCompleted" to booking.isCompleted,
                 "doctorNote" to booking.doctorNote,
                 "prescription" to booking.prescription,
-                "receiptImageUri" to (booking.receiptImageUri ?: ""),
-                "prescriptionImageUri" to (booking.prescriptionImageUri ?: ""),
-                "doorlockPhotoUri" to (booking.doorlockPhotoUri ?: ""),
+                "receiptImageUri" to (encodedReceipt ?: ""),
+                "prescriptionImageUri" to (encodedPrescription ?: ""),
+                "doorlockPhotoUri" to (encodedDoorlock ?: ""),
                 "updatedAt" to System.currentTimeMillis(),
             )
 
@@ -718,5 +767,65 @@ object FirebaseSyncManager {
                 }
             }
         } catch (_: Exception) {}
+    }
+
+    /**
+     * 10. 다중 반려동물, 복약 알리미, 예방접종, 의료 가계부, 보유 쿠폰 데이터를 Firestore users/{userId} 문서에 실시간 백업
+     */
+    fun syncUserExtendedDataToCloud(userId: String, fieldKey: String, jsonValue: String) {
+        try {
+            if (userId.isBlank()) return
+            val updateMap = hashMapOf<String, Any>(
+                fieldKey to jsonValue,
+                "updatedAt" to System.currentTimeMillis()
+            )
+            firestore.collection(USERS_COLLECTION)
+                .document(userId.trim())
+                .set(updateMap, SetOptions.merge())
+        } catch (e: Exception) {
+            Log.e(TAG, "syncUserExtendedDataToCloud error: ${e.message}")
+        }
+    }
+
+    /**
+     * 10-1. 앱 실행/로그인 시 Firestore users/{userId} 문서에 백업된 다중 반려동물·복약·접종·가계부·쿠폰 데이터를 로컬로 자동 복원
+     */
+    fun restoreUserExtendedDataFromCloud(
+        context: Context,
+        userId: String,
+        onRestored: (() -> Unit)? = null
+    ) {
+        try {
+            if (userId.isBlank()) return
+            firestore.collection(USERS_COLLECTION)
+                .document(userId.trim())
+                .get()
+                .addOnSuccessListener { doc ->
+                    if (doc != null && doc.exists()) {
+                        val prefs = context.getSharedPreferences("BaljagukAppDiskPrefs", Context.MODE_PRIVATE)
+                        val editor = prefs.edit()
+                        var changed = false
+                        listOf(
+                            "multi_pet_list_json",
+                            "medication_list_json",
+                            "vaccine_list_json",
+                            "pet_expense_list_json",
+                            "coupon_list_json"
+                        ).forEach { key ->
+                            val cloudVal = doc.getString(key)
+                            if (!cloudVal.isNullOrBlank()) {
+                                editor.putString(key, cloudVal)
+                                changed = true
+                            }
+                        }
+                        if (changed) {
+                            editor.commit()
+                            onRestored?.invoke()
+                        }
+                    }
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "restoreUserExtendedDataFromCloud error: ${e.message}")
+        }
     }
 }

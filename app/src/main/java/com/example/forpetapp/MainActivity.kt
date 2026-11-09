@@ -969,7 +969,7 @@ fun DriverMainDashboardScreen(
 
                             // 2. 디스크 저장소에 100% 영구 저장 및 서버 동기화!
                             PersistentStorageManager.saveBookingList(context, driverOrders, "DRIVER_ALL")
-                            FirebaseSyncManager.syncOrderToCloud(updatedOrder)
+                            FirebaseSyncManager.syncOrderToCloud(updatedOrder, context)
 
                             // 3. 실시간 푸시 알림 발송
                             ForPetFirebaseMessagingService.sendLocalNotification(
@@ -2102,13 +2102,14 @@ object PersistentStorageManager {
         return list.ifEmpty { defaultList }
     }
 
-    // 다중 반려동물 프로필 리스트 영구 디스크 저장/로드 (.commit() 보장)
+    // 다중 반려동물 프로필 리스트 영구 디스크 저장/로드 (.commit() 보장 + Cloud 자동 백업)
     fun saveMultiPetList(context: android.content.Context, pets: List<PetProfile>) {
         val jsonArray = org.json.JSONArray()
         pets.forEach { p ->
+            val encodedImg = com.example.forpetapp.data.firebase.FirebaseSyncManager.encodeImageUriToDataUrl(context, p.imageUriStr) ?: ""
             val obj = org.json.JSONObject().apply {
                 put("id", p.id)
-                put("imageUriStr", p.imageUriStr ?: "")
+                put("imageUriStr", encodedImg)
                 put("species", p.species)
                 put("name", p.name)
                 put("ownerRealName", p.ownerRealName)
@@ -2122,7 +2123,9 @@ object PersistentStorageManager {
             }
             jsonArray.put(obj)
         }
-        getPrefs(context).edit(commit = true) { putString("multi_pet_list_json", jsonArray.toString()) }
+        val jsonStr = jsonArray.toString()
+        getPrefs(context).edit(commit = true) { putString("multi_pet_list_json", jsonStr) }
+        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserExtendedDataToCloud(loadUserId(context), "multi_pet_list_json", jsonStr)
     }
 
     fun loadMultiPetList(context: android.content.Context): MutableList<PetProfile> {
@@ -2160,7 +2163,7 @@ object PersistentStorageManager {
         return list.ifEmpty { defaultList }
     }
 
-    // 반려동물 프로필 정보 저장/로드 (.commit() 보장)
+    // 반려동물 프로필 정보 저장/로드 (.commit() 보장 + 이미지 Base64 압축 지원)
     fun savePetProfile(
         context: android.content.Context,
         imageUriStr: String?,
@@ -2175,8 +2178,9 @@ object PersistentStorageManager {
         symptoms: String,
         birthMillis: Long?
     ) {
+        val encodedImg = com.example.forpetapp.data.firebase.FirebaseSyncManager.encodeImageUriToDataUrl(context, imageUriStr)
         getPrefs(context).edit(commit = true) {
-            putString("pet_image_uri", imageUriStr)
+            putString("pet_image_uri", encodedImg)
             putString("pet_species", species)
             putString("pet_name", name)
             putString("owner_real_name", owner)
@@ -2225,7 +2229,7 @@ object PersistentStorageManager {
         return if (valMillis == -1L) null else valMillis
     }
 
-    // 💊 일일 복약 알리미 디스크 영구 저장/로드 (.commit() 보장)
+    // 💊 일일 복약 알리미 디스크 영구 저장/로드 (.commit() 보장 + Cloud 자동 백업)
     fun saveMedicationList(context: android.content.Context, list: List<MedicationItem>) {
         val jsonArray = org.json.JSONArray()
         list.forEach { item ->
@@ -2239,7 +2243,9 @@ object PersistentStorageManager {
             }
             jsonArray.put(obj)
         }
-        getPrefs(context).edit(commit = true) { putString("medication_list_json", jsonArray.toString()) }
+        val jsonStr = jsonArray.toString()
+        getPrefs(context).edit(commit = true) { putString("medication_list_json", jsonStr) }
+        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserExtendedDataToCloud(loadUserId(context), "medication_list_json", jsonStr)
     }
 
     fun loadMedicationList(context: android.content.Context): MutableList<MedicationItem> {
@@ -2270,7 +2276,7 @@ object PersistentStorageManager {
         return list.ifEmpty { defaultList }
     }
 
-    // 💉 연간 예방접종 캘린더 디스크 영구 저장/로드 (.commit() 보장)
+    // 💉 연간 예방접종 캘린더 디스크 영구 저장/로드 (.commit() 보장 + Cloud 자동 백업)
     fun saveVaccineList(context: android.content.Context, list: List<VaccineScheduleItem>) {
         val jsonArray = org.json.JSONArray()
         list.forEach { item ->
@@ -2285,7 +2291,9 @@ object PersistentStorageManager {
             }
             jsonArray.put(obj)
         }
-        getPrefs(context).edit(commit = true) { putString("vaccine_list_json", jsonArray.toString()) }
+        val jsonStr = jsonArray.toString()
+        getPrefs(context).edit(commit = true) { putString("vaccine_list_json", jsonStr) }
+        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserExtendedDataToCloud(loadUserId(context), "vaccine_list_json", jsonStr)
     }
 
     fun loadVaccineList(context: android.content.Context): MutableList<VaccineScheduleItem> {
@@ -2318,7 +2326,7 @@ object PersistentStorageManager {
         return list.ifEmpty { defaultList }
     }
 
-    // 🎟️ 보유 할인 쿠폰 목록 디스크 영구 저장/로드 (.commit() 보장)
+    // 🎟️ 보유 할인 쿠폰 목록 디스크 영구 저장/로드 (.commit() 보장 + Cloud 자동 백업)
     fun saveCouponList(context: android.content.Context, list: List<CouponItem>) {
         val jsonArray = org.json.JSONArray()
         list.forEach { item ->
@@ -2332,7 +2340,9 @@ object PersistentStorageManager {
             }
             jsonArray.put(obj)
         }
-        getPrefs(context).edit(commit = true) { putString("coupon_list_json", jsonArray.toString()) }
+        val jsonStr = jsonArray.toString()
+        getPrefs(context).edit(commit = true) { putString("coupon_list_json", jsonStr) }
+        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserExtendedDataToCloud(loadUserId(context), "coupon_list_json", jsonStr)
     }
 
     fun loadCouponList(context: android.content.Context): MutableList<CouponItem> {
@@ -2361,10 +2371,11 @@ object PersistentStorageManager {
         return list.ifEmpty { defaultList }
     }
 
-    // 📊 반려동물 의료 가계부 디스크 영구 저장/로드 (.commit() 보장)
+    // 📊 반려동물 의료 가계부 디스크 영구 저장/로드 (.commit() 보장 + Cloud 자동 백업)
     fun saveExpenseList(context: android.content.Context, list: List<PetExpenseItem>) {
         val jsonArray = org.json.JSONArray()
         list.forEach { item ->
+            val encodedReceipt = com.example.forpetapp.data.firebase.FirebaseSyncManager.encodeImageUriToDataUrl(context, item.receiptUriStr) ?: ""
             val obj = org.json.JSONObject().apply {
                 put("id", item.id)
                 put("title", item.title)
@@ -2372,12 +2383,14 @@ object PersistentStorageManager {
                 put("amount", item.amount)
                 put("dateText", item.dateText)
                 put("hospitalOrStore", item.hospitalOrStore)
-                put("receiptUriStr", item.receiptUriStr ?: "")
+                put("receiptUriStr", encodedReceipt)
                 put("note", item.note)
             }
             jsonArray.put(obj)
         }
-        getPrefs(context).edit(commit = true) { putString("pet_expense_list_json", jsonArray.toString()) }
+        val jsonStr = jsonArray.toString()
+        getPrefs(context).edit(commit = true) { putString("pet_expense_list_json", jsonStr) }
+        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserExtendedDataToCloud(loadUserId(context), "pet_expense_list_json", jsonStr)
     }
 
     fun loadExpenseList(context: android.content.Context): MutableList<PetExpenseItem> {
@@ -2541,6 +2554,9 @@ fun ForPetMainScreen(
     }
 
     LaunchedEffect(Unit) {
+        if (currentUserId.isNotBlank()) {
+            com.example.forpetapp.data.firebase.FirebaseSyncManager.restoreUserExtendedDataFromCloud(context, currentUserId)
+        }
         Toast.makeText(context, "📍 [발자국동행] 어플 실행 - 필수 스마트폰 GPS 위치 권한 확인 중...", Toast.LENGTH_SHORT).show()
         locationPermissionLauncher.launch(
             arrayOf(
@@ -2836,7 +2852,12 @@ fun ForPetMainScreen(
     }
 
     if (showNotificationCenter) {
-        NotificationCenterDialog(onDismiss = { showNotificationCenter = false })
+        NotificationCenterDialog(
+            bookingList = bookingList,
+            userPoints = userPoints,
+            petName = savedPetName,
+            onDismiss = { showNotificationCenter = false }
+        )
     }
     if (showDisplaySettingsDialog) {
         DisplaySettingsDialog(
@@ -4769,6 +4790,54 @@ fun BookingHistoryScreen(
                         }
                     }
 
+                    // 📸 가드가 업로드한 병원 정산 영수증 & 처방전 실제 사진 렌더링 (Base64 클라우드 공유)
+                    if (!report.receiptImageUri.isNullOrBlank() || !report.prescriptionImageUri.isNullOrBlank()) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                border = BorderStroke(1.dp, Color(0xFFBAE6FD))
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Text("📸 첨부된 병원 영수증 / 처방전 실물 사진", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0284C7))
+                                    report.receiptImageUri?.takeIf { it.isNotBlank() }?.let { rUri ->
+                                        val bmp = remember(rUri) { FirebaseSyncManager.decodeImageFromUriOrDataUrl(context, rUri) }
+                                        bmp?.let {
+                                            Text("🧾 병원 진료비 영수증", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
+                                            Image(
+                                                bitmap = it.asImageBitmap(),
+                                                contentDescription = "영수증 사진",
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(160.dp)
+                                                    .clip(RoundedCornerShape(8.dp)),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        }
+                                    }
+                                    report.prescriptionImageUri?.takeIf { it.isNotBlank() }?.let { pUri ->
+                                        val bmp = remember(pUri) { FirebaseSyncManager.decodeImageFromUriOrDataUrl(context, pUri) }
+                                        bmp?.let {
+                                            Text("💊 처방전 및 약 봉투 사진", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
+                                            Image(
+                                                bitmap = it.asImageBitmap(),
+                                                contentDescription = "처방전 사진",
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(160.dp)
+                                                    .clip(RoundedCornerShape(8.dp)),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     item {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
@@ -5144,15 +5213,38 @@ fun DisplaySettingsDialog(
     )
 }
 
-// 2번: 🔔 보듬펫 실시간 안심 알림 센터 다이얼로그
+// 2번: 🔔 보듬펫 실시간 안심 알림 센터 다이얼로그 (실제 오더 상태 및 회원 포인트/예방접종 데이터 실시간 연동)
 @Composable
-fun NotificationCenterDialog(onDismiss: () -> Unit) {
-    val notifications = listOf(
-        "🚗 [이송 완료]" to "'초코' 아이가 명지24시온누리동물병원에 무사히 도착했습니다. (10분 전)",
-        "🎁 [포인트 적립]" to "친구 추천 이벤트 코드가 등록되어 3,000 P가 적립되었습니다. (1시간 전)",
-        "📄 [리포트 도착]" to "박찬헌 드라이버님이 전송한 수의사 진료 결과 리포트가 도착했습니다. (어제)",
-        "💉 [접종 D-Day]" to "'초코' 아이의 광견병 예방접종 예정일이 14일 남았습니다. (2일 전)"
-    )
+fun NotificationCenterDialog(
+    bookingList: List<BookingItem> = emptyList(),
+    userPoints: Int = 0,
+    petName: String = "초코",
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val notifications = remember(bookingList, userPoints, petName) {
+        val list = mutableListOf<Pair<String, String>>()
+        // 1. 실제 예약 오더 진행 상태 알림
+        bookingList.forEach { order ->
+            val tag = if (order.isCompleted) "📄 [진료 리포트 도착]" else "🚗 [실시간 예약/이송 현황]"
+            val desc = "'${order.petName}' (${order.hospitalName}) - 현재 상태: ${order.status} (${order.time})"
+            list.add(tag to desc)
+        }
+        // 2. 실제 보유 포인트 안내
+        if (userPoints > 0) {
+            val formattedP = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(userPoints)
+            list.add("🎁 [보유 포인트 현황]" to "현재 사용 가능한 안심 케어 포인트가 ${formattedP} P 적립되어 있습니다.")
+        }
+        // 3. 실제 예방접종 D-Day 알림 연동
+        val vaccines = PersistentStorageManager.loadVaccineList(context).filter { !it.isCompleted }
+        vaccines.take(2).forEach { vac ->
+            list.add("💉 [예방접종 D-${vac.dDay}]" to "'$petName' 아이의 [${vac.vaccineName}] 예정일(${vac.targetDate})이 ${vac.dDay}일 남았습니다.")
+        }
+        if (list.isEmpty()) {
+            list.add("🐾 [발자국동행 안심 알림]" to "현재 새로운 진행 예약 알림이 없습니다. 홈 화면에서 진료 대행을 예약하시면 실시간 이동 알림이 표시됩니다.")
+        }
+        list
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
