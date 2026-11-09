@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">발자국동행</string>
+    <string name="guard_service_channel_name">발자국동행 가드 법인차량 24시간 GPS 관제</string>
+    <string name="guard_service_channel_desc">가드 법인 단말기 실시간 구글맵 관제 연동</string>
+    <string name="guard_service_noti_title">📡 [법인 가드 관제] 24시 실시간 GPS 가동 중</string>
+    <string name="guard_service_noti_desc">가드 단말기 GPS 실시간 위치가 관제 센터 구글 지도로 동기화됩니다.</string>
 </resources>

@@ -1,7 +1,15 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
+}
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
 }
 
 android {
@@ -12,8 +20,8 @@ android {
         applicationId = "com.baldong.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 33
-        versionName = "1.0.32"
+        versionCode = 34
+        versionName = "1.0.33"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -21,9 +29,15 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("${rootProject.projectDir}/baldong-release-key.jks")
-            storePassword = "baldong1234"
-            keyAlias = "baldong"
-            keyPassword = "baldong1234"
+            storePassword = System.getenv("KEYSTORE_STORE_PASSWORD") 
+                ?: localProperties.getProperty("KEYSTORE_STORE_PASSWORD") 
+                ?: "baldong1234"
+            keyAlias = System.getenv("KEYSTORE_KEY_ALIAS") 
+                ?: localProperties.getProperty("KEYSTORE_KEY_ALIAS") 
+                ?: "baldong"
+            keyPassword = System.getenv("KEYSTORE_KEY_PASSWORD") 
+                ?: localProperties.getProperty("KEYSTORE_KEY_PASSWORD") 
+                ?: "baldong1234"
         }
     }
 
@@ -32,7 +46,12 @@ android {
             signingConfig = signingConfigs.getByName("release")
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             signingConfig = signingConfigs.getByName("release")
         }
     }
