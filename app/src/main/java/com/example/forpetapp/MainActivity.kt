@@ -8053,6 +8053,9 @@ fun HomeScreenContent(
             doorlockPhotoUri = uri
         }
 
+        // 💳 간편결제 수단 선택 (네이버페이 / 카카오페이 / 토스페이 / 일반 신용카드)
+        var selectedPaymentMethod by remember { mutableStateOf("네이버페이") }
+
         AlertDialog(
             onDismissRequest = { showBookingDialog = false },
             title = {
@@ -8799,7 +8802,115 @@ fun HomeScreenContent(
                         }
                     }
 
-                    // 9. 가결제 예상 금액 및 환불 안내
+                    // 9. 간편결제 수단 선택 (네이버페이 / 카카오페이 / 토스페이 / 일반 카드)
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("⚡", fontSize = 15.sp)
+                                    Text("결제 수단 선택 (간편결제 지원)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    // 💚 네이버페이
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (selectedPaymentMethod == "네이버페이") Color(0xFF03C75A) else Color(0xFFF1F5F9),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { selectedPaymentMethod = "네이버페이" }
+                                    ) {
+                                        Text(
+                                            "N pay",
+                                            modifier = Modifier.padding(vertical = 10.dp),
+                                            textAlign = TextAlign.Center,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = if (selectedPaymentMethod == "네이버페이") Color.White else Color(0xFF475569)
+                                        )
+                                    }
+
+                                    // 💛 카카오페이
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (selectedPaymentMethod == "카카오페이") Color(0xFFFFEB00) else Color(0xFFF1F5F9),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { selectedPaymentMethod = "카카오페이" }
+                                    ) {
+                                        Text(
+                                            "카카오페이",
+                                            modifier = Modifier.padding(vertical = 10.dp),
+                                            textAlign = TextAlign.Center,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = if (selectedPaymentMethod == "카카오페이") Color(0xFF381E1F) else Color(0xFF475569)
+                                        )
+                                    }
+
+                                    // 💙 토스페이
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (selectedPaymentMethod == "토스페이") Color(0xFF0064FF) else Color(0xFFF1F5F9),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { selectedPaymentMethod = "토스페이" }
+                                    ) {
+                                        Text(
+                                            "toss pay",
+                                            modifier = Modifier.padding(vertical = 10.dp),
+                                            textAlign = TextAlign.Center,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = if (selectedPaymentMethod == "토스페이") Color.White else Color(0xFF475569)
+                                        )
+                                    }
+
+                                    // 💳 일반카드
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (selectedPaymentMethod == "신용/체크카드") Color(0xFF0F172A) else Color(0xFFF1F5F9),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { selectedPaymentMethod = "신용/체크카드" }
+                                    ) {
+                                        Text(
+                                            "일반카드",
+                                            modifier = Modifier.padding(vertical = 10.dp),
+                                            textAlign = TextAlign.Center,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = if (selectedPaymentMethod == "신용/체크카드") Color.White else Color(0xFF475569)
+                                        )
+                                    }
+                                }
+
+                                Text(
+                                    when (selectedPaymentMethod) {
+                                        "네이버페이" -> "• 네이버페이 포인트/머니 및 등록 카드로 간편 결제됩니다."
+                                        "카카오페이" -> "• 카카오톡 및 카카오페이 머니/카드로 1초 결제됩니다."
+                                        "토스페이" -> "• 토스 앱 인증을 통해 쉽고 안전하게 결제됩니다."
+                                        else -> "• 앱에 등록된 신용/체크카드로 안심 정산됩니다."
+                                    },
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF64748B)
+                                )
+                            }
+                        }
+                    }
+
+                    // 10. 가결제 예상 금액 및 환불 안내
                     item {
                         val basePrice = when {
                             selectedServiceTrim.contains("긴급") -> 50000
@@ -8838,7 +8949,7 @@ fun HomeScreenContent(
                                     }
                                 }
                                 HorizontalDivider(color = Color(0xFFFDE68A))
-                                Text("• 등록 카드로 사전 가결제되며, 진료 완료 후 선택하신 케어 서비스 항목에 따라 안전하게 자동 최종 정산(추가금 결제 / 차액 환불)됩니다.", fontSize = 11.sp, color = Color(0xFFB45309), lineHeight = 15.sp)
+                                Text("• [$selectedPaymentMethod] 사전 가결제되며, 진료 완료 후 선택하신 케어 서비스 항목에 따라 안전하게 자동 최종 정산(추가금 결제 / 차액 환불)됩니다.", fontSize = 11.sp, color = Color(0xFFB45309), lineHeight = 15.sp)
                                 Text("• ℹ️ 픽업 전담 가드 출동 전 취소 시 100% 즉시 환불됩니다.", fontSize = 11.sp, color = Color(0xFFB45309), fontWeight = FontWeight.Bold)
                             }
                         }
@@ -8920,9 +9031,10 @@ fun HomeScreenContent(
                             status = "예약 확정 (배차 완료)",
                             vehicleInfo = "발자국동행 기아 레이(RAY) 펫전용차",
                             symptomNote = combinedNote,
-                            estimatedPrice = "${formattedPriceStr}원 (가결제)",
+                            estimatedPrice = "[$selectedPaymentMethod] ${formattedPriceStr}원",
                             doorlockPhotoUri = doorlockPhotoUri?.toString()
                         )
+                        Toast.makeText(context, "⚡ $selectedPaymentMethod 사전 가결제 승인이 완료되었습니다!", Toast.LENGTH_SHORT).show()
                         if (usePointsAmount > 0) {
                             onUpdatePoints((userPoints - usePointsAmount).coerceAtLeast(0))
                         }
@@ -9102,6 +9214,7 @@ fun HomeScreenContent(
 
         var selectedDispatchTime by remember { mutableStateOf("🚨 즉시 긴급 출동") }
         var customEmergencyNote by remember { mutableStateOf("") }
+        var selectedEmergencyPaymentMethod by remember { mutableStateOf("토스페이") }
 
         AlertDialog(
             onDismissRequest = { showEmergencyDialog = false },
@@ -9419,7 +9532,100 @@ fun HomeScreenContent(
                         }
                     }
 
-                    // 8. 응급 출동 가결제 금액 및 환불 안내
+                    // 8. 긴급 간편결제 수단 선택
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFFECDD3))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("⚡", fontSize = 15.sp)
+                                    Text("긴급 출동 결제 수단 선택", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (selectedEmergencyPaymentMethod == "토스페이") Color(0xFF0064FF) else Color(0xFFF1F5F9),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { selectedEmergencyPaymentMethod = "토스페이" }
+                                    ) {
+                                        Text(
+                                            "toss pay",
+                                            modifier = Modifier.padding(vertical = 10.dp),
+                                            textAlign = TextAlign.Center,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = if (selectedEmergencyPaymentMethod == "토스페이") Color.White else Color(0xFF475569)
+                                        )
+                                    }
+
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (selectedEmergencyPaymentMethod == "네이버페이") Color(0xFF03C75A) else Color(0xFFF1F5F9),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { selectedEmergencyPaymentMethod = "네이버페이" }
+                                    ) {
+                                        Text(
+                                            "N pay",
+                                            modifier = Modifier.padding(vertical = 10.dp),
+                                            textAlign = TextAlign.Center,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = if (selectedEmergencyPaymentMethod == "네이버페이") Color.White else Color(0xFF475569)
+                                        )
+                                    }
+
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (selectedEmergencyPaymentMethod == "카카오페이") Color(0xFFFFEB00) else Color(0xFFF1F5F9),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { selectedEmergencyPaymentMethod = "카카오페이" }
+                                    ) {
+                                        Text(
+                                            "카카오페이",
+                                            modifier = Modifier.padding(vertical = 10.dp),
+                                            textAlign = TextAlign.Center,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = if (selectedEmergencyPaymentMethod == "카카오페이") Color(0xFF381E1F) else Color(0xFF475569)
+                                        )
+                                    }
+
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (selectedEmergencyPaymentMethod == "신용/체크카드") Color(0xFF0F172A) else Color(0xFFF1F5F9),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { selectedEmergencyPaymentMethod = "신용/체크카드" }
+                                    ) {
+                                        Text(
+                                            "일반카드",
+                                            modifier = Modifier.padding(vertical = 10.dp),
+                                            textAlign = TextAlign.Center,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = if (selectedEmergencyPaymentMethod == "신용/체크카드") Color.White else Color(0xFF475569)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 9. 응급 출동 가결제 금액 및 환불 안내
                     item {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
@@ -9440,7 +9646,7 @@ fun HomeScreenContent(
                                     Text("50,000원", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFE11D48))
                                 }
                                 HorizontalDivider(color = Color(0xFFFECDD3))
-                                Text("• 24시 최우선 긴급 응급 케어 가결제 금액이며, 응급실 수속 및 진료 완료 후 최종 케어 항목에 맞춰 자동 정산됩니다.", fontSize = 11.sp, color = Color(0xFFBE123C), lineHeight = 15.sp)
+                                Text("• [$selectedEmergencyPaymentMethod] 24시 최우선 긴급 응급 케어 가결제 금액이며, 응급실 수속 및 진료 완료 후 최종 케어 항목에 맞춰 자동 정산됩니다.", fontSize = 11.sp, color = Color(0xFFBE123C), lineHeight = 15.sp)
                                 Text("• ℹ️ 차량 출동 전 취소 시 100% 즉시 환불됩니다.", fontSize = 11.sp, color = Color(0xFFBE123C), fontWeight = FontWeight.Bold)
                             }
                         }
@@ -9476,8 +9682,9 @@ fun HomeScreenContent(
                             status = "🚨 긴급 배차 중 (최단거리 속응차)",
                             vehicleInfo = "발자국동행 24시 응급 전용차 (상황별 최우선 속응 차량 배차)",
                             symptomNote = combinedEmergencyNote,
-                            estimatedPrice = "50,000원 (가결제)"
+                            estimatedPrice = "[$selectedEmergencyPaymentMethod] 50,000원"
                         )
+                        Toast.makeText(context, "⚡ $selectedEmergencyPaymentMethod 긴급 가결제 승인이 완료되었습니다!", Toast.LENGTH_SHORT).show()
                         onAddBooking(newEmergencyBooking)
                         com.example.forpetapp.data.firebase.FirebaseSyncManager.syncOrderToCloud(newEmergencyBooking, context)
                         Toast.makeText(context, "🚨 [$emergencySpecies] '$emergencyPetName' 아이의 24시 응급 출동 배차가 시작되었습니다!", Toast.LENGTH_LONG).show()
