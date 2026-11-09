@@ -6095,42 +6095,78 @@ fun MyPageScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    // 상단 헤더: 타이틀 & 계정 태그
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text("💰 내 계정 적립 포인트", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
-                                Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFE0F2FE)) {
-                                    Text(
-                                        text = "계정: ${(currentUserEmail.ifBlank { currentUserId }).ifBlank { userNickname }}",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF0284C7),
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-                            Text("예약 결제 시 1P = 1원 현금 동일 즉시 차감", fontSize = 11.sp, color = Color(0xFF64748B))
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = Color(0xFFFEF3C7),
-                            border = BorderStroke(1.dp, Color(0xFFF59E0B))
-                        ) {
+                        Text("💰 내 계정 적립 포인트", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
+                        Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFE0F2FE)) {
                             Text(
-                                "${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(userPoints)} P",
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 15.sp,
-                                color = Color(0xFFD97706),
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                text = "계정: ${(currentUserEmail.ifBlank { currentUserId }).ifBlank { userNickname }}",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0284C7),
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    .widthIn(max = 140.dp)
                             )
+                        }
+                    }
+
+                    // 🌟 가로로 깔끔하고 큼직하게 보이는 메인 포인트 현황 배너
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFEF3C7),
+                        border = BorderStroke(1.dp, Color(0xFFF59E0B))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    "현재 보유 포인트",
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF92400E),
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "1P = 1원 예약 시 즉시 차감",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFFB45309)
+                                )
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.Bottom,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(userPoints),
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 22.sp,
+                                    color = Color(0xFFD97706),
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                                Text(
+                                    text = "P",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    color = Color(0xFFB45309),
+                                    modifier = Modifier.padding(bottom = 2.dp),
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
                         }
                     }
 
@@ -6766,7 +6802,9 @@ fun PointHistoryDetailDialog(
                                 "${numFormat.format(userPoints)} P",
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 18.sp,
-                                color = Color(0xFFD97706)
+                                color = Color(0xFFD97706),
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                         HorizontalDivider(color = Color(0xFFFDE68A))
@@ -7146,7 +7184,9 @@ fun EventAndPointRewardsDialog(
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 15.sp,
                                         color = Color.White,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
                                 }
                             }
