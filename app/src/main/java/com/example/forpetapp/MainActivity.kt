@@ -195,9 +195,6 @@ fun ForPetApp() {
             SecurityScanResult.DETECTED_DEBUGGER -> {
                 securityWarningMessage = "🚨 [보안 경고] 무단 안티 디버깅 후킹 시도가 감지되었습니다.\n어플의 안전을 위해 앱을 종료합니다."
             }
-            SecurityScanResult.DETECTED_ROOT -> {
-                securityWarningMessage = "🚨 [보안 경고] 루팅 및 슈퍼유저(su) 권한 탈취가 감지되었습니다.\n금융 및 결제 안전을 위해 앱을 종료합니다."
-            }
             else -> {}
         }
     }
