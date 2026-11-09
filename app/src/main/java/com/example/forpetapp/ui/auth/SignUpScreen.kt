@@ -77,14 +77,14 @@ fun SignUpScreen(
         val userAddr = PersistentStorageManager.loadUserAddress(context, "")
         val userDetail = PersistentStorageManager.loadUserDetailAddress(context, "")
         val userCard = PersistentStorageManager.loadRegisteredCard(context)
-        val userPts = 0
-        PersistentStorageManager.saveUserPoints(context, userPts)
+        val userPts = 1000
 
         val targetUserId = if (currentAccountEmail.isNotBlank()) currentAccountEmail else if (savedPhone.isNotBlank()) savedPhone else "user_${System.currentTimeMillis()}"
 
         PersistentStorageManager.saveUserId(context, targetUserId)
         PersistentStorageManager.saveUserEmail(context, currentAccountEmail)
         PersistentStorageManager.saveUserProvider(context, currentProvider)
+        PersistentStorageManager.initializeNewUserWelcomePoints(context, targetUserId)
         PersistentStorageManager.saveUserProfile(
             context = context,
             nickname = finalName,
@@ -105,7 +105,7 @@ fun SignUpScreen(
             points = userPts
         )
 
-        Toast.makeText(context, "🎉 발자국동행 신규 회원가입을 축하드립니다!", Toast.LENGTH_LONG).show()
+        Toast.makeText(context, "🎉 신규 회원가입 축하! 웰컴 1,000 포인트가 즉시 지급되었습니다! (미사용 시 1년 후 소멸)", Toast.LENGTH_LONG).show()
         onSignUpSuccess(false, false, finalName)
     }
 
@@ -187,10 +187,12 @@ fun SignUpScreen(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("🎁", fontSize = 16.sp)
-                    Text("신규 회원 특별 웰컴 혜택", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF1E40AF))
+                    Text("신규 회원 특별 웰컴 & 이벤트 혜택", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF1E40AF))
                 }
-                Text("• 발자국동행 기아 레이 펫전용차 1:1 안심 케어카 배차 우선 배정권 부여", fontSize = 11.sp, color = Color(0xFF1E3A8A))
-                Text("• 전문 펫케어가드의 24시간 실시간 위치 & 안심 동행 라이브 관제 지원", fontSize = 11.sp, color = Color(0xFF1E3A8A))
+                Text("• 신규 회원가입 즉시 1,000 포인트 지급! (1P=1원 예약 시 현금처럼 차감)", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                Text("• 어플 내 생생후기(사진+글) 작성 시 +3,000P / 플레이스토어 후기 +3,000P 지급", fontSize = 11.sp, color = Color(0xFF1E3A8A))
+                Text("• 네이버 블로그 • 유튜브 포스팅 시 확인 후 +10,000P 특별 지급", fontSize = 11.sp, color = Color(0xFF1E3A8A))
+                Text("※ 적립된 포인트는 적립일로부터 1년(365일) 후 미사용 시 자동 소멸됩니다.", fontSize = 10.sp, color = Color(0xFF64748B))
             }
         }
 

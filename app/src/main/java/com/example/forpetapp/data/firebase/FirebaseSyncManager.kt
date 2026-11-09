@@ -806,21 +806,32 @@ object FirebaseSyncManager {
                         val prefs = context.getSharedPreferences("BaljagukAppDiskPrefs", Context.MODE_PRIVATE)
                         val editor = prefs.edit()
                         var changed = false
+                        val sanitized = userId.trim().replace("[^a-zA-Z0-9_]".toRegex(), "_")
+                        val cloudPoints = doc.getLong("points")?.toInt()
+                        if (cloudPoints != null) {
+                            editor.putInt("user_points", cloudPoints)
+                            if (sanitized.isNotBlank()) {
+                                editor.putInt("user_points_$sanitized", cloudPoints)
+                            }
+                            changed = true
+                        }
                         listOf(
                             "multi_pet_list_json",
                             "medication_list_json",
                             "vaccine_list_json",
                             "pet_expense_list_json",
-                            "coupon_list_json"
+                            "coupon_list_json",
+                            "point_logs_json"
                         ).forEach { key ->
                             val cloudVal = doc.getString(key)
                             val cloudTs = doc.getLong("${key}_ts") ?: 0L
-                            val localVal = prefs.getString(key, null)
-                            val localTs = prefs.getLong("${key}_ts", 0L)
+                            val targetLocalKey = if (key == "point_logs_json" && sanitized.isNotBlank()) "point_logs_json_$sanitized" else key
+                            val localVal = prefs.getString(targetLocalKey, null)
+                            val localTs = prefs.getLong("${targetLocalKey}_ts", 0L)
                             if (cloudVal != null && (localVal == null || cloudTs > localTs)) {
-                                editor.putString(key, cloudVal)
+                                editor.putString(targetLocalKey, cloudVal)
                                 if (cloudTs > 0L) {
-                                    editor.putLong("${key}_ts", cloudTs)
+                                    editor.putLong("${targetLocalKey}_ts", cloudTs)
                                 }
                                 changed = true
                             }
@@ -833,6 +844,42 @@ object FirebaseSyncManager {
                 }
         } catch (e: Exception) {
             Log.e(TAG, "restoreUserExtendedDataFromCloud error: ${e.message}")
+        }
+    }
+
+    /**
+     * 11. 네이버 블로그 / 유튜브 포스팅 10,000P 이벤트 검수 신청 Firestore 저장
+     */
+    fun submitBlogYoutubeEventToCloud(
+        userId: String,
+        userName: String,
+        userPhone: String,
+        postUrl: String,
+        onComplete: ((Boolean) -> Unit)? = null
+    ) {
+        try {
+            val docId = if (userId.isNotBlank()) userId.trim().replace("[^a-zA-Z0-9_@.-]".toRegex(), "_") else "post_${System.currentTimeMillis()}"
+            val data = hashMapOf<String, Any>(
+                "userId" to userId,
+                "userName" to userName,
+                "userPhone" to userPhone,
+                "postUrl" to postUrl,
+                "rewardPoints" to 10000,
+                "status" to "검수 대기중 (확인 후 10,000P 지급)",
+                "submittedAt" to System.currentTimeMillis()
+            )
+            firestore.collection("event_submissions")
+                .document(docId)
+                .set(data, SetOptions.merge())
+                .addOnSuccessListener {
+                    onComplete?.invoke(true)
+                }
+                .addOnFailureListener {
+                    onComplete?.invoke(false)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "submitBlogYoutubeEventToCloud error: ${e.message}")
+            onComplete?.invoke(false)
         }
     }
 }

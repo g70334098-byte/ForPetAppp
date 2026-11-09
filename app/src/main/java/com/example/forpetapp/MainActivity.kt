@@ -1791,13 +1791,183 @@ object PersistentStorageManager {
         getPrefs(context).edit(commit = true) { clear() }
     }
 
-    // 보유 포인트 영구 저장/로드 (.commit()으로 100% 동기 디스크 쓰기 보장)
-    fun saveUserPoints(context: android.content.Context, points: Int) {
-        getPrefs(context).edit(commit = true) { putInt("user_points", points) }
+    private fun getSanitizedUserKey(context: android.content.Context, userId: String? = null): String {
+        val uid = if (!userId.isNullOrBlank()) userId else loadUserId(context)
+        val sanitized = uid.trim().replace("[^a-zA-Z0-9_]".toRegex(), "_")
+        return if (sanitized.isNotBlank()) sanitized else "guest"
     }
 
-    fun loadUserPoints(context: android.content.Context, defaultVal: Int = 0): Int =
-        getPrefs(context).getInt("user_points", defaultVal)
+    // 보유 포인트 영구 저장/로드 (.commit()으로 100% 동기 디스크 쓰기 보장 + 계정별 격리 저장)
+    fun saveUserPoints(context: android.content.Context, points: Int, userId: String? = null) {
+        val sanitized = getSanitizedUserKey(context, userId)
+        getPrefs(context).edit(commit = true) {
+            putInt("user_points_$sanitized", points)
+            putInt("user_points", points)
+        }
+    }
+
+    fun loadUserPoints(context: android.content.Context, defaultVal: Int = 1000, userId: String? = null): Int {
+        val prefs = getPrefs(context)
+        val sanitized = getSanitizedUserKey(context, userId)
+        val perUserKey = "user_points_$sanitized"
+        return if (prefs.contains(perUserKey)) {
+            prefs.getInt(perUserKey, defaultVal)
+        } else if (prefs.contains("user_points")) {
+            val v = prefs.getInt("user_points", defaultVal)
+            prefs.edit(commit = true) { putInt(perUserKey, v) }
+            v
+        } else {
+            defaultVal
+        }
+    }
+
+    // 💰 포인트 적립/차감/소멸 내역 (PointLog) 계정별 영구 저장/로드 + 1년 후 자동 소멸일 계산
+    fun savePointLogs(context: android.content.Context, list: List<PointLog>, userId: String? = null) {
+        val jsonArray = org.json.JSONArray()
+        list.forEach { item ->
+            val obj = org.json.JSONObject().apply {
+                put("id", item.id)
+                put("title", item.title)
+                put("amount", item.amount)
+                put("dateText", item.dateText)
+                put("expireDateText", item.expireDateText)
+                put("isEarned", item.isEarned)
+            }
+            jsonArray.put(obj)
+        }
+        val jsonStr = jsonArray.toString()
+        val sanitized = getSanitizedUserKey(context, userId)
+        val targetKey = "point_logs_json_$sanitized"
+        val now = System.currentTimeMillis()
+        getPrefs(context).edit(commit = true) {
+            putString(targetKey, jsonStr)
+            putLong("${targetKey}_ts", now)
+        }
+        val rawUid = if (!userId.isNullOrBlank()) userId else loadUserId(context)
+        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserExtendedDataToCloud(rawUid, "point_logs_json", jsonStr, now)
+    }
+
+    fun loadPointLogs(context: android.content.Context, userId: String? = null): MutableList<PointLog> {
+        val sanitized = getSanitizedUserKey(context, userId)
+        val targetKey = "point_logs_json_$sanitized"
+        val jsonStr = getPrefs(context).getString(targetKey, null)
+        val sdfNow = SimpleDateFormat("yyyy.MM.dd HH:mm", Locale.KOREA)
+        val sdfExpire = SimpleDateFormat("yyyy.MM.dd", Locale.KOREA)
+        val cal = Calendar.getInstance()
+        val nowStr = sdfNow.format(cal.time)
+        cal.add(Calendar.YEAR, 1)
+        val oneYearExpireStr = "${sdfExpire.format(cal.time)} 소멸 예정 (적립 1년 후 자동 소멸)"
+
+        val defaultList = mutableListOf(
+            PointLog(
+                id = "welcome_1000",
+                title = "🎉 신규 회원가입 웰컴 포인트 적립",
+                amount = 1000,
+                dateText = nowStr,
+                expireDateText = oneYearExpireStr,
+                isEarned = true
+            )
+        )
+        if (jsonStr == null) return defaultList
+        val list = mutableListOf<PointLog>()
+        try {
+            val jsonArray = org.json.JSONArray(jsonStr)
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                list.add(
+                    PointLog(
+                        id = obj.optString("id", System.currentTimeMillis().toString()),
+                        title = obj.optString("title"),
+                        amount = obj.optInt("amount", 0),
+                        dateText = obj.optString("dateText"),
+                        expireDateText = obj.optString("expireDateText"),
+                        isEarned = obj.optBoolean("isEarned", true)
+                    )
+                )
+            }
+        } catch (_: Exception) {}
+        return if (list.isEmpty() && jsonStr.isBlank()) defaultList else list
+    }
+
+    fun recordPointTransaction(
+        context: android.content.Context,
+        title: String,
+        amount: Int,
+        isEarned: Boolean,
+        customStatusText: String = "",
+        userId: String? = null
+    ): MutableList<PointLog> {
+        val sdfNow = SimpleDateFormat("yyyy.MM.dd HH:mm", Locale.KOREA)
+        val sdfExpire = SimpleDateFormat("yyyy.MM.dd", Locale.KOREA)
+        val cal = Calendar.getInstance()
+        val nowStr = sdfNow.format(cal.time)
+        cal.add(Calendar.YEAR, 1)
+        val expireText = if (isEarned) {
+            "${sdfExpire.format(cal.time)} 소멸 예정 (적립 1년 후 자동 소멸)"
+        } else {
+            customStatusText.ifBlank { "사용 차감 완료" }
+        }
+        val logs = loadPointLogs(context, userId)
+        val newEntry = PointLog(
+            id = "pt_${System.currentTimeMillis()}",
+            title = title,
+            amount = if (isEarned) kotlin.math.abs(amount) else -kotlin.math.abs(amount),
+            dateText = nowStr,
+            expireDateText = expireText,
+            isEarned = isEarned
+        )
+        logs.add(0, newEntry)
+        savePointLogs(context, logs, userId)
+        return logs
+    }
+
+    fun initializeNewUserWelcomePoints(context: android.content.Context, userId: String) {
+        saveUserPoints(context, 1000, userId)
+        val sdfNow = SimpleDateFormat("yyyy.MM.dd HH:mm", Locale.KOREA)
+        val sdfExpire = SimpleDateFormat("yyyy.MM.dd", Locale.KOREA)
+        val cal = Calendar.getInstance()
+        val nowStr = sdfNow.format(cal.time)
+        cal.add(Calendar.YEAR, 1)
+        val expireStr = "${sdfExpire.format(cal.time)} 소멸 예정 (적립 1년 후 자동 소멸)"
+        val welcomeLog = PointLog(
+            id = "welcome_${System.currentTimeMillis()}",
+            title = "🎉 신규 회원가입 웰컴 포인트 적립",
+            amount = 1000,
+            dateText = nowStr,
+            expireDateText = expireStr,
+            isEarned = true
+        )
+        savePointLogs(context, listOf(welcomeLog), userId)
+    }
+
+    // 🎁 계정별 이벤트 참여 상태 저장/로드 (플레이스토어 후기 3,000P / 네이버 블로그·유튜브 포스팅 10,000P)
+    fun isPlayStoreReviewClaimed(context: android.content.Context, userId: String? = null): Boolean {
+        val sanitized = getSanitizedUserKey(context, userId)
+        return getPrefs(context).getBoolean("event_playstore_claimed_$sanitized", false)
+    }
+
+    fun setPlayStoreReviewClaimed(context: android.content.Context, claimed: Boolean, userId: String? = null) {
+        val sanitized = getSanitizedUserKey(context, userId)
+        getPrefs(context).edit(commit = true) { putBoolean("event_playstore_claimed_$sanitized", claimed) }
+    }
+
+    fun loadBlogYoutubeSubmittedUrl(context: android.content.Context, userId: String? = null): String {
+        val sanitized = getSanitizedUserKey(context, userId)
+        return getPrefs(context).getString("event_blog_youtube_url_$sanitized", "") ?: ""
+    }
+
+    fun loadBlogYoutubeStatus(context: android.content.Context, userId: String? = null): String {
+        val sanitized = getSanitizedUserKey(context, userId)
+        return getPrefs(context).getString("event_blog_youtube_status_$sanitized", "") ?: ""
+    }
+
+    fun saveBlogYoutubeSubmission(context: android.content.Context, url: String, status: String, userId: String? = null) {
+        val sanitized = getSanitizedUserKey(context, userId)
+        getPrefs(context).edit(commit = true) {
+            putString("event_blog_youtube_url_$sanitized", url)
+            putString("event_blog_youtube_status_$sanitized", status)
+        }
+    }
 
     // 마이페이지 회원 정보 저장/로드 (.commit() 보장)
     fun saveUserProfile(context: android.content.Context, nickname: String, phone: String, address: String, detailAddress: String, card: String?) {
@@ -1810,12 +1980,23 @@ object PersistentStorageManager {
         }
     }
 
-    fun saveReferralRedeemed(context: android.content.Context, redeemed: Boolean) {
-        getPrefs(context).edit(commit = true) { putBoolean("referral_redeemed", redeemed) }
+    fun saveReferralRedeemed(context: android.content.Context, redeemed: Boolean, userId: String? = null) {
+        val sanitized = getSanitizedUserKey(context, userId)
+        getPrefs(context).edit(commit = true) {
+            putBoolean("referral_redeemed_$sanitized", redeemed)
+            putBoolean("referral_redeemed", redeemed)
+        }
     }
 
-    fun loadReferralRedeemed(context: android.content.Context): Boolean =
-        getPrefs(context).getBoolean("referral_redeemed", false)
+    fun loadReferralRedeemed(context: android.content.Context, userId: String? = null): Boolean {
+        val sanitized = getSanitizedUserKey(context, userId)
+        val prefs = getPrefs(context)
+        return if (prefs.contains("referral_redeemed_$sanitized")) {
+            prefs.getBoolean("referral_redeemed_$sanitized", false)
+        } else {
+            prefs.getBoolean("referral_redeemed", false)
+        }
+    }
 
     fun loadUserNickname(context: android.content.Context, defaultVal: String) =
         getPrefs(context).getString("user_nickname", defaultVal) ?: defaultVal
@@ -2480,7 +2661,9 @@ fun ForPetMainScreen(
 ) {
     val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
-    var userPoints by remember { mutableIntStateOf(PersistentStorageManager.loadUserPoints(context, 3000)) }
+    val currentUserId = remember { PersistentStorageManager.loadUserId(context) }
+    val currentUserEmail = remember { PersistentStorageManager.loadUserEmail(context) }
+    var userPoints by remember(currentUserId) { mutableIntStateOf(PersistentStorageManager.loadUserPoints(context, 1000, currentUserId)) }
 
     // 디스크 파일(SharedPreferences)에서 영구 정보 초기화 로드
     var userNickname by remember { mutableStateOf(PersistentStorageManager.loadUserNickname(context, "발자국동행보호자")) }
@@ -2503,9 +2686,6 @@ fun ForPetMainScreen(
     var savedPetSymptoms by remember { mutableStateOf(PersistentStorageManager.loadPetSymptoms(context, "구토 및 식욕 부진, 슬개골 탈구 2기")) }
     var savedBirthMillis by remember { mutableStateOf(PersistentStorageManager.loadPetBirthMillis(context)) }
     val userReferralCode = remember { "K7TB94" }
-
-    val currentUserId = remember { PersistentStorageManager.loadUserId(context) }
-    val currentUserEmail = remember { PersistentStorageManager.loadUserEmail(context) }
 
     val bookingList = remember(currentUserId) {
         mutableStateListOf<BookingItem>().apply {
@@ -2575,7 +2755,9 @@ fun ForPetMainScreen(
 
     LaunchedEffect(Unit) {
         if (currentUserId.isNotBlank()) {
-            com.example.forpetapp.data.firebase.FirebaseSyncManager.restoreUserExtendedDataFromCloud(context, currentUserId)
+            com.example.forpetapp.data.firebase.FirebaseSyncManager.restoreUserExtendedDataFromCloud(context, currentUserId) {
+                userPoints = PersistentStorageManager.loadUserPoints(context, 1000, currentUserId)
+            }
         }
         Toast.makeText(context, "📍 [발자국동행] 어플 실행 - 필수 스마트폰 GPS 위치 권한 확인 중...", Toast.LENGTH_SHORT).show()
         locationPermissionLauncher.launch(
@@ -2735,7 +2917,7 @@ fun ForPetMainScreen(
                     userPoints = userPoints,
                     onUpdatePoints = {
                         userPoints = it
-                        PersistentStorageManager.saveUserPoints(context, it)
+                        PersistentStorageManager.saveUserPoints(context, it, currentUserId)
                         com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserProfileToCloud(
                             userId = currentUserId,
                             name = userNickname,
@@ -2832,7 +3014,23 @@ fun ForPetMainScreen(
                     }
                 )
                 3 -> MyPageScreen(
+                    isAdminUser = isAdminUser,
                     userPoints = userPoints,
+                    onUpdatePoints = {
+                        userPoints = it
+                        PersistentStorageManager.saveUserPoints(context, it, currentUserId)
+                        com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserProfileToCloud(
+                            userId = currentUserId,
+                            name = userNickname,
+                            phone = userPhone,
+                            email = currentUserEmail,
+                            provider = PersistentStorageManager.loadUserProvider(context),
+                            address = userAddress,
+                            detailAddress = userDetailAddress,
+                            points = it,
+                            petSummary = "$savedPetName ($savedPetType, ${savedPetWeight}kg)"
+                        )
+                    },
                     userReferralCode = userReferralCode,
                     userNickname = userNickname,
                     userPhone = userPhone,
@@ -5580,7 +5778,9 @@ data class PointLog(
 
 @Composable
 fun MyPageScreen(
-    userPoints: Int = 3000,
+    isAdminUser: Boolean = false,
+    userPoints: Int = 1000,
+    onUpdatePoints: (Int) -> Unit = {},
     userReferralCode: String = "K7TB94",
     userNickname: String = "발자국동행보호자",
     userPhone: String = "010-1234-5678",
@@ -5592,33 +5792,16 @@ fun MyPageScreen(
     onDeleteAccount: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val currentUserId = remember { PersistentStorageManager.loadUserId(context) }
+    val currentUserEmail = remember { PersistentStorageManager.loadUserEmail(context) }
     var showPointHistoryDialog by remember { mutableStateOf(false) }
+    var showEventDialog by remember { mutableStateOf(false) }
+    var showMyPageReviewWriteDialog by remember { mutableStateOf(false) }
     var showDeleteAccountDialog by remember { mutableStateOf(false) }
+    var pointLogRefreshKey by remember { mutableIntStateOf(0) }
 
-    val pointLogs = remember {
-        mutableStateListOf(
-            PointLog(
-                title = "🎁 친구 추천 이벤트 적립",
-                amount = 3000,
-                dateText = "2026.10.18 14:30",
-                expireDateText = "2027.10.18 소멸 예정",
-                isEarned = true
-            ),
-            PointLog(
-                title = "🏥 병원 진료 대행 결제 차감",
-                amount = -3000,
-                dateText = "2026.10.10 11:15",
-                expireDateText = "사용 완료",
-                isEarned = false
-            ),
-            PointLog(
-                title = "🎉 회원가입 웰컴 포인트 적립",
-                amount = 3000,
-                dateText = "2026.10.01 09:00",
-                expireDateText = "2027.10.01 소멸 예정",
-                isEarned = true
-            )
-        )
+    val pointLogs = remember(currentUserId, userPoints, pointLogRefreshKey, showPointHistoryDialog, showEventDialog) {
+        PersistentStorageManager.loadPointLogs(context, currentUserId)
     }
 
     // State for Nickname, Phone Number & Address (Bound to user profile)
@@ -5643,21 +5826,134 @@ fun MyPageScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 0. 보유 포인트 및 친구 추천 관리 카드 (정식 오픈 시 복구 예정으로 마이페이지에서 숨김 처리됨)
-        /*
+        // 0-1. 💰 각 계정별 보유 포인트 & 사용처 차감 내역 카드
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { showPointHistoryDialog = true },
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.5.dp, Color(0xFFD97706))
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text("💰 내 계정 적립 포인트", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
+                                Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFE0F2FE)) {
+                                    Text(
+                                        text = "계정: ${(currentUserEmail.ifBlank { currentUserId }).ifBlank { userNickname }}",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0284C7),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            Text("예약 결제 시 1P = 1원 현금 동일 즉시 차감", fontSize = 11.sp, color = Color(0xFF64748B))
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color(0xFFFEF3C7),
+                            border = BorderStroke(1.dp, Color(0xFFF59E0B))
+                        ) {
+                            Text(
+                                "${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(userPoints)} P",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 15.sp,
+                                color = Color(0xFFD97706),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+
+                    // ⏳ 1년 뒤 소멸 고지 배너
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFFFFBEB),
+                        border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Text(
+                                "⚠️ 미사용 포인트 자동 소멸 안내 (유효기간 1년)",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.5.sp,
+                                color = Color(0xFFB45309)
+                            )
+                            Text(
+                                "• 적립된 모든 포인트는 적립일로부터 1년(365일) 동안 사용 가능하며, 사용하지 않은 포인트는 1년 뒤 자동 소멸됩니다.",
+                                fontSize = 10.5.sp,
+                                color = Color(0xFF92400E),
+                                lineHeight = 14.sp
+                            )
+                            Text(
+                                "• 어디서 적립되었고 어느 예약에서 차감 사용했는지 아래 내역보기에서 실시간 확인 가능합니다.",
+                                fontSize = 10.5.sp,
+                                color = Color(0xFF92400E),
+                                lineHeight = 14.sp
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { showPointHistoryDialog = true },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, Color(0xFF0284C7))
+                        ) {
+                            Text("📋 적립/차감/소멸 내역", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0284C7))
+                        }
+
+                        Button(
+                            onClick = { showEventDialog = true },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
+                        ) {
+                            Text("🎁 이벤트 탭 열기", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
+                        }
+                    }
+                }
+            }
+        }
+
+        // 0-2. 🎁 마이페이지 이벤트 탭 (후기 작성 / 스토어 리뷰 / 블로그·유튜브 포스팅 포인트 지급)
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showEventDialog = true },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F9FF)),
+                border = BorderStroke(1.5.dp, Color(0xFF0284C7))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -5668,20 +5964,19 @@ fun MyPageScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text("💰 내 적립 포인트", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
-                            Text("👉 내역보기", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                            Text("🎁", fontSize = 20.sp)
+                            Text("발자국동행 포인트 적립 이벤트 탭", fontWeight = FontWeight.ExtraBold, fontSize = 15.5.sp, color = Color(0xFF0F172A))
                         }
-
                         Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = Color(0xFFFEF3C7)
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF0284C7)
                         ) {
                             Text(
-                                "${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(userPoints)} P",
+                                "최대 17,000P+",
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = Color(0xFFD97706),
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                             )
                         }
                     }
@@ -5689,40 +5984,49 @@ fun MyPageScreen(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFF8FAFC)
+                        color = Color.White,
+                        border = BorderStroke(1.dp, Color(0xFFBAE6FD))
                     ) {
                         Column(
                             modifier = Modifier.padding(12.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("🔑 내 추천 코드 (영문 6자리)", fontSize = 12.sp, color = Color.Gray)
-                                Text(userReferralCode, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0284C7), fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("🎉 신규 회원가입 웰컴 포인트", fontSize = 11.5.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1E293B))
+                                Text("+1,000 P 즉시지급", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A))
                             }
-                            HorizontalDivider()
-                            Text("• 친구 1명 초대 시 3,000P 100% 즉시 적립 (미사용 시 유효기간 1년)", fontSize = 11.sp, color = Color(0xFF334155))
-                            Text("• 예약 결제 시 1P = 1원 현금처럼 즉시 차감 사용 가능", fontSize = 11.sp, color = Color.Gray)
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("📸 어플 내 생생후기 (사진+글 작성)", fontSize = 11.5.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1E293B))
+                                Text("+3,000 P 즉시지급", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("⭐ 구글 플레이스토어 후기 작성", fontSize = 11.5.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1E293B))
+                                Text("+3,000 P 지급", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("📝 네이버 블로그 • 유튜브 포스팅", fontSize = 11.5.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1E293B))
+                                Text("확인 후 +10,000 P 지급", fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFD97706))
+                            }
+                            HorizontalDivider(color = Color(0xFFE2E8F0))
+                            Text(
+                                "※ 지급된 포인트는 안 쓸 경우 적립일로부터 1년 뒤 자동 소멸됩니다.",
+                                fontSize = 10.sp,
+                                color = Color(0xFF64748B)
+                            )
                         }
                     }
 
                     Button(
-                        onClick = {
-                            Toast.makeText(context, "📋 내 추천 코드[$userReferralCode]가 복사되었습니다! 친구에게 공유해 보세요.", Toast.LENGTH_SHORT).show()
-                        },
+                        onClick = { showEventDialog = true },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
                     ) {
-                        Text("📋 내 추천 코드 복사하여 친구 초대하기", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("🎁 이벤트 참여하고 포인트 받기 ➔", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
             }
         }
-        */
 
         // 0-2. 🔒 암호화 보안 안내 카드는 마이페이지 최하단(사업자 정보 위)으로 이동됨
         // 1. 닉네임 및 휴대폰번호 설정
@@ -6348,120 +6652,858 @@ fun MyPageScreen(
         )
     }
 
-    // 5. 포인트 적립 및 소멸 상세 내역 팝업 다이얼로그
+    // 5. 포인트 적립 / 사용처 차감 / 1년 소멸 상세 내역 팝업 다이얼로그
     if (showPointHistoryDialog) {
-        AlertDialog(
-            onDismissRequest = { showPointHistoryDialog = false },
-            title = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text("💰", fontSize = 20.sp)
-                        Text("포인트 적립 & 소멸 상세 내역", fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                    }
-                }
+        PointHistoryDetailDialog(
+            userId = (currentUserEmail.ifBlank { currentUserId }).ifBlank { userNickname },
+            userPoints = userPoints,
+            pointLogs = pointLogs,
+            onDismiss = { showPointHistoryDialog = false }
+        )
+    }
+
+    // 6. 마이페이지 내 이벤트 탭 다이얼로그
+    if (showEventDialog) {
+        EventAndPointRewardsDialog(
+            isAdminUser = isAdminUser,
+            userPoints = userPoints,
+            userReferralCode = userReferralCode,
+            userNickname = userNickname,
+            userPhone = userPhone,
+            onUpdatePoints = { newPts ->
+                onUpdatePoints(newPts)
+                pointLogRefreshKey++
             },
-            text = {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(380.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+            onOpenPointHistory = {
+                showEventDialog = false
+                showPointHistoryDialog = true
+            },
+            onOpenPhotoReviewWrite = {
+                showEventDialog = false
+                showMyPageReviewWriteDialog = true
+            },
+            onDismiss = { showEventDialog = false }
+        )
+    }
+
+    // 7. 마이페이지에서 바로 사진+생생후기 작성하고 3,000P 즉시 지급받는 다이얼로그
+    if (showMyPageReviewWriteDialog) {
+        PhotoReviewWriteDialog(
+            authorName = "${userNickname.ifBlank { "발자국동행" }} 보호자님",
+            petInfo = "내 반려동물",
+            onReviewSubmitted = { newReview, hasPhoto ->
+                val saved = PersistentStorageManager.loadReviewsList(context)
+                saved.add(0, newReview)
+                PersistentStorageManager.saveReviewsList(context, saved)
+                if (hasPhoto) {
+                    val updatedPts = userPoints + 3000
+                    PersistentStorageManager.recordPointTransaction(
+                        context = context,
+                        title = "📸 어플 내 생생후기(사진+글) 작성 적립",
+                        amount = 3000,
+                        isEarned = true,
+                        userId = currentUserId
+                    )
+                    onUpdatePoints(updatedPts)
+                    pointLogRefreshKey++
+                    Toast.makeText(context, "🎉 사진+생생후기 작성 완료! 3,000 포인트가 즉시 지급되었습니다! (미사용 시 1년 후 소멸)", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(context, "소중한 이용 후기가 등록되었습니다! (사진 첨부 시 3,000P가 지급됩니다)", Toast.LENGTH_LONG).show()
+                }
+                showMyPageReviewWriteDialog = false
+            },
+            onDismiss = { showMyPageReviewWriteDialog = false }
+        )
+    }
+}
+
+// 💰 계정별 포인트 적립 / 사용처 차감 / 1년 후 자동 소멸 상세 내역 다이얼로그
+@Composable
+fun PointHistoryDetailDialog(
+    userId: String,
+    userPoints: Int,
+    pointLogs: List<PointLog>,
+    onDismiss: () -> Unit
+) {
+    var selectedFilter by remember { mutableIntStateOf(0) } // 0: 전체, 1: 적립(+), 2: 사용/차감(-)
+    val filteredLogs = remember(pointLogs, selectedFilter) {
+        when (selectedFilter) {
+            1 -> pointLogs.filter { it.isEarned }
+            2 -> pointLogs.filter { !it.isEarned }
+            else -> pointLogs
+        }
+    }
+    val totalEarned = remember(pointLogs) { pointLogs.filter { it.isEarned }.sumOf { kotlin.math.abs(it.amount) } }
+    val totalUsed = remember(pointLogs) { pointLogs.filter { !it.isEarned }.sumOf { kotlin.math.abs(it.amount) } }
+    val numFormat = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    item {
-                        // 💡 포인트/적립금 제도는 정식 사업자 및 SMS 본인인증 도입 후 복구 예정으로 마이페이지에서 숨김 처리됨
-                        /*
+                    Text("💰", fontSize = 20.sp)
+                    Text("내 계정 포인트 적립 • 사용 • 소멸 내역", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+                Text("계정: $userId", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(430.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFFEF3C7),
+                    border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("💰 현재 사용 가능 포인트", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E))
+                            Text(
+                                "${numFormat.format(userPoints)} P",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 18.sp,
+                                color = Color(0xFFD97706)
+                            )
+                        }
+                        HorizontalDivider(color = Color(0xFFFDE68A))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("➕ 총 누적 적립: +${numFormat.format(totalEarned)} P", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A))
+                            Text("➖ 총 사용 차감: -${numFormat.format(totalUsed)} P", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                        }
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFFFEF3C7),
-                            border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color.White.copy(alpha = 0.85f)
                         ) {
-                            Column(
-                                modifier = Modifier.padding(14.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text("💰 총 보유 포인트", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E))
-                                    Text(
-                                        "${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(userPoints)} P",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp,
-                                        color = Color(0xFFD97706)
-                                    )
-                                }
-                                HorizontalDivider(color = Color(0xFFFDE68A))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text("⏳ 30일 이내 소멸 예정 포인트", fontSize = 11.sp, color = Color(0xFFB45309))
-                                    Text("0 P", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFB45309))
-                                }
-                                Text("※ 적립된 포인트의 유효기간은 적립일로부터 1년(365일)입니다.", fontSize = 10.sp, color = Color.Gray)
-                            }
-                        }
-                        */
-                    }
-
-                    items(pointLogs.size) { index ->
-                        val log = pointLogs[index]
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                    Text(log.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                                    Text("일시: ${log.dateText}", fontSize = 11.sp, color = Color.Gray)
-                                    if (log.expireDateText.isNotEmpty()) {
-                                        Text(
-                                            text = if (log.isEarned) "⏳ 유효기간: ${log.expireDateText}" else "상태: ${log.expireDateText}",
-                                            fontSize = 10.sp,
-                                            color = if (log.isEarned) Color(0xFFD97706) else Color.Gray,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    }
-                                }
-
+                            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(
-                                    text = if (log.isEarned) "+${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(log.amount)} P" else "${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(log.amount)} P",
+                                    "⚠️ 미사용 포인트 1년 뒤 소멸 고지",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    color = if (log.isEarned) Color(0xFF16A34A) else Color(0xFFDC2626)
+                                    fontSize = 10.5.sp,
+                                    color = Color(0xFFB45309)
+                                )
+                                Text(
+                                    "적립된 모든 포인트는 적립일로부터 1년(365일)간 유효하며, 1년 동안 사용하지 않은 포인트는 적립 1년 뒤 자동 소멸됩니다.",
+                                    fontSize = 10.sp,
+                                    color = Color(0xFF78350F),
+                                    lineHeight = 13.sp
                                 )
                             }
                         }
                     }
                 }
-            },
-            confirmButton = {
-                Button(
-                    onClick = { showPointHistoryDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+
+                // 필터 버튼 (전체 / 적립 내역 / 어디서 사용했는지 차감 내역)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text("확인", fontWeight = FontWeight.Bold)
+                    listOf(
+                        Pair(0, "전체 (${pointLogs.size})"),
+                        Pair(1, "적립 (+)"),
+                        Pair(2, "사용/차감 (-)")
+                    ).forEach { (idx, label) ->
+                        val selected = selectedFilter == idx
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (selected) Color(0xFF0284C7) else Color(0xFFF1F5F9),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { selectedFilter = idx }
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (selected) Color.White else Color(0xFF475569),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (filteredLogs.isEmpty()) {
+                        item {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                color = Color(0xFFF8FAFC)
+                            ) {
+                                Text(
+                                    text = if (selectedFilter == 2) "아직 포인트를 차감 사용한 예약 내역이 없습니다." else "포인트 내역이 없습니다.",
+                                    fontSize = 12.sp,
+                                    color = Color.Gray,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(24.dp)
+                                )
+                            }
+                        }
+                    } else {
+                        items(filteredLogs.size) { index ->
+                            val log = filteredLogs[index]
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = if (log.isEarned) Color(0xFFF8FAFC) else Color(0xFFFEF2F2)),
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, if (log.isEarned) Color(0xFFE2E8F0) else Color(0xFFFECACA))
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
+                                        Text(log.title, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = Color(0xFF0F172A))
+                                        Text("일시: ${log.dateText}", fontSize = 10.5.sp, color = Color.Gray)
+                                        if (log.expireDateText.isNotEmpty()) {
+                                            Text(
+                                                text = if (log.isEarned) "⏳ ${log.expireDateText}" else "💳 사용처/상태: ${log.expireDateText}",
+                                                fontSize = 10.sp,
+                                                color = if (log.isEarned) Color(0xFFD97706) else Color(0xFFDC2626),
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+
+                                    Text(
+                                        text = if (log.isEarned) "+${numFormat.format( kotlin.math.abs(log.amount) )} P" else "-${numFormat.format( kotlin.math.abs(log.amount) )} P",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 14.sp,
+                                        color = if (log.isEarned) Color(0xFF16A34A) else Color(0xFFDC2626)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
-        )
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+            ) {
+                Text("확인", fontWeight = FontWeight.Bold)
+            }
+        }
+    )
+}
+
+// 📸 사진+생생후기 작성 공용 다이얼로그 (사진 첨부 + 후기 작성 시 3,000P 즉시 지급)
+@Composable
+fun PhotoReviewWriteDialog(
+    authorName: String,
+    petInfo: String,
+    onReviewSubmitted: (ReviewItem, Boolean) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    var reviewRating by remember { mutableIntStateOf(5) }
+    var reviewText by remember { mutableStateOf("") }
+    var reviewImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val reviewPhotoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { reviewImageUri = it }
     }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text("📸", fontSize = 20.sp)
+                Text("생생 포토후기 작성 (+3,000P)", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFFFEF3C7),
+                    border = BorderStroke(1.dp, Color(0xFFF59E0B))
+                ) {
+                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("🎁 사진 + 생생후기 작성 시 3,000P 즉시 지급!", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFB45309))
+                        Text("• 사진 1장 첨부 + 후기 글 작성 시 3,000 포인트가 즉시 적립됩니다.", fontSize = 10.5.sp, color = Color(0xFF92400E))
+                        Text("• 지급된 포인트는 안 쓸 경우 적립일로부터 1년 뒤 자동 소멸됩니다.", fontSize = 10.sp, color = Color(0xFF78350F))
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("만족도 별점 선택", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        (1..5).forEach { star ->
+                            Text(
+                                text = if (star <= reviewRating) "⭐" else "☆",
+                                fontSize = 28.sp,
+                                modifier = Modifier.clickable { reviewRating = star }
+                            )
+                        }
+                        Text("${reviewRating}.0 점", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFF59E0B))
+                    }
+                }
+
+                OutlinedTextField(
+                    value = reviewText,
+                    onValueChange = { reviewText = it },
+                    label = { Text("생생 이용 후기 내용 작성") },
+                    placeholder = { Text("발자국동행 안심 이동 케어 이용 소감을 남겨주세요.") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedButton(
+                        onClick = { reviewPhotoLauncher.launch("image/*") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, if (reviewImageUri != null) Color(0xFF16A34A) else Color(0xFF0284C7))
+                    ) {
+                        Text(
+                            text = if (reviewImageUri != null) "✅ 사진 첨부 완료 (+3,000P 지급 대상)" else "📷 사진 필수 첨부하기 (갤러리 선택 - +3,000P)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (reviewImageUri != null) Color(0xFF16A34A) else Color(0xFF0284C7)
+                        )
+                    }
+
+                    reviewImageUri?.let { uri ->
+                        val bitmap = remember(uri) {
+                            try {
+                                context.contentResolver.openInputStream(uri).use { inputStream ->
+                                    BitmapFactory.decodeStream(inputStream)
+                                }
+                            } catch (_: Exception) {
+                                null
+                            }
+                        }
+                        bitmap?.let {
+                            Image(
+                                bitmap = it.asImageBitmap(),
+                                contentDescription = "첨부 사진 미리보기",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(120.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (reviewText.trim().isNotEmpty()) {
+                        val sdf = SimpleDateFormat("yyyy.MM.dd", Locale.KOREA)
+                        val newReview = ReviewItem(
+                            authorName = authorName,
+                            petInfo = petInfo,
+                            rating = reviewRating,
+                            serviceType = "🐾 발자국동행 안심 이동 서비스",
+                            content = reviewText.trim(),
+                            imageUri = reviewImageUri,
+                            dateText = sdf.format(Date())
+                        )
+                        onReviewSubmitted(newReview, reviewImageUri != null)
+                    } else {
+                        Toast.makeText(context, "후기 내용을 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+            ) {
+                Text(if (reviewImageUri != null) "등록 및 3,000P 받기" else "후기 등록하기", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("취소")
+            }
+        }
+    )
+}
+
+// 🎁 마이페이지 & 메인화면 하단 공용 [발자국동행 이벤트 & 포인트 혜택 탭] 다이얼로그
+@Composable
+fun EventAndPointRewardsDialog(
+    isAdminUser: Boolean = false,
+    userPoints: Int,
+    userReferralCode: String,
+    userNickname: String,
+    userPhone: String,
+    onUpdatePoints: (Int) -> Unit,
+    onOpenPointHistory: () -> Unit,
+    onOpenPhotoReviewWrite: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val currentUserId = remember { PersistentStorageManager.loadUserId(context) }
+    val currentUserEmail = remember { PersistentStorageManager.loadUserEmail(context) }
+    val accountLabel = remember(currentUserId, currentUserEmail, userNickname) {
+        (currentUserEmail.ifBlank { currentUserId }).ifBlank { userNickname }
+    }
+    val numFormat = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA) }
+
+    var isPlayStoreClaimed by remember { mutableStateOf(PersistentStorageManager.isPlayStoreReviewClaimed(context, currentUserId)) }
+    var hasVisitedPlayStore by remember { mutableStateOf(false) }
+
+    var blogYoutubeUrl by remember { mutableStateOf(PersistentStorageManager.loadBlogYoutubeSubmittedUrl(context, currentUserId)) }
+    var blogYoutubeStatus by remember { mutableStateOf(PersistentStorageManager.loadBlogYoutubeStatus(context, currentUserId)) }
+
+    var inputFriendCode by remember { mutableStateOf("") }
+    var isReferralRedeemed by remember { mutableStateOf(PersistentStorageManager.loadReferralRedeemed(context, currentUserId)) }
+    val userCoupons = remember {
+        mutableStateListOf<CouponItem>().apply {
+            addAll(PersistentStorageManager.loadCouponList(context))
+        }
+    }
+    val validReferralCodes = remember {
+        listOf("K7TB94", "SAHA25", "FORPET", "BUSAN1", "RAY5394", "MALTESE", "CHOCO94")
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("🎁", fontSize = 20.sp)
+                    Text("발자국동행 이벤트 & 포인트 탭", fontWeight = FontWeight.ExtraBold, fontSize = 16.5.sp)
+                }
+            }
+        },
+        text = {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(500.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // 상단: 내 계정 보유 포인트 & 1년 소멸 안내 요약
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFF0F172A)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text("👤 계정: $accountLabel", fontSize = 11.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+                                    Text("내 보유 포인트 (1P = 1원)", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Medium)
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = Color(0xFFF59E0B)
+                                ) {
+                                    Text(
+                                        "${numFormat.format(userPoints)} P",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 15.sp,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+                                    )
+                                }
+                            }
+                            Text(
+                                "⚠️ 안쓴 포인트는 적립일로부터 1년(365일) 뒤 자동 소멸됩니다.",
+                                fontSize = 10.5.sp,
+                                color = Color(0xFFFDE68A),
+                                fontWeight = FontWeight.Bold
+                            )
+                            OutlinedButton(
+                                onClick = onOpenPointHistory,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, Color(0xFF38BDF8))
+                            ) {
+                                Text("📋 내 포인트 적립 • 사용처 차감 • 소멸 내역 보기", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+                            }
+                        }
+                    }
+                }
+
+                // 이벤트 1: 신규 회원가입 1,000P 지급
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
+                        border = BorderStroke(1.dp, Color(0xFF86EFAC))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("1️⃣ 신규 회원가입 웰컴 포인트", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF166534))
+                                Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF16A34A)) {
+                                    Text("+1,000 P 지급", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                }
+                            }
+                            Text("• 신규 회원가입 즉시 모든 계정마다 1,000 포인트가 기본 적립됩니다.", fontSize = 11.sp, color = Color(0xFF15803D))
+                            Text("• 미사용 포인트는 적립일로부터 1년 후 자동 소멸됩니다.", fontSize = 10.sp, color = Color(0xFF64748B))
+                        }
+                    }
+                }
+
+                // 이벤트 2: 어플 내 생생후기 (사진 + 글 작성) 3,000P 지급
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F9FF)),
+                        border = BorderStroke(1.dp, Color(0xFF7DD3FC))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("2️⃣ 어플 내 생생후기 (사진+작성)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0369A1))
+                                Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF0284C7)) {
+                                    Text("+3,000 P 즉시지급", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                }
+                            }
+                            Text("• 어플 내 이용 후기에서 [사진 첨부 + 후기 글 작성] 완료 시 즉시 3,000 포인트가 지급됩니다.", fontSize = 11.sp, color = Color(0xFF0F172A))
+                            Button(
+                                onClick = onOpenPhotoReviewWrite,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                            ) {
+                                Text("📸 사진+생생후기 작성하고 3,000P 받기", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+
+                // 이벤트 3: 구글 플레이스토어 후기 3,000P 지급
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB)),
+                        border = BorderStroke(1.dp, Color(0xFFFCD34D))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("3️⃣ 구글 플레이스토어 후기 이벤트", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFB45309))
+                                Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFD97706)) {
+                                    Text("+3,000 P 지급", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                }
+                            }
+                            Text("• 구글 플레이스토어에 발자국동행 별점과 응원 후기를 작성하시면 계정당 1회 3,000 포인트를 지급해 드립니다.", fontSize = 11.sp, color = Color(0xFF78350F))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        hasVisitedPlayStore = true
+                                        val pkg = context.packageName
+                                        try {
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$pkg")).apply {
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            })
+                                        } catch (_: Exception) {
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$pkg")).apply {
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            })
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("⭐ 스토어 이동", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
+                                }
+
+                                Button(
+                                    onClick = {
+                                        if (isPlayStoreClaimed) {
+                                            Toast.makeText(context, "이미 플레이스토어 후기 3,000P를 지급받으셨습니다.", Toast.LENGTH_SHORT).show()
+                                        } else if (!hasVisitedPlayStore) {
+                                            Toast.makeText(context, "먼저 [⭐ 스토어 이동] 버튼을 눌러 플레이스토어에 후기를 남겨주세요!", Toast.LENGTH_LONG).show()
+                                        } else {
+                                            val newPts = userPoints + 3000
+                                            PersistentStorageManager.setPlayStoreReviewClaimed(context, true, currentUserId)
+                                            isPlayStoreClaimed = true
+                                            PersistentStorageManager.recordPointTransaction(
+                                                context = context,
+                                                title = "⭐ 구글 플레이스토어 후기 작성 적립",
+                                                amount = 3000,
+                                                isEarned = true,
+                                                userId = currentUserId
+                                            )
+                                            onUpdatePoints(newPts)
+                                            Toast.makeText(context, "🎉 플레이스토어 후기 감사 3,000 포인트가 지급되었습니다! (1년 후 자동 소멸)", Toast.LENGTH_LONG).show()
+                                        }
+                                    },
+                                    enabled = !isPlayStoreClaimed,
+                                    modifier = Modifier.weight(1.2f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
+                                ) {
+                                    Text(if (isPlayStoreClaimed) "✅ 3,000P 지급완료" else "작성완료 • 3,000P 받기", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 이벤트 4: 네이버 블로그 • 유튜브 포스팅 확인 후 10,000P 지급
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFAF5FF)),
+                        border = BorderStroke(1.dp, Color(0xFFD8B4FE))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("4️⃣ 네이버 블로그 • 유튜브 포스팅", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF6B21A8))
+                                Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF7E22CE)) {
+                                    Text("확인 후 +10,000 P", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                }
+                            }
+                            Text("• 네이버 블로그 또는 유튜브에 발자국동행 이용 후기 포스팅 작성 후 링크(URL)를 남겨주시면 확인 후 10,000 포인트를 지급해 드립니다!", fontSize = 11.sp, color = Color(0xFF4C1D95))
+
+                            OutlinedTextField(
+                                value = blogYoutubeUrl,
+                                onValueChange = { blogYoutubeUrl = it },
+                                placeholder = { Text("https://blog.naver.com/... 또는 유튜브 링크", fontSize = 11.sp) },
+                                label = { Text("포스팅 URL 주소 입력") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            if (blogYoutubeStatus.isNotEmpty()) {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(0xFFF3E8FF)
+                                ) {
+                                    Text(
+                                        text = "📌 현재 상태: $blogYoutubeStatus",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF6B21A8),
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                }
+                            }
+
+                            Button(
+                                onClick = {
+                                    val trimmed = blogYoutubeUrl.trim()
+                                    if (trimmed.length < 8) {
+                                        Toast.makeText(context, "네이버 블로그 또는 유튜브 포스팅 URL 주소를 정확히 입력해 주세요.", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        val statusMsg = "검수 신청 완료 (관리자 확인 후 10,000P 지급 예정)"
+                                        blogYoutubeStatus = statusMsg
+                                        PersistentStorageManager.saveBlogYoutubeSubmission(context, trimmed, statusMsg, currentUserId)
+                                        com.example.forpetapp.data.firebase.FirebaseSyncManager.submitBlogYoutubeEventToCloud(
+                                            userId = currentUserId,
+                                            userName = userNickname,
+                                            userPhone = userPhone,
+                                            postUrl = trimmed
+                                        )
+                                        Toast.makeText(context, "📝 블로그/유튜브 포스팅 검수 신청이 접수되었습니다! 관리자 확인 후 10,000P가 지급됩니다.", Toast.LENGTH_LONG).show()
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7E22CE))
+                            ) {
+                                Text("📝 포스팅 URL 등록 및 10,000P 지급 신청", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+
+                            if (isAdminUser && blogYoutubeStatus != "✅ 관리자 확인 완료 (10,000P 지급 완료)") {
+                                OutlinedButton(
+                                    onClick = {
+                                        val newPts = userPoints + 10000
+                                        val doneStatus = "✅ 관리자 확인 완료 (10,000P 지급 완료)"
+                                        blogYoutubeStatus = doneStatus
+                                        PersistentStorageManager.saveBlogYoutubeSubmission(context, blogYoutubeUrl, doneStatus, currentUserId)
+                                        PersistentStorageManager.recordPointTransaction(
+                                            context = context,
+                                            title = "📝 네이버 블로그/유튜브 포스팅 확인 완료 적립",
+                                            amount = 10000,
+                                            isEarned = true,
+                                            userId = currentUserId
+                                        )
+                                        onUpdatePoints(newPts)
+                                        Toast.makeText(context, "✅ [관리자 승인] 블로그/유튜브 포스팅 확인 완료! 10,000P가 지급되었습니다.", Toast.LENGTH_LONG).show()
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("👑 [관리자 전용] 포스팅 확인 승인 • 10,000P 즉시 지급", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7E22CE))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 이벤트 5: 친구 초대 추천 코드
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF8FAFC),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("🔑 내 추천 코드: $userReferralCode", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = Color(0xFF0F172A))
+                                TextButton(
+                                    onClick = {
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        val clip = ClipData.newPlainText("발자국동행 추천코드", userReferralCode)
+                                        clipboard.setPrimaryClip(clip)
+                                        Toast.makeText(context, "📋 내 추천 코드[$userReferralCode]가 복사되었습니다!", Toast.LENGTH_SHORT).show()
+                                    },
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text("📋 코드 복사", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = inputFriendCode,
+                                    onValueChange = { inputFriendCode = it.uppercase() },
+                                    placeholder = { Text(if (isReferralRedeemed) "친구 추천 적립 완료" else "친구 추천코드 6자리 입력", fontSize = 11.sp) },
+                                    enabled = !isReferralRedeemed,
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true
+                                )
+                                Button(
+                                    onClick = {
+                                        val trimmedCode = inputFriendCode.trim().uppercase()
+                                        if (isReferralRedeemed) {
+                                            Toast.makeText(context, "⚠️ 추천 코드는 계정당 최초 1회만 적립 가능합니다!", Toast.LENGTH_LONG).show()
+                                        } else if (trimmedCode == userReferralCode) {
+                                            Toast.makeText(context, "⚠️ 본인 추천 코드는 등록할 수 없습니다.", Toast.LENGTH_LONG).show()
+                                        } else if (validReferralCodes.contains(trimmedCode) || (trimmedCode.length == 6 && trimmedCode.all { it.isLetterOrDigit() })) {
+                                            val newPts = userPoints + 3000
+                                            PersistentStorageManager.recordPointTransaction(
+                                                context = context,
+                                                title = "🎁 친구 추천 코드($trimmedCode) 입력 적립",
+                                                amount = 3000,
+                                                isEarned = true,
+                                                userId = currentUserId
+                                            )
+                                            onUpdatePoints(newPts)
+                                            val newCoupon = CouponItem(
+                                                title = "🎉 친구 초대 5,000원 첫 동행 할인 쿠폰",
+                                                discountAmount = 5000,
+                                                validUntil = "2027.12.31"
+                                            )
+                                            userCoupons.add(0, newCoupon)
+                                            PersistentStorageManager.saveCouponList(context, userCoupons)
+                                            isReferralRedeemed = true
+                                            PersistentStorageManager.saveReferralRedeemed(context, true, currentUserId)
+                                            Toast.makeText(context, "🎉 친구 추천 코드[$trimmedCode] 인증 완료! 3,000P가 지급되었습니다!", Toast.LENGTH_LONG).show()
+                                            inputFriendCode = ""
+                                        } else {
+                                            Toast.makeText(context, "❌ 유효한 6자리 추천 코드를 입력해 주세요.", Toast.LENGTH_LONG).show()
+                                        }
+                                    },
+                                    enabled = !isReferralRedeemed,
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                                ) {
+                                    Text(if (isReferralRedeemed) "완료" else "적립", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("닫기", fontWeight = FontWeight.Bold)
+            }
+        }
+    )
 }
 
 @Composable
@@ -6959,6 +8001,7 @@ fun HomeScreenContent(
     onNavigateToBookingTab: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val currentUserId = remember { PersistentStorageManager.loadUserId(context) }
     var showBookingDialog by remember { mutableStateOf(false) }
     var showBookingNoticeDialog by remember { mutableStateOf(false) }
     var showPricingDetailDialog by remember { mutableStateOf(false) }
@@ -6975,6 +8018,8 @@ fun HomeScreenContent(
     var showAllReviewsDialog by remember { mutableStateOf(false) }
     var showNoticeDialog by remember { mutableStateOf(false) }
     var showEventDialog by remember { mutableStateOf(false) }
+    var showHomePointHistoryDialog by remember { mutableStateOf(false) }
+    var homePointLogRefreshKey by remember { mutableIntStateOf(0) }
     var showAiChatDialog by remember { mutableStateOf(false) }
     var showTimeSlotPicker by remember { mutableStateOf(false) }
     var showHospitalTimePicker by remember { mutableStateOf(false) }
@@ -6986,24 +8031,9 @@ fun HomeScreenContent(
     var selectedHospital by remember { mutableStateOf<HospitalInfo?>(null) }
 
     val reviewsList = remember {
-        mutableStateListOf(
-            ReviewItem(
-                authorName = "홍길동 보호자님",
-                petInfo = "말티즈 (초코, 3살)",
-                rating = 5,
-                serviceType = "🏥 병원 진료 대행",
-                content = "회사 업무 때문에 병원에 직접 못 갔는데, 발자국동행 레이 차량으로 안전하게 진료받고 수의사 소견서 리포트까지 전달받아서 너무 안심되었어요!",
-                dateText = "2026.10.18"
-            ),
-            ReviewItem(
-                authorName = "강서구 주민님",
-                petInfo = "포메라니안 (사랑이, 2살)",
-                rating = 5,
-                serviceType = "🚨 야간 응급 출동",
-                content = "새벽에 갑자기 호흡 곤란이 와서 당황했는데 24시 응급 출동차에 실시간 안심 바디캠과 쾌적 온습도 제어 시스템이 있어서 명지24시병원까지 무사히 이송되었습니다. 박찬헌 기사님 감사드립니다!",
-                dateText = "2026.10.15"
-            )
-        )
+        mutableStateListOf<ReviewItem>().apply {
+            addAll(PersistentStorageManager.loadReviewsList(context))
+        }
     }
 
     val hospitals = remember {
@@ -7485,7 +8515,7 @@ fun HomeScreenContent(
                     horizontalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     TextButton(onClick = { showReviewWriteDialog = true }) {
-                        Text("✏️ 후기작성", fontWeight = FontWeight.Bold, color = Color(0xFF0284C7), fontSize = 12.sp)
+                        Text("📸 사진후기(+3,000P)", fontWeight = FontWeight.Bold, color = Color(0xFFD97706), fontSize = 12.sp)
                     }
                     TextButton(onClick = { showAllReviewsDialog = true }) {
                         Text("전체보기 ➔", fontWeight = FontWeight.Bold, color = Color(0xFF0284C7), fontSize = 12.sp)
@@ -7564,6 +8594,7 @@ fun HomeScreenContent(
                             TextButton(
                                 onClick = {
                                     reviewsList.remove(review)
+                                    PersistentStorageManager.saveReviewsList(context, reviewsList)
                                     Toast.makeText(context, "🗑️ 관리자 권한으로 후기가 삭제되었습니다.", Toast.LENGTH_SHORT).show()
                                 },
                                 contentPadding = PaddingValues(0.dp)
@@ -7614,7 +8645,119 @@ fun HomeScreenContent(
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF0284C7))
             ) {
-                Text("⭐ 이용 후기 전체보기 (${reviewsList.size}개) & 작성하기 ➔", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text("⭐ 이용 후기 전체보기 (${reviewsList.size}개) & 사진후기 작성(+3,000P) ➔", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            }
+        }
+
+        // 🎁 6-2. 메인화면 하단 이벤트 & 포인트 리워드 탭 (신규가입 1,000P / 생생후기 3,000P / 플레이스토어 3,000P / 블로그·유튜브 10,000P)
+        item {
+            Spacer(modifier = Modifier.height(6.dp))
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showEventDialog = true },
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB)),
+                border = BorderStroke(1.5.dp, Color(0xFFF59E0B)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color(0xFFFEF3C7),
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text("🎁", fontSize = 20.sp)
+                                }
+                            }
+                            Column {
+                                Text("발자국동행 포인트 적립 이벤트 탭", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Color(0xFF92400E))
+                                Text("내 계정 보유 포인트: ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(userPoints)} P", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                            }
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFD97706)
+                        ) {
+                            Text(
+                                "최대 17,000P",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = Color(0xFFFDE68A))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("🎉 1. 신규 회원가입 웰컴 포인트", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF0F172A))
+                            Text("+1,000 P 즉시지급", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF16A34A))
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("📸 2. 어플 내 생생후기 (사진 + 글 작성)", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF0F172A))
+                            Text("+3,000 P 즉시지급", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFD97706))
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("⭐ 3. 구글 플레이스토어 앱 별점 & 후기", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF0F172A))
+                            Text("+3,000 P 지급", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0284C7))
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("📝 4. 네이버 블로그 / 유튜브 포스팅 인증", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF0F172A))
+                            Text("확인 후 +10,000 P 지급", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF7C3AED))
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFFFF1F2),
+                        border = BorderStroke(1.dp, Color(0xFFFECDD3))
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("⚠️ 포인트 유효기간 및 소멸 고지", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFBE123C))
+                            Text("• 적립된 모든 포인트는 계정별로 안전하게 보관되며, 예약 결제 시 1P=1원으로 어디서 사용했는지 내역과 함께 즉시 차감됩니다.", fontSize = 10.sp, color = Color(0xFF9F1239), lineHeight = 14.sp)
+                            Text("• 사용하지 않은 포인트는 적립일로부터 1년(365일) 뒤 자동 소멸되오니 기한 내 사용해 주세요.", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFBE123C), lineHeight = 14.sp)
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { showEventDialog = true },
+                            modifier = Modifier.weight(1.2f),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
+                        ) {
+                            Text("🎁 이벤트 참여 & 포인트 받기", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                        OutlinedButton(
+                            onClick = { showHomePointHistoryDialog = true },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, Color(0xFFD97706))
+                        ) {
+                            Text("📋 적립/차감 내역", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF92400E))
+                        }
+                    }
+                }
             }
         }
 
@@ -9040,11 +10183,15 @@ fun HomeScreenContent(
                         }
                     }
 
-                    // 8-2. 🎁 보유 포인트 사용 (정식 오픈 시 복구 예정으로 예약 화면에서 숨김 처리됨)
-                    /*
+                    // 8-2. 💰 보유 포인트 차감 사용 (계정별 보유 포인트 실시간 사용 및 사용처 내역 기록)
                     item {
-                        var isPointsApplied by remember { mutableStateOf(false) }
-                        val maxUsablePoints = kotlin.math.min(userPoints, 3000)
+                        val basePriceForPoint = when {
+                            selectedServiceTrim.contains("긴급") -> 50000
+                            selectedServiceTrim.contains("미예약") -> 35000
+                            else -> 30000
+                        }
+                        val calcPriceForPoint = basePriceForPoint + (if (isMedicineSelected) 5000 else 0) + (if (isSurgerySelected) 10000 else 0)
+                        val maxUsablePoints = kotlin.math.min(userPoints, calcPriceForPoint)
 
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -9054,7 +10201,7 @@ fun HomeScreenContent(
                         ) {
                             Column(
                                 modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -9062,44 +10209,76 @@ fun HomeScreenContent(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text("🎁", fontSize = 16.sp)
-                                        Text("포인트 할인 (보유: ${userPoints}P)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF92400E))
+                                        Text("💰", fontSize = 16.sp)
+                                        Column {
+                                            Text("내 계정 포인트 차감 사용", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF92400E))
+                                            Text("보유 포인트: ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(userPoints)} P", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                                        }
                                     }
 
-                                    Button(
-                                        onClick = {
-                                            if (maxUsablePoints > 0) {
-                                                isPointsApplied = !isPointsApplied
-                                                if (isPointsApplied) {
-                                                    usePointsAmount = maxUsablePoints
-                                                    Toast.makeText(context, "🎉 ${maxUsablePoints}P 포인트 할인이 적용되었습니다! (1회 최대 3,000P)", Toast.LENGTH_SHORT).show()
-                                                } else {
-                                                    usePointsAmount = 0
-                                                    Toast.makeText(context, "포인트 할인 적용이 취소되었습니다.", Toast.LENGTH_SHORT).show()
-                                                }
-                                            } else {
-                                                Toast.makeText(context, "사용 가능한 포인트가 없습니다. (친구 추천 이벤트 참여 시 3,000P 증정)", Toast.LENGTH_SHORT).show()
-                                            }
-                                        },
-                                        shape = RoundedCornerShape(8.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (isPointsApplied) Color(0xFF16A34A) else Color(0xFFD97706)
-                                        ),
-                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                                    ) {
-                                        Text(
-                                            if (isPointsApplied) "${maxUsablePoints}P 적용 완료 ✓" else "3,000P 즉시 할인",
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 11.sp
-                                        )
+                                    if (usePointsAmount > 0) {
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = Color(0xFFDC2626)
+                                        ) {
+                                            Text(
+                                                "-${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(usePointsAmount)} P 차감 적용",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                            )
+                                        }
                                     }
                                 }
 
-                                Text("※ 1회 결제 당 최대 3,000 P까지 할인 적용 가능합니다.", fontSize = 10.sp, color = Color(0xFFB45309))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    FilterChip(
+                                        selected = (usePointsAmount == 0),
+                                        onClick = { usePointsAmount = 0 },
+                                        label = { Text("미사용", fontSize = 11.sp) }
+                                    )
+                                    if (userPoints >= 1000) {
+                                        FilterChip(
+                                            selected = (usePointsAmount == 1000),
+                                            onClick = {
+                                                usePointsAmount = 1000
+                                                Toast.makeText(context, "💰 1,000P 포인트 차감이 적용되었습니다!", Toast.LENGTH_SHORT).show()
+                                            },
+                                            label = { Text("1,000P", fontSize = 11.sp) }
+                                        )
+                                    }
+                                    if (userPoints >= 3000) {
+                                        FilterChip(
+                                            selected = (usePointsAmount == 3000),
+                                            onClick = {
+                                                usePointsAmount = 3000
+                                                Toast.makeText(context, "💰 3,000P 포인트 차감이 적용되었습니다!", Toast.LENGTH_SHORT).show()
+                                            },
+                                            label = { Text("3,000P", fontSize = 11.sp) }
+                                        )
+                                    }
+                                    FilterChip(
+                                        selected = (maxUsablePoints > 0 && usePointsAmount == maxUsablePoints),
+                                        onClick = {
+                                            if (maxUsablePoints > 0) {
+                                                usePointsAmount = maxUsablePoints
+                                                Toast.makeText(context, "💰 보유 포인트 ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(maxUsablePoints)}P 전액 차감이 적용되었습니다!", Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                Toast.makeText(context, "사용 가능한 포인트가 없습니다. (이벤트 탭에서 후기/포스팅 참여 시 최대 16,000P 지급!)", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                        label = { Text("전액 사용 (${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(maxUsablePoints)}P)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                    )
+                                }
+
+                                Text("※ 예약 결제 확정 시 사용한 포인트가 즉시 차감되며, [내 포인트 적립/차감 내역]에 사용한 서비스 및 병원명이 상세히 기록됩니다. (미사용 포인트는 적립 1년 뒤 자동 소멸)", fontSize = 10.sp, color = Color(0xFFB45309), lineHeight = 14.sp)
                             }
                         }
                     }
-                    */
 
                     // 8-3. 🎟️ 보유 할인 쿠폰 선택 (친구 추천 5,000원 / 웰컴 3,000원 쿠폰)
                     item {
@@ -9537,6 +10716,15 @@ fun HomeScreenContent(
                             Toast.makeText(context, "⚡ $selectedPaymentMethod 사전 가결제 승인이 완료되었습니다!", Toast.LENGTH_SHORT).show()
                             if (usePointsAmount > 0) {
                                 onUpdatePoints((userPoints - usePointsAmount).coerceAtLeast(0))
+                                PersistentStorageManager.recordPointTransaction(
+                                    context = context,
+                                    title = "🚙 [${newBooking.serviceType}] 예약 결제 차감 ($bookingPetName / $finalHospital)",
+                                    amount = -usePointsAmount,
+                                    isEarned = false,
+                                    customStatusText = "예약 결제 사용 차감 완료 (잔여: ${(userPoints - usePointsAmount).coerceAtLeast(0)}P)",
+                                    userId = currentUserId
+                                )
+                                homePointLogRefreshKey++
                             }
                             if (selectedCoupon != null) {
                                 val allCoupons = PersistentStorageManager.loadCouponList(context)
@@ -10216,124 +11404,30 @@ fun HomeScreenContent(
     }
 
     if (showReviewWriteDialog) {
-        var reviewRating by remember { mutableIntStateOf(5) }
-        var reviewText by remember { mutableStateOf("") }
-        var reviewImageUri by remember { mutableStateOf<Uri?>(null) }
-
-        val reviewPhotoLauncher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.GetContent()
-        ) { uri: Uri? ->
-            uri?.let { reviewImageUri = it }
-        }
-
-        AlertDialog(
-            onDismissRequest = { showReviewWriteDialog = false },
-            title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text("⭐", fontSize = 20.sp)
-                    Text("발자국동행 이용 후기 작성", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                }
-            },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("만족도 별점 선택", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            (1..5).forEach { star ->
-                                Text(
-                                    text = if (star <= reviewRating) "⭐" else "☆",
-                                    fontSize = 28.sp,
-                                    modifier = Modifier.clickable { reviewRating = star }
-                                )
-                            }
-                            Text("${reviewRating}.0 점", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFF59E0B))
-                        }
-                    }
-
-                    OutlinedTextField(
-                        value = reviewText,
-                        onValueChange = { reviewText = it },
-                        label = { Text("이용 후기 내용") },
-                        placeholder = { Text("발자국동행 안심 이동 케어 이용 소감을 남겨주세요.") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3
+        PhotoReviewWriteDialog(
+            authorName = userNickname,
+            petInfo = petList.firstOrNull()?.let { "${it.type} (${it.name})" } ?: "내 반려동물",
+            onReviewSubmitted = { newReview, hasPhoto ->
+                reviewsList.add(0, newReview)
+                PersistentStorageManager.saveReviewsList(context, reviewsList)
+                if (hasPhoto) {
+                    val updatedPts = userPoints + 3000
+                    onUpdatePoints(updatedPts)
+                    PersistentStorageManager.recordPointTransaction(
+                        context = context,
+                        title = "📸 어플 내 생생후기 (사진+글 작성) 포인트 지급",
+                        amount = 3000,
+                        isEarned = true,
+                        userId = currentUserId
                     )
-
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        OutlinedButton(
-                            onClick = { reviewPhotoLauncher.launch("image/*") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(if (reviewImageUri != null) "📷 사진 등록 완료 (클릭 시 변경)" else "📷 사진 첨부하기 (갤러리 선택)", fontSize = 12.sp, color = Color(0xFF0284C7))
-                        }
-
-                        reviewImageUri?.let { uri ->
-                            val bitmap = remember(uri) {
-                                try {
-                                    context.contentResolver.openInputStream(uri).use { inputStream ->
-                                        BitmapFactory.decodeStream(inputStream)
-                                    }
-                                } catch (_: Exception) {
-                                    null
-                                }
-                            }
-                            bitmap?.let {
-                                Image(
-                                    bitmap = it.asImageBitmap(),
-                                    contentDescription = "첨부 사진 미리보기",
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(120.dp)
-                                        .clip(RoundedCornerShape(8.dp)),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                        }
-                    }
+                    homePointLogRefreshKey++
+                    Toast.makeText(context, "🎉 사진 + 생생후기 작성이 완료되어 +3,000 P가 즉시 적립되었습니다! (적립일로부터 1년 뒤 자동 소멸)", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(context, "✅ 소중한 이용 후기가 등록되었습니다! (사진 첨부 작성 시 +3,000P가 지급됩니다)", Toast.LENGTH_LONG).show()
                 }
+                showReviewWriteDialog = false
             },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (reviewText.isNotEmpty()) {
-                            val newReview = ReviewItem(
-                                authorName = "발자국동행 회원님",
-                                petInfo = "내 반려동물",
-                                rating = reviewRating,
-                                serviceType = "🐾 발자국동행 안심 이동 서비스",
-                                content = reviewText,
-                                imageUri = reviewImageUri,
-                                dateText = "방금 전"
-                            )
-                            reviewsList.add(0, newReview)
-                            Toast.makeText(context, "소중한 이용 후기가 등록되었습니다!", Toast.LENGTH_SHORT).show()
-                            showReviewWriteDialog = false
-                        } else {
-                            Toast.makeText(context, "후기 내용을 입력해 주세요.", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
-                ) {
-                    Text("후기 등록하기", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showReviewWriteDialog = false }) {
-                    Text("취소")
-                }
-            }
+            onDismiss = { showReviewWriteDialog = false }
         )
     }
 
@@ -10367,9 +11461,9 @@ fun HomeScreenContent(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
                     ) {
-                        Text("✏️ 새 이용 후기 작성하기", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("📸 사진 + 생생후기 작성하고 +3,000P 즉시 받기 ➔", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
 
                     HorizontalDivider()
@@ -10533,196 +11627,37 @@ fun HomeScreenContent(
     }
 
     if (showEventDialog) {
-        var inputFriendCode by remember { mutableStateOf("") }
-        var isReferralRedeemed by remember { mutableStateOf(PersistentStorageManager.loadReferralRedeemed(context)) }
-        val userCoupons = remember {
-            mutableStateListOf<CouponItem>().apply {
-                addAll(PersistentStorageManager.loadCouponList(context))
-            }
-        }
-
-        val validReferralCodes = remember {
-            listOf("K7TB94", "SAHA25", "FORPET", "BUSAN1", "RAY5394", "MALTESE", "CHOCO94")
-        }
-
-        AlertDialog(
-            onDismissRequest = { showEventDialog = false },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("🎁", fontSize = 20.sp)
-                    Text("친구 초대 리워드 & 카카오 공유", fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                }
+        EventAndPointRewardsDialog(
+            isAdminUser = isAdminUser,
+            userPoints = userPoints,
+            userReferralCode = userReferralCode,
+            userNickname = userNickname,
+            userPhone = userPhone,
+            onUpdatePoints = { newPts ->
+                onUpdatePoints(newPts)
+                homePointLogRefreshKey++
             },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(490.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFFEF3C7),
-                        border = BorderStroke(1.dp, Color(0xFFFDE68A))
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text("🔑 내 고유 추천 코드 (영문 6자리)", fontSize = 11.sp, color = Color(0xFF92400E), fontWeight = FontWeight.Bold)
-                            Text(userReferralCode, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706), fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                OutlinedButton(
-                                    onClick = {
-                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                        val clip = ClipData.newPlainText("발자국동행 추천코드", userReferralCode)
-                                        clipboard.setPrimaryClip(clip)
-                                        Toast.makeText(context, "📋 내 추천 코드[$userReferralCode]가 복사되었습니다! 친구에게 공유해 보세요.", Toast.LENGTH_SHORT).show()
-                                    },
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.weight(1f),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
-                                ) {
-                                    Text("📋 코드 복사", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
-                                }
-
-                                Button(
-                                    onClick = {
-                                        val sendIntent = Intent().apply {
-                                            action = Intent.ACTION_SEND
-                                            putExtra(
-                                                Intent.EXTRA_TEXT,
-                                                "🐾 [발자국동행] 부산 반려동물 안심 병원 진료 대행 & 이동 케어 서비스에 초대합니다!\n\n회원가입 시 제 추천인 코드 [${userReferralCode}]를 입력하시면 즉시 5,000원 할인 쿠폰과 3,000 P가 지급됩니다! ✨\n\n▶ 발자국동행 바로가기: https://forpet.app/invite/${userReferralCode}"
-                                            )
-                                            type = "text/plain"
-                                        }
-                                        context.startActivity(Intent.createChooser(sendIntent, "발자국동행 친구 초대장 공유"))
-                                    },
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.weight(1.3f),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFEE500)),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
-                                ) {
-                                    Text("💬 카카오톡/초대장", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF191919))
-                                }
-                            }
-                        }
-                    }
-
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text("🎁 친구의 추천 코드 입력하기", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                            Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFE0F2FE)) {
-                                Text("5,000원 쿠폰+3,000P", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7), modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
-                            }
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            OutlinedTextField(
-                                value = inputFriendCode,
-                                onValueChange = { inputFriendCode = it.uppercase() },
-                                placeholder = { Text(if (isReferralRedeemed) "이미 3,000P/쿠폰 완료" else "6자리 추천코드 (예: SAHA25)") },
-                                enabled = !isReferralRedeemed,
-                                modifier = Modifier.weight(1f),
-                                singleLine = true
-                            )
-                            Button(
-                                onClick = {
-                                    val trimmedCode = inputFriendCode.trim().uppercase()
-                                    if (isReferralRedeemed) {
-                                        Toast.makeText(context, "⚠️ 추천 코드는 계정당 최초 1회만 적립 가능합니다!", Toast.LENGTH_LONG).show()
-                                    } else if (trimmedCode == userReferralCode) {
-                                        Toast.makeText(context, "⚠️ 자기 자신의 추천 코드는 등록할 수 없습니다. 친구의 추천 코드를 입력해 주세요!", Toast.LENGTH_LONG).show()
-                                    } else if (validReferralCodes.contains(trimmedCode) || (trimmedCode.length == 6 && trimmedCode.all { it.isLetterOrDigit() })) {
-                                        onUpdatePoints(userPoints + 3000)
-                                        val newCoupon = CouponItem(
-                                            title = "🎉 친구 초대 5,000원 첫 동행 할인 쿠폰",
-                                            discountAmount = 5000,
-                                            validUntil = "2027.12.31"
-                                        )
-                                        userCoupons.add(0, newCoupon)
-                                        PersistentStorageManager.saveCouponList(context, userCoupons)
-                                        isReferralRedeemed = true
-                                        PersistentStorageManager.saveReferralRedeemed(context, true)
-                                        Toast.makeText(context, "🎉 친구 추천 코드[$trimmedCode]가 인증되어 3,000 P와 5,000원 할인 쿠폰이 즉시 지급되었습니다!", Toast.LENGTH_LONG).show()
-                                        inputFriendCode = ""
-                                    } else {
-                                        Toast.makeText(context, "❌ 존재하지 않거나 유효하지 않은 추천 코드입니다. 친구의 6자리 추천 코드를 확인해 주세요.", Toast.LENGTH_LONG).show()
-                                    }
-                                },
-                                enabled = !isReferralRedeemed,
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
-                            ) {
-                                Text(if (isReferralRedeemed) "완료" else "적립", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            }
-                        }
-                    }
-
-                    // 내 보유 쿠폰 목록
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("🎟️ 내 보유 할인 쿠폰 (${userCoupons.size}장)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(84.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            items(userCoupons.size) { cIdx ->
-                                val coupon = userCoupons[cIdx]
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = Color(0xFFF0FDF4),
-                                    border = BorderStroke(1.dp, Color(0xFFBBF7D0)),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column {
-                                            Text(coupon.title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF166534))
-                                            Text("유효기간: ${coupon.validUntil}", fontSize = 9.sp, color = Color.Gray)
-                                        }
-                                        Text("${coupon.discountAmount}원 할인", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D))
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFF8FAFC)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Text("ℹ️ 이벤트 및 포인트 이용 안내", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF475569))
-                            Text("• 친구 초대 시 양측 모두 3,000 P + 5,000원 쿠폰 지급", fontSize = 10.sp, color = Color.Gray)
-                            Text("• 적립된 포인트(1P=1원) 및 할인 쿠폰은 진료 대행 예약 결제 시 바로 차감 사용 가능", fontSize = 10.sp, color = Color.Gray)
-                        }
-                    }
-                }
+            onOpenPointHistory = {
+                showEventDialog = false
+                showHomePointHistoryDialog = true
             },
-            confirmButton = {
-                TextButton(onClick = { showEventDialog = false }) {
-                    Text("닫기", fontWeight = FontWeight.Bold)
-                }
-            }
+            onOpenPhotoReviewWrite = {
+                showEventDialog = false
+                showReviewWriteDialog = true
+            },
+            onDismiss = { showEventDialog = false }
+        )
+    }
+
+    if (showHomePointHistoryDialog) {
+        val currentPointLogs = remember(homePointLogRefreshKey, userPoints, showHomePointHistoryDialog) {
+            PersistentStorageManager.loadPointLogs(context, currentUserId)
+        }
+        PointHistoryDetailDialog(
+            userId = currentUserId.ifBlank { userNickname },
+            userPoints = userPoints,
+            pointLogs = currentPointLogs,
+            onDismiss = { showHomePointHistoryDialog = false }
         )
     }
 
