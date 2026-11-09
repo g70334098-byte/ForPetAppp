@@ -5884,208 +5884,6 @@ fun MyPageScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 0-1. 💰 각 계정별 보유 포인트 & 사용처 차감 내역 카드
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showPointHistoryDialog = true },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.5.dp, Color(0xFFD97706))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text("💰 내 계정 적립 포인트", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
-                                Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFE0F2FE)) {
-                                    Text(
-                                        text = "계정: ${(currentUserEmail.ifBlank { currentUserId }).ifBlank { userNickname }}",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF0284C7),
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-                            Text("예약 결제 시 1P = 1원 현금 동일 즉시 차감", fontSize = 11.sp, color = Color(0xFF64748B))
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = Color(0xFFFEF3C7),
-                            border = BorderStroke(1.dp, Color(0xFFF59E0B))
-                        ) {
-                            Text(
-                                "${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(userPoints)} P",
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 15.sp,
-                                color = Color(0xFFD97706),
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                            )
-                        }
-                    }
-
-                    // ⏳ 1년 뒤 소멸 고지 배너
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFFFFFBEB),
-                        border = BorderStroke(1.dp, Color(0xFFFDE68A))
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            Text(
-                                "⚠️ 미사용 포인트 자동 소멸 안내 (유효기간 1년)",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.5.sp,
-                                color = Color(0xFFB45309)
-                            )
-                            Text(
-                                "• 적립된 모든 포인트는 적립일로부터 1년(365일) 동안 사용 가능하며, 사용하지 않은 포인트는 1년 뒤 자동 소멸됩니다.",
-                                fontSize = 10.5.sp,
-                                color = Color(0xFF92400E),
-                                lineHeight = 14.sp
-                            )
-                            Text(
-                                "• 어디서 적립되었고 어느 예약에서 차감 사용했는지 아래 내역보기에서 실시간 확인 가능합니다.",
-                                fontSize = 10.5.sp,
-                                color = Color(0xFF92400E),
-                                lineHeight = 14.sp
-                            )
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = { showPointHistoryDialog = true },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(10.dp),
-                            border = BorderStroke(1.dp, Color(0xFF0284C7))
-                        ) {
-                            Text("📋 적립/차감/소멸 내역", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0284C7))
-                        }
-
-                        Button(
-                            onClick = { showEventDialog = true },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
-                        ) {
-                            Text("🎁 이벤트 탭 열기", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
-                        }
-                    }
-                }
-            }
-        }
-
-        // 0-2. 🎁 마이페이지 이벤트 탭 (후기 작성 / 스토어 리뷰 / 블로그·유튜브 포스팅 포인트 지급)
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showEventDialog = true },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F9FF)),
-                border = BorderStroke(1.5.dp, Color(0xFF0284C7))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text("🎁", fontSize = 20.sp)
-                            Text("발자국동행 포인트 적립 이벤트 탭", fontWeight = FontWeight.ExtraBold, fontSize = 15.5.sp, color = Color(0xFF0F172A))
-                        }
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFF0284C7)
-                        ) {
-                            Text(
-                                "최대 17,000P+",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                            )
-                        }
-                    }
-
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color.White,
-                        border = BorderStroke(1.dp, Color(0xFFBAE6FD))
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("🎉 신규 회원가입 웰컴 포인트", fontSize = 11.5.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1E293B))
-                                Text("+1,000 P 즉시지급", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A))
-                            }
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("📸 어플 내 생생후기 (사진+글 작성)", fontSize = 11.5.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1E293B))
-                                Text("검토 후 +3,000 P 지급", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
-                            }
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("⭐ 구글 플레이스토어 후기 작성", fontSize = 11.5.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1E293B))
-                                Text("+3,000 P 지급", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
-                            }
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("📝 네이버 블로그 • 유튜브 포스팅", fontSize = 11.5.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1E293B))
-                                Text("확인 후 +10,000 P 지급", fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFD97706))
-                            }
-                            HorizontalDivider(color = Color(0xFFE2E8F0))
-                            Text(
-                                "※ 지급된 포인트는 안 쓸 경우 적립일로부터 1년 뒤 자동 소멸됩니다.",
-                                fontSize = 10.sp,
-                                color = Color(0xFF64748B)
-                            )
-                        }
-                    }
-
-                    Button(
-                        onClick = { showEventDialog = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
-                    ) {
-                        Text("🎁 이벤트 참여하고 포인트 받기 ➔", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    }
-                }
-            }
-        }
-
         // 0-2. 🔒 암호화 보안 안내 카드는 마이페이지 최하단(사업자 정보 위)으로 이동됨
         // 1. 닉네임 및 휴대폰번호 설정
         item {
@@ -6255,6 +6053,119 @@ fun MyPageScreen(
                                     Text("삭제", fontSize = 12.sp, color = Color.Red, fontWeight = FontWeight.Bold)
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2-2. 💰 내 계정 적립 포인트 탭 (프로필 설정 & 결제 카드 바로 아래 배치)
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showPointHistoryDialog = true },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.5.dp, Color(0xFFD97706))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text("💰 내 계정 적립 포인트", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
+                                Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFE0F2FE)) {
+                                    Text(
+                                        text = "계정: ${(currentUserEmail.ifBlank { currentUserId }).ifBlank { userNickname }}",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0284C7),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            Text("예약 결제 시 1P = 1원 현금 동일 즉시 차감", fontSize = 11.sp, color = Color(0xFF64748B))
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color(0xFFFEF3C7),
+                            border = BorderStroke(1.dp, Color(0xFFF59E0B))
+                        ) {
+                            Text(
+                                "${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(userPoints)} P",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 15.sp,
+                                color = Color(0xFFD97706),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+
+                    // ⏳ 1년 뒤 소멸 고지 배너
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFFFFBEB),
+                        border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Text(
+                                "⚠️ 미사용 포인트 자동 소멸 안내 (유효기간 1년)",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.5.sp,
+                                color = Color(0xFFB45309)
+                            )
+                            Text(
+                                "• 적립된 모든 포인트는 적립일로부터 1년(365일) 동안 사용 가능하며, 사용하지 않은 포인트는 1년 뒤 자동 소멸됩니다.",
+                                fontSize = 10.5.sp,
+                                color = Color(0xFF92400E),
+                                lineHeight = 14.sp
+                            )
+                            Text(
+                                "• 어디서 적립되었고 어느 예약에서 차감 사용했는지 아래 내역보기에서 실시간 확인 가능합니다.",
+                                fontSize = 10.5.sp,
+                                color = Color(0xFF92400E),
+                                lineHeight = 14.sp
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { showPointHistoryDialog = true },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, Color(0xFF0284C7))
+                        ) {
+                            Text("📋 적립/차감/소멸 내역", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0284C7))
+                        }
+
+                        Button(
+                            onClick = { showEventDialog = true },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
+                        ) {
+                            Text("🎁 이벤트 탭 열기", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
                         }
                     }
                 }
