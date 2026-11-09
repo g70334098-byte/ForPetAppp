@@ -86,7 +86,12 @@ fun LoginScreen(
                 val userAddr = (userData?.get("address") as? String) ?: PersistentStorageManager.loadUserAddress(context, "")
                 val userDetail = (userData?.get("detailAddress") as? String) ?: PersistentStorageManager.loadUserDetailAddress(context, "")
                 val targetUserId = if (targetEmail.isNotBlank()) targetEmail else if (savedPhone.isNotBlank()) savedPhone else "user_${System.currentTimeMillis()}"
-                val userPts = (userData?.get("points") as? Number)?.toInt() ?: PersistentStorageManager.loadUserPoints(context, 1000, targetUserId)
+                val cloudPtsNum = (userData?.get("points") as? Number)?.toInt()
+                val userPts = if (cloudPtsNum != null && cloudPtsNum > 0) {
+                    cloudPtsNum
+                } else {
+                    PersistentStorageManager.loadUserPoints(context, 1000, targetUserId)
+                }
                 val userCard = PersistentStorageManager.loadRegisteredCard(context)
 
                 PersistentStorageManager.saveUserId(context, targetUserId)

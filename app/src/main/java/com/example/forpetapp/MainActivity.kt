@@ -1844,7 +1844,7 @@ object PersistentStorageManager {
         val prefs = getPrefs(context)
         val sanitized = getSanitizedUserKey(context, userId)
         val perUserKey = "user_points_$sanitized"
-        return if (prefs.contains(perUserKey)) {
+        val pts = if (prefs.contains(perUserKey)) {
             prefs.getInt(perUserKey, defaultVal)
         } else if (prefs.contains("user_points")) {
             val v = prefs.getInt("user_points", defaultVal)
@@ -1853,6 +1853,25 @@ object PersistentStorageManager {
         } else {
             defaultVal
         }
+
+        // 🛡️ 웰컴 1,000 포인트 보장: 아직 포인트를 사용(차감)한 적이 없는데 0P 이하로 잘못 저장되어 있는 경우 웰컴 1,000P 자동 복구 및 클라우드 동기화
+        val logs = loadPointLogs(context, userId)
+        val hasSpentPoints = logs.any { !it.isEarned && it.amount < 0 }
+        if (pts <= 0 && !hasSpentPoints) {
+            saveUserPoints(context, 1000, userId)
+            val rawUid = if (!userId.isNullOrBlank()) userId else loadUserId(context)
+            if (rawUid.isNotBlank()) {
+                com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserProfileToCloud(
+                    userId = rawUid,
+                    name = loadUserNickname(context, "발자국동행보호자"),
+                    phone = loadUserPhone(context, ""),
+                    email = loadUserEmail(context),
+                    points = 1000
+                )
+            }
+            return 1000
+        }
+        return pts
     }
 
     // 💰 포인트 적립/차감/소멸 내역 (PointLog) 계정별 영구 저장/로드 + 1년 후 자동 소멸일 계산
@@ -2083,6 +2102,7 @@ object PersistentStorageManager {
             remove("user_detail_address")
             remove("registered_card")
             remove("user_provider")
+            remove("user_points")
         }
     }
 
@@ -7997,7 +8017,7 @@ data class ReviewItem(
 @Composable
 fun HomeScreenContent(
     isAdminUser: Boolean = false,
-    userPoints: Int = 3000,
+    userPoints: Int = 1000,
     onUpdatePoints: (Int) -> Unit = {},
     userReferralCode: String = "K7TB94",
     userNickname: String = "발자국동행보호자",
@@ -10137,7 +10157,7 @@ fun HomeScreenContent(
                                         onClick = { usePointsAmount = 0 },
                                         label = { Text("미사용", fontSize = 11.sp) }
                                     )
-                                    if (userPoints >= 1000) {
+                                    if (userPoints >= 1000 && maxUsablePoints >= 1000) {
                                         FilterChip(
                                             selected = (usePointsAmount == 1000),
                                             onClick = {
@@ -10147,7 +10167,17 @@ fun HomeScreenContent(
                                             label = { Text("1,000P", fontSize = 11.sp) }
                                         )
                                     }
-                                    if (userPoints >= 3000) {
+                                    if (userPoints >= 2000 && maxUsablePoints >= 2000) {
+                                        FilterChip(
+                                            selected = (usePointsAmount == 2000),
+                                            onClick = {
+                                                usePointsAmount = 2000
+                                                Toast.makeText(context, "💰 2,000P 포인트 차감이 적용되었습니다!", Toast.LENGTH_SHORT).show()
+                                            },
+                                            label = { Text("2,000P", fontSize = 11.sp) }
+                                        )
+                                    }
+                                    if (userPoints >= 3000 && maxUsablePoints >= 3000) {
                                         FilterChip(
                                             selected = (usePointsAmount == 3000),
                                             onClick = {
@@ -10157,18 +10187,44 @@ fun HomeScreenContent(
                                             label = { Text("3,000P", fontSize = 11.sp) }
                                         )
                                     }
-                                    FilterChip(
-                                        selected = (maxUsablePoints > 0 && usePointsAmount == maxUsablePoints),
-                                        onClick = {
-                                            if (maxUsablePoints > 0) {
+                                    if (maxUsablePoints > 0) {
+                                        FilterChip(
+                                            selected = (usePointsAmount == maxUsablePoints && usePointsAmount != 1000 && usePointsAmount != 2000 && usePointsAmount != 3000),
+                                            onClick = {
                                                 usePointsAmount = maxUsablePoints
                                                 Toast.makeText(context, "💰 보유 포인트 ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(maxUsablePoints)}P 전액 차감이 적용되었습니다!", Toast.LENGTH_SHORT).show()
-                                            } else {
-                                                Toast.makeText(context, "사용 가능한 포인트가 없습니다. (이벤트 탭에서 후기/포스팅 참여 시 최대 16,000P 지급!)", Toast.LENGTH_SHORT).show()
-                                            }
-                                        },
-                                        label = { Text("전액 사용 (${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(maxUsablePoints)}P)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
-                                    )
+                                            },
+                                            label = { Text("전액 사용 (${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(maxUsablePoints)}P)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                        )
+                                    }
+                                }
+
+                                if (usePointsAmount > 0) {
+                                    Surface(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color(0xFFFEF2F2),
+                                        border = BorderStroke(1.dp, Color(0xFFFCA5A5))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                "✅ ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(usePointsAmount)}P 차감 결제 적용 중",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFFDC2626)
+                                            )
+                                            Text(
+                                                "차감 후 금액: ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format((calcPriceForPoint - usePointsAmount).coerceAtLeast(0))}원",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = Color(0xFF991B1B)
+                                            )
+                                        }
+                                    }
                                 }
 
                                 Text("※ 예약 결제 확정 시 사용한 포인트가 즉시 차감되며, [내 포인트 적립/차감 내역]에 사용한 서비스 및 병원명이 상세히 기록됩니다. (미사용 포인트는 적립 1년 뒤 자동 소멸)", fontSize = 10.sp, color = Color(0xFFB45309), lineHeight = 14.sp)
@@ -10326,6 +10382,7 @@ fun HomeScreenContent(
                 val couponDiscount = selectedCoupon?.discountAmount ?: 0
                 val finalPrice = (calculatedPriceValue - couponDiscount - usePointsAmount).coerceAtLeast(0)
                 val formattedPriceStr = java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(finalPrice)
+                val maxUsablePoints = kotlin.math.min(userPoints, (calculatedPriceValue - couponDiscount).coerceAtLeast(0))
 
                 LazyColumn(
                     modifier = Modifier
@@ -10400,8 +10457,32 @@ fun HomeScreenContent(
                                 }
                                 if (usePointsAmount > 0) {
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Text("포인트 사용", fontSize = 12.sp, color = Color(0xFFDC2626))
-                                        Text("-${usePointsAmount}P", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                                        Text("포인트 차감 할인 (${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(usePointsAmount)}P 사용)", fontSize = 12.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)
+                                        Text("-${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(usePointsAmount)}원", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                                    }
+                                } else if (maxUsablePoints > 0) {
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                usePointsAmount = maxUsablePoints
+                                                Toast.makeText(context, "💰 보유 포인트 ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(maxUsablePoints)}P 차감이 적용되었습니다!", Toast.LENGTH_SHORT).show()
+                                            },
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color(0xFFFEF3C7),
+                                        border = BorderStroke(1.dp, Color(0xFFF59E0B))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Text("💰", fontSize = 12.sp)
+                                                Text("보유 포인트 ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(userPoints)}P 중 ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(maxUsablePoints)}P 즉시 차감", fontSize = 11.sp, color = Color(0xFF92400E), fontWeight = FontWeight.Bold)
+                                            }
+                                            Text("차감 적용 >", fontSize = 11.sp, color = Color(0xFFD97706), fontWeight = FontWeight.ExtraBold)
+                                        }
                                     }
                                 }
                                 HorizontalDivider(color = Color(0xFFFDE68A))
@@ -10583,8 +10664,9 @@ fun HomeScreenContent(
                             val symptomStr = if (selectedSymptoms.isNotEmpty()) selectedSymptoms.joinToString(", ") else "상세상담"
                             val addressSummary = "📍 주소: $userAddress $userDetailAddress"
                             val insuranceNote = if (hasPetInsurance) " | 🐾 펫보험: $selectedInsuranceCompany (진단서/영수증 첨부 필수)" else ""
+                            val pointNote = if (usePointsAmount > 0) " | 💰 포인트 ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(usePointsAmount)}P 차감 결제 적용 (가결제 승인액: ${formattedPriceStr}원)" else ""
                             val combinedNote = "$addressSummary | 목적: $purposeStr | 과목: $selectedDepartment ($symptomStr) | $entrySummary" +
-                                    (if (customSymptomNote.isNotEmpty()) " | 메모: $customSymptomNote" else "") + insuranceNote
+                                    (if (customSymptomNote.isNotEmpty()) " | 메모: $customSymptomNote" else "") + insuranceNote + pointNote
 
                             val finalHospital = customHospitalName.trim().ifEmpty { if (isHospitalReserved) "명지24시온누리메디컬센터" else "명지 인근 24시 추천 병원" }
                             val currentPickupAddr = ("$userAddress $userDetailAddress").trim().ifEmpty { "보호자 자택 (픽업 주소)" }
@@ -10611,14 +10693,23 @@ fun HomeScreenContent(
                             )
                             Toast.makeText(context, "⚡ $selectedPaymentMethod 사전 가결제 승인이 완료되었습니다!", Toast.LENGTH_SHORT).show()
                             if (usePointsAmount > 0) {
-                                onUpdatePoints((userPoints - usePointsAmount).coerceAtLeast(0))
+                                val remainingPoints = (userPoints - usePointsAmount).coerceAtLeast(0)
+                                onUpdatePoints(remainingPoints)
+                                PersistentStorageManager.saveUserPoints(context, remainingPoints, currentUserId)
                                 PersistentStorageManager.recordPointTransaction(
                                     context = context,
                                     title = "🚙 [${newBooking.serviceType}] 예약 결제 차감 ($bookingPetName / $finalHospital)",
                                     amount = -usePointsAmount,
                                     isEarned = false,
-                                    customStatusText = "예약 결제 사용 차감 완료 (잔여: ${(userPoints - usePointsAmount).coerceAtLeast(0)}P)",
+                                    customStatusText = "예약 결제 사용 차감 완료 (잔여: ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(remainingPoints)}P)",
                                     userId = currentUserId
+                                )
+                                com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserProfileToCloud(
+                                    userId = currentUserId,
+                                    name = userNickname,
+                                    phone = userPhone,
+                                    email = currentUserEmail,
+                                    points = remainingPoints
                                 )
                                 homePointLogRefreshKey++
                             }
@@ -10639,9 +10730,10 @@ fun HomeScreenContent(
                                 "가드 배차 승낙 대기 중입니다. 가드가 승낙하기 전까지 무료 취소 가능합니다."
                             )
 
+                            val pointToastStr = if (usePointsAmount > 0) " (포인트 ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(usePointsAmount)}P 차감 결제 완료)" else ""
                             Toast.makeText(
                                 context,
-                                "[$selectedSpecies] '$bookingPetName' 아이의 예약이 접수되었습니다! 가드가 승낙할 때까지 무료 취소 가능합니다.",
+                                "[$selectedSpecies] '$bookingPetName' 아이의 예약이 접수되었습니다!$pointToastStr 가드가 승낙할 때까지 무료 취소 가능합니다.",
                                 Toast.LENGTH_LONG
                             ).show()
                             showBookingDialog = false
@@ -13192,11 +13284,9 @@ fun MyPetDetailScreen(
 
     var isSaved by remember { mutableStateOf(false) }
 
-    val birthDateText: String
-    val ageText: String
-    if (selectedBirthMillis != null) {
+    val (birthDateText, ageText) = if (selectedBirthMillis != null) {
         val dateFormat = SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREA)
-        birthDateText = dateFormat.format(Date(selectedBirthMillis!!))
+        val bText = dateFormat.format(Date(selectedBirthMillis!!))
 
         val birthCal = Calendar.getInstance().apply { timeInMillis = selectedBirthMillis!! }
         val todayCal = Calendar.getInstance()
@@ -13204,10 +13294,10 @@ fun MyPetDetailScreen(
         if (todayCal.get(Calendar.DAY_OF_YEAR) < birthCal.get(Calendar.DAY_OF_YEAR)) {
             age--
         }
-        ageText = if (age < 0) "0살" else "${age}살"
+        val aText = if (age < 0) "0살" else "${age}살"
+        Pair(bText, aText)
     } else {
-        birthDateText = "2021년 05월 12일"
-        ageText = "3살"
+        Pair("2021년 05월 12일", "3살")
     }
 
 fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): String? {

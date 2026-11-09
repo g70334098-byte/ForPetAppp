@@ -84,6 +84,7 @@ fun SignUpScreen(
         PersistentStorageManager.saveUserId(context, targetUserId)
         PersistentStorageManager.saveUserEmail(context, currentAccountEmail)
         PersistentStorageManager.saveUserProvider(context, currentProvider)
+        PersistentStorageManager.saveUserPoints(context, userPts, targetUserId)
         PersistentStorageManager.initializeNewUserWelcomePoints(context, targetUserId)
         PersistentStorageManager.saveUserProfile(
             context = context,

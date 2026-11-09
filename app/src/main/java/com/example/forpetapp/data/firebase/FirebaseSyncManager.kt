@@ -485,7 +485,7 @@ object FirebaseSyncManager {
         provider: String = "일반",
         address: String = "",
         detailAddress: String = "",
-        points: Int = 0,
+        points: Int = -1,
         petSummary: String? = null,
         onComplete: ((Boolean) -> Unit)? = null
     ) {
@@ -503,10 +503,12 @@ object FirebaseSyncManager {
                 "provider" to provider,
                 "address" to address,
                 "detailAddress" to detailAddress,
-                "points" to points,
                 "role" to "USER",
                 "lastLoginAt" to System.currentTimeMillis()
             )
+            if (points >= 0) {
+                userMap["points"] = points
+            }
             if (!petSummary.isNullOrBlank()) {
                 userMap["pet"] = petSummary
             }
@@ -515,6 +517,11 @@ object FirebaseSyncManager {
             docRef.get().addOnSuccessListener { doc ->
                 if (!doc.exists()) {
                     userMap["createdAt"] = System.currentTimeMillis()
+                    if (points < 0) {
+                        userMap["points"] = 1000
+                    }
+                } else if (points < 0 && !doc.contains("points")) {
+                    userMap["points"] = 1000
                 }
                 docRef.set(userMap, SetOptions.merge())
                     .addOnSuccessListener {
@@ -527,6 +534,9 @@ object FirebaseSyncManager {
                     }
             }.addOnFailureListener {
                 userMap["createdAt"] = System.currentTimeMillis()
+                if (points < 0) {
+                    userMap["points"] = 1000
+                }
                 docRef.set(userMap, SetOptions.merge())
                     .addOnCompleteListener { onComplete?.invoke(it.isSuccessful) }
             }
@@ -809,9 +819,13 @@ object FirebaseSyncManager {
                         val sanitized = userId.trim().replace("[^a-zA-Z0-9_]".toRegex(), "_")
                         val cloudPoints = doc.getLong("points")?.toInt()
                         if (cloudPoints != null) {
-                            editor.putInt("user_points", cloudPoints)
+                            val localLogsKey = if (sanitized.isNotBlank()) "point_logs_json_$sanitized" else "point_logs_json"
+                            val logsJson = prefs.getString(localLogsKey, null)
+                            val hasSpent = logsJson?.contains("\"amount\":-") == true || logsJson?.contains("\"isEarned\":false") == true
+                            val finalPoints = if (cloudPoints <= 0 && !hasSpent) 1000 else cloudPoints
+                            editor.putInt("user_points", finalPoints)
                             if (sanitized.isNotBlank()) {
-                                editor.putInt("user_points_$sanitized", cloudPoints)
+                                editor.putInt("user_points_$sanitized", finalPoints)
                             }
                             changed = true
                         }
@@ -1039,13 +1053,16 @@ object FirebaseSyncManager {
 
                     val cloudPoints = snapshot.getLong("points")?.toInt()
                     if (cloudPoints != null) {
-                        editor.putInt("user_points", cloudPoints)
+                        val logsJson = prefs.getString(localLogsKey, null)
+                        val hasSpent = logsJson?.contains("\"amount\":-") == true || logsJson?.contains("\"isEarned\":false") == true
+                        val finalPoints = if (cloudPoints <= 0 && !hasSpent) 1000 else cloudPoints
+                        editor.putInt("user_points", finalPoints)
                         if (sanitized.isNotBlank()) {
-                            editor.putInt("user_points_$sanitized", cloudPoints)
+                            editor.putInt("user_points_$sanitized", finalPoints)
                         }
                         updated = true
                         editor.commit()
-                        onPointsChanged(cloudPoints)
+                        onPointsChanged(finalPoints)
                     } else if (updated) {
                         editor.commit()
                     }
