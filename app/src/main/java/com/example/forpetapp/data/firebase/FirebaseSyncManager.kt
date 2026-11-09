@@ -858,14 +858,19 @@ object FirebaseSyncManager {
         onComplete: ((Boolean) -> Unit)? = null
     ) {
         try {
-            val docId = if (userId.isNotBlank()) userId.trim().replace("[^a-zA-Z0-9_@.-]".toRegex(), "_") else "post_${System.currentTimeMillis()}"
+            val cleanId = userId.ifBlank { userPhone }.trim().replace("[^a-zA-Z0-9_@.-]".toRegex(), "_")
+            val docId = if (cleanId.isNotBlank()) "blog_$cleanId" else "blog_${System.currentTimeMillis()}"
             val data = hashMapOf<String, Any>(
-                "userId" to userId,
+                "id" to docId,
+                "type" to "BLOG_YOUTUBE",
+                "category" to "📝 네이버 블로그 / 유튜브 포스팅",
+                "userId" to userId.ifBlank { userPhone },
                 "userName" to userName,
                 "userPhone" to userPhone,
                 "postUrl" to postUrl,
+                "content" to postUrl,
                 "rewardPoints" to 10000,
-                "status" to "검수 대기중 (확인 후 10,000P 지급)",
+                "status" to "검토 대기중 (관리자 확인 후 10,000P 지급)",
                 "submittedAt" to System.currentTimeMillis()
             )
             firestore.collection("event_submissions")
@@ -880,6 +885,174 @@ object FirebaseSyncManager {
         } catch (e: Exception) {
             Log.e(TAG, "submitBlogYoutubeEventToCloud error: ${e.message}")
             onComplete?.invoke(false)
+        }
+    }
+
+    /**
+     * 11-2. 어플 내 생생후기 (사진 + 글 작성) 3,000P 관리자 검토 신청 Firestore 저장
+     */
+    fun submitPhotoReviewEventToCloud(
+        userId: String,
+        userName: String,
+        userPhone: String,
+        petInfo: String,
+        reviewContent: String,
+        onComplete: ((Boolean) -> Unit)? = null
+    ) {
+        try {
+            val cleanId = userId.ifBlank { userPhone }.trim().replace("[^a-zA-Z0-9_@.-]".toRegex(), "_")
+            val docId = if (cleanId.isNotBlank()) "review_${cleanId}_${System.currentTimeMillis() % 100000}" else "review_${System.currentTimeMillis()}"
+            val data = hashMapOf<String, Any>(
+                "id" to docId,
+                "type" to "PHOTO_REVIEW",
+                "category" to "📸 어플 내 생생후기 (사진+글 작성)",
+                "userId" to userId.ifBlank { userPhone },
+                "userName" to userName,
+                "userPhone" to userPhone,
+                "petInfo" to petInfo,
+                "postUrl" to "[앱 내 포토후기] $reviewContent",
+                "content" to reviewContent,
+                "rewardPoints" to 3000,
+                "status" to "검토 대기중 (관리자 확인 후 3,000P 지급)",
+                "submittedAt" to System.currentTimeMillis()
+            )
+            firestore.collection("event_submissions")
+                .document(docId)
+                .set(data, SetOptions.merge())
+                .addOnSuccessListener {
+                    onComplete?.invoke(true)
+                }
+                .addOnFailureListener {
+                    onComplete?.invoke(false)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "submitPhotoReviewEventToCloud error: ${e.message}")
+            onComplete?.invoke(false)
+        }
+    }
+
+    /**
+     * 12. 홈페이지/앱 관리자가 회원의 DB 포인트를 지급하거나 차감할 때 Firestore 실시간 반영 (내역 및 1년 소멸일자 자동 기록)
+     */
+    fun adminAdjustUserPointsInCloud(
+        targetDocId: String,
+        deltaPoints: Int,
+        reasonTitle: String,
+        onComplete: ((Boolean, Int) -> Unit)? = null
+    ) {
+        try {
+            val cleanDocId = targetDocId.trim()
+            if (cleanDocId.isBlank()) {
+                onComplete?.invoke(false, 0)
+                return
+            }
+            val docRef = firestore.collection(USERS_COLLECTION).document(cleanDocId)
+            docRef.get().addOnSuccessListener { doc ->
+                val currentPts = doc?.getLong("points")?.toInt() ?: 1000
+                val newPts = (currentPts + deltaPoints).coerceAtLeast(0)
+                val existingLogsJson = doc?.getString("point_logs_json") ?: "[]"
+                val logsArray = try {
+                    org.json.JSONArray(existingLogsJson)
+                } catch (_: Exception) {
+                    org.json.JSONArray()
+                }
+
+                val sdfNow = java.text.SimpleDateFormat("yyyy.MM.dd HH:mm", java.util.Locale.KOREA)
+                val sdfExpire = java.text.SimpleDateFormat("yyyy.MM.dd", java.util.Locale.KOREA)
+                val cal = java.util.Calendar.getInstance()
+                val nowStr = sdfNow.format(cal.time)
+                cal.add(java.util.Calendar.YEAR, 1)
+                val isEarned = deltaPoints >= 0
+                val expireText = if (isEarned) {
+                    "${sdfExpire.format(cal.time)} 소멸 예정 (적립 1년 후 자동 소멸)"
+                } else {
+                    "관리자 차감 완료 (잔여: ${newPts}P)"
+                }
+
+                val newLogObj = org.json.JSONObject().apply {
+                    put("id", "pt_${System.currentTimeMillis()}")
+                    put("title", reasonTitle)
+                    put("amount", deltaPoints)
+                    put("dateText", nowStr)
+                    put("expireDateText", expireText)
+                    put("isEarned", isEarned)
+                }
+
+                val updatedArray = org.json.JSONArray()
+                updatedArray.put(newLogObj)
+                for (i in 0 until logsArray.length()) {
+                    updatedArray.put(logsArray.getJSONObject(i))
+                }
+
+                val nowTs = System.currentTimeMillis()
+                val updateData = hashMapOf<String, Any>(
+                    "points" to newPts,
+                    "point_logs_json" to updatedArray.toString(),
+                    "point_logs_json_ts" to nowTs,
+                    "updatedAt" to nowTs
+                )
+                docRef.set(updateData, SetOptions.merge())
+                    .addOnSuccessListener {
+                        onComplete?.invoke(true, newPts)
+                    }
+                    .addOnFailureListener {
+                        onComplete?.invoke(false, currentPts)
+                    }
+            }.addOnFailureListener {
+                onComplete?.invoke(false, 0)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "adminAdjustUserPointsInCloud error: ${e.message}")
+            onComplete?.invoke(false, 0)
+        }
+    }
+
+    /**
+     * 13. 로그인된 회원의 DB 포인트 및 내역 실시간 수신 리스너 (홈페이지 관리자 페이지에서 포인트 지급/차감 시 스마트폰 앱 즉시 반영)
+     */
+    fun listenToCurrentUserPointsRealtime(
+        context: Context,
+        userId: String,
+        onPointsChanged: (Int) -> Unit
+    ): ListenerRegistration? {
+        if (userId.isBlank()) return null
+        return try {
+            val sanitized = userId.trim().replace("[^a-zA-Z0-9_]".toRegex(), "_")
+            firestore.collection(USERS_COLLECTION)
+                .document(userId.trim())
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null || snapshot == null || !snapshot.exists()) return@addSnapshotListener
+                    val prefs = context.getSharedPreferences("BaljagukAppDiskPrefs", Context.MODE_PRIVATE)
+                    val editor = prefs.edit()
+                    var updated = false
+
+                    val cloudLogs = snapshot.getString("point_logs_json")
+                    val cloudLogsTs = snapshot.getLong("point_logs_json_ts") ?: 0L
+                    val localLogsKey = if (sanitized.isNotBlank()) "point_logs_json_$sanitized" else "point_logs_json"
+                    val localLogsTs = prefs.getLong("${localLogsKey}_ts", 0L)
+                    if (cloudLogs != null && cloudLogsTs >= localLogsTs) {
+                        editor.putString(localLogsKey, cloudLogs)
+                        editor.putString("point_logs_json", cloudLogs)
+                        editor.putLong("${localLogsKey}_ts", cloudLogsTs)
+                        updated = true
+                    }
+
+                    val cloudPoints = snapshot.getLong("points")?.toInt()
+                    if (cloudPoints != null) {
+                        editor.putInt("user_points", cloudPoints)
+                        if (sanitized.isNotBlank()) {
+                            editor.putInt("user_points_$sanitized", cloudPoints)
+                        }
+                        updated = true
+                        editor.commit()
+                        onPointsChanged(cloudPoints)
+                    } else if (updated) {
+                        editor.commit()
+                    }
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "listenToCurrentUserPointsRealtime error: ${e.message}")
+            null
         }
     }
 }

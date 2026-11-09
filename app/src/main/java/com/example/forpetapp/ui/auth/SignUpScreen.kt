@@ -190,7 +190,7 @@ fun SignUpScreen(
                     Text("신규 회원 특별 웰컴 & 이벤트 혜택", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF1E40AF))
                 }
                 Text("• 신규 회원가입 즉시 1,000 포인트 지급! (1P=1원 예약 시 현금처럼 차감)", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
-                Text("• 어플 내 생생후기(사진+글) 작성 시 +3,000P / 플레이스토어 후기 +3,000P 지급", fontSize = 11.sp, color = Color(0xFF1E3A8A))
+                Text("• 어플 내 생생후기(사진+글) 검토 후 +3,000P / 플레이스토어 후기 +3,000P 지급", fontSize = 11.sp, color = Color(0xFF1E3A8A))
                 Text("• 네이버 블로그 • 유튜브 포스팅 시 확인 후 +10,000P 특별 지급", fontSize = 11.sp, color = Color(0xFF1E3A8A))
                 Text("※ 적립된 포인트는 적립일로부터 1년(365일) 후 미사용 시 자동 소멸됩니다.", fontSize = 10.sp, color = Color(0xFF64748B))
             }

@@ -405,7 +405,8 @@
             <div class="nav-menu">
                 <div class="nav-item active" id="menu-orders" onclick="switchPanel('orders')">📋 실시간 오더 관제 & 배차</div>
                 <div class="nav-item" id="menu-guard" onclick="switchPanel('guard')">👨‍✈️ 가드 실시간 GPS 위치 (Google Maps)</div>
-                <div class="nav-item" id="menu-users" onclick="switchPanel('users')">👥 회원 DB 관리</div>
+                <div class="nav-item" id="menu-users" onclick="switchPanel('users')">👥 회원 DB & 포인트 관리</div>
+                <div class="nav-item" id="menu-points" onclick="switchPanel('points')">🎁 DB 포인트 & 후기/이벤트 검수</div>
                 <div class="nav-item" id="menu-sales" onclick="switchPanel('sales')">📊 매출 관리 & 결제 정산 내역</div>
             </div>
         </div>
@@ -612,10 +613,11 @@
         <!-- Tab 3: 👥 회원 DB 및 포인트 관리 패널 -->
         <div id="panel-users" class="content-panel" style="display:none;">
             <div class="panel-header">
-                <div class="panel-title">👥 전체 회원 DB & 포인트 관리</div>
+                <div class="panel-title">👥 전체 회원 DB & 계정별 포인트 실시간 관리</div>
                 <div class="search-box">
                     <input type="text" id="user-search" placeholder="회원명, 연락처, 계정 검색..." onkeyup="renderUsersTable()">
-                    <button class="btn-action btn-green" onclick="openAddUserModal()">➕ 신규 회원 직접 등록</button>
+                    <button class="btn-action btn-gold" onclick="switchPanel('points')">🎁 후기/이벤트 검수 & 포인트 센터 이동</button>
+                    <button class="btn-action btn-green" onclick="openAddUserModal()">➕ 신규 회원 직접 등록 (기본 1,000P)</button>
                 </div>
             </div>
 
@@ -623,15 +625,103 @@
                 <thead>
                     <tr>
                         <th>회원명</th>
-                        <th>가입 연동 계정 (Google / Kakao)</th>
-                        <th>연락처</th>
+                        <th>가입 연동 계정 (Google / Kakao / 일반)</th>
+                        <th>연락처 (DB Key)</th>
                         <th>자택 주소</th>
                         <th>등록 반려동물</th>
-                        <th>회원 직접 수정 / 삭제</th>
+                        <th>💰 보유 DB 포인트 (1년 뒤 소멸)</th>
+                        <th>🎁 DB 포인트 지급/차감 & 회원 관리</th>
                     </tr>
                 </thead>
                 <tbody id="user-table-body"></tbody>
             </table>
+        </div>
+
+        <!-- Tab 3-2: 🎁 DB 포인트 통합 관리 & 생생후기·블로그 이벤트 검수 센터 -->
+        <div id="panel-points" class="content-panel" style="display:none;">
+            <div class="panel-header">
+                <div>
+                    <div class="panel-title">🎁 홈페이지 관리자 DB 포인트 통합 관리 & 후기·이벤트 검수 센터</div>
+                    <p style="font-size:12px; color:#64748b; margin-top:4px;">💡 스마트폰 앱과 Cloud Firestore(users / event_submissions)가 100% 실시간 연동됩니다. 승인/지급 즉시 고객 앱의 보유 포인트와 적립·차감 내역에 반영됩니다.</p>
+                </div>
+                <div class="search-box">
+                    <input type="text" id="point-user-search" placeholder="회원명, 계정, 연락처 검색..." onkeyup="renderPointsDashboard()">
+                </div>
+            </div>
+
+            <!-- 포인트 정책 & 실시간 통계 요약 배너 -->
+            <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:12px; margin-bottom:20px;">
+                <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:12px;">
+                    <div style="font-size:11px; color:#166534; font-weight:700;">🎉 신규가입 웰컴 적립</div>
+                    <div style="font-size:18px; font-weight:800; color:#15803d; margin-top:4px;">+1,000 P</div>
+                    <div style="font-size:10px; color:#64748b; margin-top:2px;">가입 즉시 자동 지급</div>
+                </div>
+                <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:12px; padding:12px;">
+                    <div style="font-size:11px; color:#0369a1; font-weight:700;">📸 어플 내 생생후기 (사진+글)</div>
+                    <div style="font-size:18px; font-weight:800; color:#0284c7; margin-top:4px;">+3,000 P</div>
+                    <div style="font-size:10px; color:#0284c7; font-weight:700; margin-top:2px;">🔍 관리자 검토 후 지급</div>
+                </div>
+                <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:12px;">
+                    <div style="font-size:11px; color:#92400e; font-weight:700;">⭐ 플레이스토어 앱 후기</div>
+                    <div style="font-size:18px; font-weight:800; color:#d97706; margin-top:4px;">+3,000 P</div>
+                    <div style="font-size:10px; color:#64748b; margin-top:2px;">계정당 1회 지급</div>
+                </div>
+                <div style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:12px; padding:12px;">
+                    <div style="font-size:11px; color:#5b21b6; font-weight:700;">📝 네이버 블로그 / 유튜브</div>
+                    <div style="font-size:18px; font-weight:800; color:#7c3aed; margin-top:4px;">+10,000 P</div>
+                    <div style="font-size:10px; color:#7c3aed; font-weight:700; margin-top:2px;">🔍 포스팅 확인 후 지급</div>
+                </div>
+                <div style="background:#fff1f2; border:1px solid #fecdd3; border-radius:12px; padding:12px;">
+                    <div style="font-size:11px; color:#be123c; font-weight:700;">⏳ 미사용 포인트 소멸 규정</div>
+                    <div style="font-size:15px; font-weight:800; color:#e11d48; margin-top:4px;" id="kpi-total-db-points">총 0 P 보유중</div>
+                    <div style="font-size:10px; color:#be123c; font-weight:700; margin-top:2px;">⚠️ 적립 1년(365일) 뒤 자동소멸</div>
+                </div>
+            </div>
+
+            <!-- 1. 실시간 어플 내 생생후기(3,000P) & 블로그/유튜브 포스팅(10,000P) 관리자 검토 대기 목록 -->
+            <div style="background:#f8f6f0; border:1.5px solid #d97706; border-radius:14px; padding:16px; margin-bottom:22px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <div>
+                        <span style="font-size:15px; font-weight:800; color:#0f172a;">🔍 1. 실시간 생생후기(+3,000P) & 블로그·유튜브 포스팅(+10,000P) 관리자 검토 대기 목록</span>
+                        <span id="pending-event-badge" class="badge badge-yellow" style="margin-left:8px;">검토 대기 0건</span>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>접수 일시</th>
+                            <th>이벤트 구분</th>
+                            <th>신청 회원 / 계정</th>
+                            <th>연락처</th>
+                            <th>작성 후기 내용 / 포스팅 URL</th>
+                            <th>지급 예정 포인트</th>
+                            <th>검수 상태</th>
+                            <th>👑 관리자 검토 승인 / 지급</th>
+                        </tr>
+                    </thead>
+                    <tbody id="event-submissions-table-body"></tbody>
+                </table>
+            </div>
+
+            <!-- 2. 계정별 DB 포인트 잔액 및 적립·사용처 차감·1년 소멸 통합 관리 테이블 -->
+            <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <span style="font-size:15px; font-weight:800; color:#0f172a;">💰 2. 전체 회원 계정별 DB 포인트 잔액 • 사용처 차감 • 1년 소멸 통합 관리</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>회원명</th>
+                            <th>계정 / 연동 정보</th>
+                            <th>연락처 (DB 문서키)</th>
+                            <th>현재 보유 포인트</th>
+                            <th>최근 적립 / 어디서 사용했는지 차감 내역 (1년 소멸 예정일)</th>
+                            <th>⚡ 원클릭 포인트 지급 / 차감 제어</th>
+                        </tr>
+                    </thead>
+                    <tbody id="db-points-table-body"></tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Tab 4: 📊 매출 관리 & 결제 정산 내역 패널 -->
@@ -929,6 +1019,54 @@
         </div>
     </div>
 
+    <!-- 7. 💰 회원 DB 포인트 직접 지급 / 차감 및 사용처 기록 모달 -->
+    <div class="modal-overlay" id="point-adjust-modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="point-modal-title">💰 회원 DB 포인트 지급 / 차감 관리</h3>
+                <span class="modal-close" onclick="closeModal('point-adjust-modal')">✕</span>
+            </div>
+
+            <input type="hidden" id="point-adjust-user-index">
+
+            <div class="form-group">
+                <label>대상 회원 계정 정보</label>
+                <input type="text" id="point-adjust-user-info" readonly style="background:#f1ede4; font-weight:bold;">
+            </div>
+
+            <div class="form-group">
+                <label>구분 선택 (지급 적립 / 사용 차감)</label>
+                <select id="point-adjust-type" onchange="applyPointPresetReason(this.value)">
+                    <option value="REVIEW_3000">📸 [검토 승인] 어플 내 생생후기 (사진+글 작성) (+3,000P 지급)</option>
+                    <option value="PLAYSTORE_3000">⭐ [검토 승인] 구글 플레이스토어 앱 후기 (+3,000P 지급)</option>
+                    <option value="BLOG_10000">📝 [검토 승인] 네이버 블로그 / 유튜브 포스팅 (+10,000P 지급)</option>
+                    <option value="WELCOME_1000">🎉 신규 회원가입 웰컴 포인트 (+1,000P 지급)</option>
+                    <option value="DEDUCT_USE">🚙 서비스 예약 결제 포인트 사용 차감 (-직접 입력)</option>
+                    <option value="CUSTOM">⚙️ 관리자 수동 포인트 지급/차감 (직접 입력)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>지급(+) 또는 차감(-) 할 포인트 금액 (음수 입력 시 차감)</label>
+                <input type="number" id="point-adjust-amount" value="3000" placeholder="예: 3000 또는 -3000">
+            </div>
+
+            <div class="form-group">
+                <label>📋 적립 사유 또는 어디서 사용했는지 차감 내역 (고객 앱 포인트 내역에 그대로 표시됨)</label>
+                <input type="text" id="point-adjust-reason" value="📸 [관리자 검토 승인] 어플 내 생생후기(사진+글) 3,000P 지급">
+            </div>
+
+            <div style="background:#fff1f2; border:1px solid #fecdd3; border-radius:8px; padding:10px; font-size:11px; color:#be123c; margin-bottom:12px;">
+                ⚠️ <b>유효기간 자동 적용</b>: 지급(+)된 포인트는 적립일로부터 <b>1년(365일) 뒤 자동 소멸 예정일</b>이 고객 앱에 자동 표시되며, 차감(-)된 포인트는 <b>사용처 차감 완료 내역</b>으로 기록됩니다.
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-action btn-green" style="padding:10px 18px;" onclick="submitPointAdjustModal()">💾 DB 포인트 즉시 반영</button>
+                <button class="btn-action btn-danger" style="padding:10px 18px;" onclick="closeModal('point-adjust-modal')">취소</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // 시계 가동 (초단위 실시간 갱신)
         function updateClock() {
@@ -954,13 +1092,17 @@
         // 패널 스위칭 (왼쪽 메뉴 네비게이션)
         function switchPanel(panelName) {
             try {
-                const panels = ['orders', 'guard', 'users', 'sales'];
+                const panels = ['orders', 'guard', 'users', 'points', 'sales'];
                 panels.forEach(p => {
                     const el = document.getElementById('panel-' + p);
                     if (el) el.style.display = (p === panelName) ? 'block' : 'none';
                     const menu = document.getElementById('menu-' + p);
                     if (menu) menu.classList.toggle('active', p === panelName);
                 });
+
+                if (panelName === 'points') {
+                    renderPointsDashboard();
+                }
 
                 if (panelName === 'guard') {
                     setTimeout(function() {
@@ -1488,9 +1630,9 @@
         ];
 
         const defaultUsers = [
-            { name: "최지훈 대표님", provider: "🔴 Google 계정 (g70334098@gmail.com)", phone: "010-3786-5394", address: "주소 미등록 (마이페이지 설정 필요)", pet: "초코 (말티즈, 3살)", points: 0 },
-            { name: "이선하 대표님", provider: "🔐 ID/PW 계정 (seonha2525)", phone: "010-7521-7399", address: "부산 사하구 낙동대로 550 자이아파트 202동", pet: "해피 (푸들, 2살)", points: 0 },
-            { name: "홍길동 보호자님", provider: "💛 카카오톡 계정 (kakao_hong_1004)", phone: "010-1234-5678", address: "부산 사상구 괘법동 센트럴아파트", pet: "몽이 (포메라니안, 4살)", points: 0 }
+            { docId: "010-3786-5394", name: "최지훈 대표님", provider: "🔴 Google 계정 (g70334098@gmail.com)", phone: "010-3786-5394", address: "주소 미등록 (마이페이지 설정 필요)", pet: "초코 (말티즈, 3살)", points: 1000, pointLogs: [] },
+            { docId: "010-7521-7399", name: "이선하 대표님", provider: "🔐 ID/PW 계정 (seonha2525)", phone: "010-7521-7399", address: "부산 사하구 낙동대로 550 자이아파트 202동", pet: "해피 (푸들, 2살)", points: 1000, pointLogs: [] },
+            { docId: "010-1234-5678", name: "홍길동 보호자님", provider: "💛 카카오톡 계정 (kakao_hong_1004)", phone: "010-1234-5678", address: "부산 사상구 괘법동 센트럴아파트", pet: "몽이 (포메라니안, 4살)", points: 1000, pointLogs: [] }
         ];
 
         const defaultSales = [
@@ -1498,22 +1640,50 @@
             { date: "2026-11-05 14:00", id: "ORD-02", type: "🏥 병원 진료 대행", owner: "이선하 대표님 (해피)", price: "30,000 원", discount: "0 원", final: 30000, method: "💳 카드 자동 가결제", status: "정산 완료" }
         ];
 
+        const defaultEventSubmissions = [
+            {
+                docId: "sample_review_1",
+                type: "PHOTO_REVIEW",
+                category: "📸 어플 내 생생후기 (사진+글 작성)",
+                userId: "010-1234-5678",
+                userName: "홍길동 보호자님",
+                userPhone: "010-1234-5678",
+                content: "[앱 내 포토후기] 발자국동행 레이 차량으로 안전하게 진료받고 수의사 소견서 리포트까지 전달받아서 너무 안심되었어요!",
+                rewardPoints: 3000,
+                status: "검토 대기중 (관리자 확인 후 3,000P 지급)",
+                submittedAt: Date.now() - 3600000
+            }
+        ];
+
         // LocalStorage 영구 로드 및 저장
         let ordersData = JSON.parse(localStorage.getItem('baljaguk_orders')) || defaultOrders;
         let usersData = JSON.parse(localStorage.getItem('baljaguk_users')) || defaultUsers;
         let salesData = JSON.parse(localStorage.getItem('baljaguk_sales')) || defaultSales;
+        let eventSubmissionsData = JSON.parse(localStorage.getItem('baljaguk_event_submissions')) || defaultEventSubmissions;
 
         function persistData() {
             try {
                 localStorage.setItem('baljaguk_orders', JSON.stringify(ordersData));
                 localStorage.setItem('baljaguk_users', JSON.stringify(usersData));
                 localStorage.setItem('baljaguk_sales', JSON.stringify(salesData));
+                localStorage.setItem('baljaguk_event_submissions', JSON.stringify(eventSubmissionsData));
             } catch (storageErr) {
                 console.warn("Storage save error:", storageErr);
             }
             renderOrdersTable();
             renderUsersTable();
+            renderPointsDashboard();
             renderSalesTable();
+        }
+
+        // 날짜 포맷 헬퍼 (현재 시각 & 1년 뒤 소멸 예정일)
+        function getFormattedDateAndExpire() {
+            const now = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            const nowStr = `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+            const expYear = now.getFullYear() + 1;
+            const expStr = `${expYear}.${pad(now.getMonth() + 1)}.${pad(now.getDate())} 소멸 예정 (적립 1년 후 자동 소멸)`;
+            return { nowStr, expStr };
         }
 
         // ☁️ Firebase Firestore 실시간 연동 (스마트폰 앱 ↔ 관리자 웹 포털 실시간 동기화)
@@ -1549,7 +1719,7 @@
                         }
                     }, function(err) { console.log("GPS listen error", err); });
 
-                // 1. 실시간 회원 DB (users 컬렉션) 동기화 (탈퇴 시 마지막 1명까지 0명으로 즉시 반영)
+                // 1. 실시간 회원 DB (users 컬렉션) 및 계정별 포인트/내역 동기화
                 db.collection("users").onSnapshot((snapshot) => {
                     const statusText = document.getElementById('db-status-text');
                     if (statusText) {
@@ -1562,6 +1732,14 @@
                             const d = doc.data();
                             const provLabel = d.provider === "Kakao" ? "💛 카카오톡" : (d.provider === "Google" ? "🔴 Google" : (d.provider || "일반"));
                             const fullAddr = ((d.address || "") + " " + (d.detailAddress || "")).trim();
+                            let parsedLogs = [];
+                            if (d.point_logs_json) {
+                                try {
+                                    parsedLogs = JSON.parse(d.point_logs_json);
+                                } catch (e) {
+                                    parsedLogs = [];
+                                }
+                            }
                             cloudUsers.push({
                                 docId: doc.id,
                                 name: d.name || "회원",
@@ -1569,13 +1747,15 @@
                                 phone: d.phone || doc.id,
                                 address: fullAddr || "주소 미등록 (마이페이지 설정 필요)",
                                 pet: d.pet || "반려동물 (등록 대기)",
-                                points: typeof d.points === 'number' ? d.points : 0
+                                points: typeof d.points === 'number' ? d.points : 1000,
+                                pointLogs: Array.isArray(parsedLogs) ? parsedLogs : []
                             });
                         });
                         usersData = cloudUsers;
                         localStorage.setItem('baljaguk_users', JSON.stringify(usersData));
                         renderUsersTable();
-                        console.log("☁️ Firestore 실시간 회원 동기화 완료:", cloudUsers.length, "명");
+                        renderPointsDashboard();
+                        console.log("☁️ Firestore 실시간 회원 & DB 포인트 동기화 완료:", cloudUsers.length, "명");
                     }
                 }, (err) => {
                     console.warn("Firestore users sync:", err);
@@ -1585,6 +1765,33 @@
                         statusText.style.color = "#dc2626";
                     }
                 });
+
+                // 1-2. 실시간 이벤트/후기 검수 신청 (event_submissions 컬렉션) 동기화
+                db.collection("event_submissions").onSnapshot((snapshot) => {
+                    if (snapshot) {
+                        const subs = [];
+                        snapshot.forEach(doc => {
+                            const d = doc.data();
+                            subs.push({
+                                docId: doc.id,
+                                type: d.type || (d.rewardPoints === 3000 ? "PHOTO_REVIEW" : "BLOG_YOUTUBE"),
+                                category: d.category || (d.rewardPoints === 3000 ? "📸 어플 내 생생후기 (사진+글)" : "📝 네이버 블로그 / 유튜브 포스팅"),
+                                userId: d.userId || doc.id,
+                                userName: d.userName || "발자국동행 회원",
+                                userPhone: d.userPhone || d.userId || "-",
+                                content: d.content || d.postUrl || "",
+                                postUrl: d.postUrl || d.content || "",
+                                rewardPoints: typeof d.rewardPoints === 'number' ? d.rewardPoints : 10000,
+                                status: d.status || "검토 대기중",
+                                submittedAt: d.submittedAt || Date.now()
+                            });
+                        });
+                        subs.sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
+                        eventSubmissionsData = subs;
+                        localStorage.setItem('baljaguk_event_submissions', JSON.stringify(eventSubmissionsData));
+                        renderPointsDashboard();
+                    }
+                }, (err) => console.warn("Firestore event_submissions sync:", err));
 
                 // 2. 실시간 오더 DB (orders 컬렉션) 동기화 & 매출 정산 자동 연동
                 db.collection("orders").onSnapshot((snapshot) => {
@@ -1788,21 +1995,23 @@
             }
         }
 
-        // 회원 테이블 렌더링
+        // 회원 테이블 렌더링 (보유 DB 포인트 컬럼 및 원클릭 지급/차감 버튼 포함)
         function renderUsersTable() {
             const tbody = document.getElementById('user-table-body');
-            const query = document.getElementById('user-search').value.toLowerCase();
+            if (!tbody) return;
+            const searchInput = document.getElementById('user-search');
+            const query = searchInput ? searchInput.value.toLowerCase() : '';
             tbody.innerHTML = '';
 
-            let filtered = usersData.filter(u =>
-                u.name.toLowerCase().includes(query) ||
-                u.phone.includes(query) ||
-                (u.provider && u.provider.toLowerCase().includes(query))
-            );
+            usersData.forEach((user, index) => {
+                const match = user.name.toLowerCase().includes(query) ||
+                    (user.phone && user.phone.includes(query)) ||
+                    (user.provider && user.provider.toLowerCase().includes(query));
+                if (!match) return;
 
-            filtered.forEach((user, index) => {
                 const providerStr = user.provider || "🔴 Google 계정";
                 const badgeClass = providerStr.includes('Google') ? 'badge-red' : (providerStr.includes('카카오') ? 'badge-yellow' : 'badge-blue');
+                const pts = typeof user.points === 'number' ? user.points : 1000;
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -1812,27 +2021,321 @@
                     <td style="font-size:12px;">${user.address}</td>
                     <td><b style="color:#d97706; cursor:pointer;" onclick="openUserDetailModal(${index})">${user.pet} 🐾</b></td>
                     <td>
-                        <div style="display:flex; gap:4px;">
-                            <button class="btn-action" style="padding:4px 8px; font-size:11px; background:#0284c7;" onclick="openUserDetailModal(${index})">🔍 상세조회</button>
-                            <button class="btn-action btn-gold" style="padding:4px 8px; font-size:11px;" onclick="openEditUserModal(${index})">✏️ 수정</button>
-                            <button class="btn-action btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteUser(${index})">🗑️ 삭제</button>
+                        <div style="display:flex; flex-direction:column; gap:2px;">
+                            <b style="color:#d97706; font-size:14px;">💰 ${pts.toLocaleString()} P</b>
+                            <span style="font-size:10px; color:#be123c; font-weight:600;">⏳ 미사용 1년 후 소멸</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                            <button class="btn-action" style="padding:4px 7px; font-size:11px; background:#0284c7;" onclick="adjustUserDbPoints(${index}, 3000, '📸 [관리자 검토 승인] 어플 내 생생후기(사진+글) 3,000P 지급')">📸 후기승인(+3천P)</button>
+                            <button class="btn-action" style="padding:4px 7px; font-size:11px; background:#7c3aed;" onclick="adjustUserDbPoints(${index}, 10000, '📝 [관리자 검토 승인] 블로그/유튜브 포스팅 10,000P 지급')">📝 포스팅(+1만P)</button>
+                            <button class="btn-action btn-gold" style="padding:4px 7px; font-size:11px;" onclick="openPointAdjustModal(${index})">💰 포인트 지급/차감</button>
+                            <button class="btn-action" style="padding:4px 7px; font-size:11px; background:#334155;" onclick="openUserDetailModal(${index})">📋 내역</button>
+                            <button class="btn-action btn-gold" style="padding:4px 7px; font-size:11px;" onclick="openEditUserModal(${index})">✏️ 수정</button>
+                            <button class="btn-action btn-danger" style="padding:4px 7px; font-size:11px;" onclick="deleteUser(${index})">🗑️ 삭제</button>
                         </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
 
-            document.getElementById('kpi-member-count').innerText = usersData.length.toLocaleString() + " 명";
+            const memberCountEl = document.getElementById('kpi-member-count');
+            if (memberCountEl) memberCountEl.innerText = usersData.length.toLocaleString() + " 명";
         }
 
-        // 회원 정밀 프로필 및 전체 이용 오더 이력 모달
+        // 🎁 DB 포인트 통합 관리 & 생생후기·블로그 이벤트 검수 센터 렌더링
+        function renderPointsDashboard() {
+            const subTbody = document.getElementById('event-submissions-table-body');
+            const pointsTbody = document.getElementById('db-points-table-body');
+            if (!subTbody || !pointsTbody) return;
+
+            const searchEl = document.getElementById('point-user-search');
+            const query = searchEl ? searchEl.value.toLowerCase() : '';
+
+            // 1. 전체 회원 보유 포인트 합계 계산
+            let totalDbPoints = 0;
+            usersData.forEach(u => {
+                totalDbPoints += (typeof u.points === 'number' ? u.points : 0);
+            });
+            const totalPtsEl = document.getElementById('kpi-total-db-points');
+            if (totalPtsEl) totalPtsEl.innerText = `총 ${totalDbPoints.toLocaleString()} P 보유중`;
+
+            // 2. 생생후기(3,000P) & 블로그/유튜브(10,000P) 검토 대기 목록 렌더링
+            subTbody.innerHTML = '';
+            let pendingCount = 0;
+
+            eventSubmissionsData.forEach((sub, idx) => {
+                const isDone = (sub.status || '').includes('완료') || (sub.status || '').includes('승인');
+                if (!isDone) pendingCount++;
+
+                const matchSub = (sub.userName || '').toLowerCase().includes(query) ||
+                    (sub.userPhone || '').toLowerCase().includes(query) ||
+                    (sub.userId || '').toLowerCase().includes(query) ||
+                    (sub.content || '').toLowerCase().includes(query);
+                if (!matchSub) return;
+
+                const dateStr = sub.submittedAt ? new Date(sub.submittedAt).toLocaleString('ko-KR') : '방금 전';
+                const isPhotoReview = (sub.type === 'PHOTO_REVIEW' || (sub.rewardPoints === 3000));
+                const catBadge = isPhotoReview
+                    ? `<span class="badge badge-blue">📸 어플 내 생생후기 (사진+글)</span>`
+                    : `<span class="badge badge-yellow">📝 블로그 / 유튜브 포스팅</span>`;
+                const contentHtml = (sub.postUrl && sub.postUrl.startsWith('http'))
+                    ? `<a href="${sub.postUrl}" target="_blank" style="color:#0284c7; font-weight:bold; text-decoration:underline;">🔗 ${sub.postUrl}</a>`
+                    : `<span style="color:#1e293b; font-weight:600;">${sub.content || sub.postUrl || '-'}</span>`;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-size:11px;">${dateStr}</td>
+                    <td>${catBadge}</td>
+                    <td><b>${sub.userName || '회원'}</b><br><span style="font-size:11px; color:#64748b;">ID: ${sub.userId || '-'}</span></td>
+                    <td><b style="color:#0284c7;">${sub.userPhone || '-'}</b></td>
+                    <td style="max-width:260px; font-size:12px; word-break:break-all;">${contentHtml}</td>
+                    <td><b style="color:#d97706; font-size:13px;">+${(sub.rewardPoints || 3000).toLocaleString()} P</b></td>
+                    <td><span class="badge ${isDone ? 'badge-active' : 'badge-pending'}">${sub.status || '검토 대기중'}</span></td>
+                    <td>
+                        <div style="display:flex; gap:4px;">
+                            ${isDone
+                                ? `<span style="font-size:11px; color:#15803d; font-weight:bold;">✅ 지급 완료됨</span>`
+                                : `<button class="btn-action btn-green" style="padding:5px 10px; font-size:11px;" onclick="approveEventSubmission(${idx})">✅ 검토 승인 (+${(sub.rewardPoints || 3000).toLocaleString()}P 지급)</button>`
+                            }
+                            <button class="btn-action btn-danger" style="padding:5px 8px; font-size:11px;" onclick="deleteEventSubmission(${idx})">🗑️ 삭제</button>
+                        </div>
+                    </td>
+                `;
+                subTbody.appendChild(tr);
+            });
+
+            if (eventSubmissionsData.length === 0) {
+                subTbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:18px; color:#64748b;">현재 접수된 생생후기 / 블로그 포스팅 검토 대기 내역이 없습니다.</td></tr>`;
+            }
+
+            const pendingBadge = document.getElementById('pending-event-badge');
+            if (pendingBadge) {
+                pendingBadge.innerText = `검토 대기 ${pendingCount}건`;
+                pendingBadge.className = 'badge ' + (pendingCount > 0 ? 'badge-red' : 'badge-active');
+            }
+
+            // 3. 전체 회원 계정별 DB 포인트 테이블 렌더링
+            pointsTbody.innerHTML = '';
+            usersData.forEach((user, idx) => {
+                const matchUser = (user.name || '').toLowerCase().includes(query) ||
+                    (user.phone || '').toLowerCase().includes(query) ||
+                    (user.docId || '').toLowerCase().includes(query) ||
+                    (user.provider || '').toLowerCase().includes(query);
+                if (!matchUser) return;
+
+                const pts = typeof user.points === 'number' ? user.points : 1000;
+                const logs = Array.isArray(user.pointLogs) ? user.pointLogs : [];
+                let recentLogHtml = `<span style="font-size:11px; color:#64748b;">🎉 신규 회원가입 웰컴 포인트 (+1,000P / 적립 1년 후 자동 소멸)</span>`;
+                if (logs.length > 0) {
+                    const topLogs = logs.slice(0, 2).map(l => {
+                        const isEarn = l.isEarned !== false && Number(l.amount) >= 0;
+                        const amtStr = isEarn ? `+${Math.abs(Number(l.amount)).toLocaleString()}P` : `-${Math.abs(Number(l.amount)).toLocaleString()}P`;
+                        const color = isEarn ? '#15803d' : '#dc2626';
+                        return `<div style="font-size:11px; margin-bottom:2px;">
+                            <b style="color:${color};">[${amtStr}]</b> ${l.title || ''}
+                            <span style="color:#64748b; font-size:10px;">(${l.dateText || ''} | ${l.expireDateText || '1년 후 소멸'})</span>
+                        </div>`;
+                    }).join('');
+                    recentLogHtml = topLogs + (logs.length > 2 ? `<div style="font-size:10px; color:#0284c7; cursor:pointer; font-weight:bold;" onclick="openUserDetailModal(${idx})">+ 외 ${logs.length - 2}건 전체 내역 보기 🔍</div>` : '');
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><b style="color:#0284c7; cursor:pointer;" onclick="openUserDetailModal(${idx})">${user.name} 🔍</b></td>
+                    <td><span style="font-size:12px;">${user.provider || '일반 계정'}</span></td>
+                    <td><b style="color:#0f172a;">${user.phone || user.docId}</b></td>
+                    <td>
+                        <b style="font-size:15px; color:#d97706;">${pts.toLocaleString()} P</b>
+                        <div style="font-size:10px; color:#be123c; font-weight:bold;">⚠️ 적립 1년 뒤 소멸</div>
+                    </td>
+                    <td style="max-width:340px;">${recentLogHtml}</td>
+                    <td>
+                        <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                            <button class="btn-action" style="padding:4px 8px; font-size:11px; background:#0284c7;" onclick="adjustUserDbPoints(${idx}, 3000, '📸 [관리자 검토 승인] 어플 내 생생후기(사진+글) 3,000P 지급')">📸 생생후기 승인(+3,000P)</button>
+                            <button class="btn-action" style="padding:4px 8px; font-size:11px; background:#d97706;" onclick="adjustUserDbPoints(${idx}, 3000, '⭐ [관리자 검토 승인] 플레이스토어 후기 3,000P 지급')">⭐ 스토어후기(+3,000P)</button>
+                            <button class="btn-action" style="padding:4px 8px; font-size:11px; background:#7c3aed;" onclick="adjustUserDbPoints(${idx}, 10000, '📝 [관리자 검토 승인] 블로그/유튜브 포스팅 10,000P 지급')">📝 포스팅 승인(+10,000P)</button>
+                            <button class="btn-action btn-green" style="padding:4px 8px; font-size:11px;" onclick="openPointAdjustModal(${idx})">⚙️ 직접 지급/차감</button>
+                        </div>
+                    </td>
+                `;
+                pointsTbody.appendChild(tr);
+            });
+        }
+
+        // 👑 생생후기(3,000P) 또는 블로그/유튜브(10,000P) 검토 승인 및 DB 포인트 즉시 지급
+        function approveEventSubmission(subIndex) {
+            const sub = eventSubmissionsData[subIndex];
+            if (!sub) return;
+            const reward = Number(sub.rewardPoints) || 3000;
+            const reasonTitle = (sub.type === 'PHOTO_REVIEW' || reward === 3000)
+                ? `📸 [관리자 검토 승인] 어플 내 생생후기(사진+글) ${reward.toLocaleString()}P 지급`
+                : `📝 [관리자 검토 승인] 네이버 블로그/유튜브 포스팅 ${reward.toLocaleString()}P 지급`;
+
+            if (!confirm(`👑 [${sub.userName} (${sub.userPhone || sub.userId})] 회원님의\n[${sub.category || '이벤트'}] 검토를 최종 승인하고 +${reward.toLocaleString()} P를 지급하시겠습니까?`)) {
+                return;
+            }
+
+            const doneStatus = `✅ 관리자 검토 승인 (${reward.toLocaleString()}P 지급 완료)`;
+            sub.status = doneStatus;
+
+            // 1. 해당 회원 찾기 및 포인트 + 내역 업데이트
+            const userIdx = usersData.findIndex(u =>
+                (u.docId && (u.docId === sub.userId || u.docId === sub.userPhone)) ||
+                (u.phone && (u.phone === sub.userPhone || u.phone === sub.userId)) ||
+                (u.name && sub.userName && u.name.includes(sub.userName.replace(' 보호자님', '')))
+            );
+
+            if (userIdx !== -1) {
+                adjustUserDbPoints(userIdx, reward, reasonTitle, true);
+            } else if (sub.userId && typeof firebase !== 'undefined' && firebase.apps.length) {
+                const { nowStr, expStr } = getFormattedDateAndExpire();
+                const newLog = {
+                    id: "pt_" + Date.now(),
+                    title: reasonTitle,
+                    amount: reward,
+                    dateText: nowStr,
+                    expireDateText: expStr,
+                    isEarned: true
+                };
+                const userRef = firebase.firestore().collection("users").doc(sub.userId);
+                userRef.get().then(doc => {
+                    const curPts = (doc.exists && typeof doc.data().points === 'number') ? doc.data().points : 1000;
+                    let logs = [];
+                    if (doc.exists && doc.data().point_logs_json) {
+                        try { logs = JSON.parse(doc.data().point_logs_json); } catch (e) { logs = []; }
+                    }
+                    logs.unshift(newLog);
+                    return userRef.set({
+                        points: curPts + reward,
+                        point_logs_json: JSON.stringify(logs),
+                        point_logs_json_ts: Date.now(),
+                        updatedAt: Date.now()
+                    }, { merge: true });
+                }).catch(e => console.warn("Direct user point update error:", e));
+            }
+
+            // 2. Firestore event_submissions 상태 업데이트
+            if (sub.docId && typeof firebase !== 'undefined' && firebase.apps.length) {
+                firebase.firestore().collection("event_submissions").doc(sub.docId).set({
+                    status: doneStatus,
+                    approvedAt: Date.now()
+                }, { merge: true }).catch(e => console.warn("event_submissions update error:", e));
+            }
+
+            persistData();
+            alert(`✅ [${sub.userName}] 회원님의 검토 승인이 완료되어 +${reward.toLocaleString()} P가 DB 및 고객 앱에 즉시 지급되었습니다!`);
+        }
+
+        function deleteEventSubmission(subIndex) {
+            const sub = eventSubmissionsData[subIndex];
+            if (!sub) return;
+            if (!confirm(`정말로 [${sub.userName}] 님의 이벤트/후기 검수 신청 항목을 삭제하시겠습니까?`)) return;
+            if (sub.docId && typeof firebase !== 'undefined' && firebase.apps.length) {
+                firebase.firestore().collection("event_submissions").doc(sub.docId).delete().catch(e => console.warn(e));
+            }
+            eventSubmissionsData.splice(subIndex, 1);
+            persistData();
+        }
+
+        // 💰 회원 DB 포인트 증감 처리 및 Cloud Firestore (points + point_logs_json) 실시간 저장
+        function adjustUserDbPoints(index, deltaAmount, reasonTitle, silent) {
+            const user = usersData[index];
+            if (!user) return;
+            const currentPts = typeof user.points === 'number' ? user.points : 1000;
+            const newPts = Math.max(0, currentPts + deltaAmount);
+            const isEarned = deltaAmount >= 0;
+            const { nowStr, expStr } = getFormattedDateAndExpire();
+
+            const newLogEntry = {
+                id: "pt_" + Date.now(),
+                title: reasonTitle || (isEarned ? "🎁 관리자 포인트 적립" : "💳 포인트 사용 차감"),
+                amount: deltaAmount,
+                dateText: nowStr,
+                expireDateText: isEarned ? expStr : `사용/차감 완료 (잔여: ${newPts.toLocaleString()}P)`,
+                isEarned: isEarned
+            };
+
+            if (!Array.isArray(user.pointLogs)) user.pointLogs = [];
+            user.pointLogs.unshift(newLogEntry);
+            user.points = newPts;
+
+            const targetDocId = user.docId || user.phone;
+            if (targetDocId && typeof firebase !== 'undefined' && firebase.apps.length) {
+                const nowTs = Date.now();
+                firebase.firestore().collection("users").doc(targetDocId).set({
+                    points: newPts,
+                    point_logs_json: JSON.stringify(user.pointLogs),
+                    point_logs_json_ts: nowTs,
+                    updatedAt: nowTs
+                }, { merge: true }).then(() => {
+                    console.log("☁️ Firestore DB 포인트 업데이트 성공:", targetDocId, newPts);
+                }).catch(e => console.warn("Firestore DB 포인트 업데이트 오류:", e));
+            }
+
+            persistData();
+            if (!silent) {
+                const sign = deltaAmount >= 0 ? `+${deltaAmount.toLocaleString()} P 지급` : `${deltaAmount.toLocaleString()} P 차감`;
+                alert(`💰 [${user.name}] 회원님 DB 포인트 ${sign} 완료!\n\n• 사유/내역: ${newLogEntry.title}\n• 변경 후 보유 포인트: ${newPts.toLocaleString()} P\n• 고객 스마트폰 앱에 실시간 반영되었습니다.`);
+            }
+        }
+
+        function openPointAdjustModal(index) {
+            const user = usersData[index];
+            if (!user) return;
+            document.getElementById('point-adjust-user-index').value = index;
+            document.getElementById('point-adjust-user-info').value = `${user.name} (${user.phone}) | 현재 보유: ${(user.points || 0).toLocaleString()} P`;
+            document.getElementById('point-adjust-type').value = "REVIEW_3000";
+            document.getElementById('point-adjust-amount').value = 3000;
+            document.getElementById('point-adjust-reason').value = "📸 [관리자 검토 승인] 어플 내 생생후기(사진+글) 3,000P 지급";
+            document.getElementById('point-adjust-modal').style.display = 'flex';
+        }
+
+        function applyPointPresetReason(presetVal) {
+            const amtEl = document.getElementById('point-adjust-amount');
+            const reasonEl = document.getElementById('point-adjust-reason');
+            if (presetVal === 'REVIEW_3000') {
+                amtEl.value = 3000;
+                reasonEl.value = "📸 [관리자 검토 승인] 어플 내 생생후기(사진+글) 3,000P 지급";
+            } else if (presetVal === 'PLAYSTORE_3000') {
+                amtEl.value = 3000;
+                reasonEl.value = "⭐ [관리자 검토 승인] 구글 플레이스토어 앱 후기 3,000P 지급";
+            } else if (presetVal === 'BLOG_10000') {
+                amtEl.value = 10000;
+                reasonEl.value = "📝 [관리자 검토 승인] 네이버 블로그 / 유튜브 포스팅 10,000P 지급";
+            } else if (presetVal === 'WELCOME_1000') {
+                amtEl.value = 1000;
+                reasonEl.value = "🎉 신규 회원가입 웰컴 포인트 1,000P 지급";
+            } else if (presetVal === 'DEDUCT_USE') {
+                amtEl.value = -3000;
+                reasonEl.value = "🚙 [병원 예약 진료 대행] 예약 결제 포인트 사용 차감";
+            } else {
+                amtEl.value = 1000;
+                reasonEl.value = "🎁 관리자 특별 이벤트 포인트 지급";
+            }
+        }
+
+        function submitPointAdjustModal() {
+            const idx = parseInt(document.getElementById('point-adjust-user-index').value, 10);
+            const delta = parseInt(document.getElementById('point-adjust-amount').value, 10);
+            const reason = document.getElementById('point-adjust-reason').value.trim();
+            if (isNaN(idx) || isNaN(delta) || delta === 0) {
+                alert("지급 또는 차감할 포인트 숫자를 정확히 입력해 주세요 (0 제외).");
+                return;
+            }
+            closeModal('point-adjust-modal');
+            adjustUserDbPoints(idx, delta, reason || (delta > 0 ? "🎁 관리자 포인트 지급" : "💳 관리자 포인트 차감"), false);
+        }
+
+        // 회원 정밀 프로필 및 전체 이용 오더 + 포인트 적립/차감 내역 모달
         function openUserDetailModal(index) {
             const user = usersData[index];
             const modal = document.getElementById('user-detail-modal');
             const title = document.getElementById('user-detail-title');
             const content = document.getElementById('user-detail-content');
 
-            title.innerText = `🔍 [${user.name}] 회원 정밀 프로필 & 이용 내역`;
+            title.innerText = `🔍 [${user.name}] 회원 정밀 프로필 & DB 포인트/오더 내역`;
 
             const cleanName = user.name.replace(" 대표님", "").replace(" 보호자님", "");
             const userOrders = ordersData.filter(o =>
@@ -1842,7 +2345,7 @@
 
             let ordersHtml = '';
             if (userOrders.length === 0) {
-                ordersHtml = `<div style="padding:16px; background:#f1ede4; border-radius:8px; color:#64748b; font-size:12px; text-align:center;">📋 아직 접수된 이용 오더 내역이 없습니다.</div>`;
+                ordersHtml = `<div style="padding:14px; background:#f1ede4; border-radius:8px; color:#64748b; font-size:12px; text-align:center;">📋 아직 접수된 이용 오더 내역이 없습니다.</div>`;
             } else {
                 ordersHtml = `
                     <table style="width:100%; border-collapse:collapse; font-size:12px; margin-top:8px;">
@@ -1879,26 +2382,57 @@
                 ordersHtml += `</tbody></table>`;
             }
 
+            const logs = Array.isArray(user.pointLogs) ? user.pointLogs : [];
+            let pointLogsHtml = '';
+            if (logs.length === 0) {
+                pointLogsHtml = `<div style="padding:12px; background:#fffbeb; border-radius:8px; color:#92400e; font-size:12px;">🎉 신규 회원가입 웰컴 포인트 (+1,000 P) 기본 적용중 (적립일로부터 1년 뒤 자동 소멸)</div>`;
+            } else {
+                pointLogsHtml = `
+                    <table style="width:100%; border-collapse:collapse; font-size:12px; margin-top:8px;">
+                        <thead>
+                            <tr style="background:#fef3c7; color:#92400e;">
+                                <th style="padding:8px;">일시</th>
+                                <th style="padding:8px;">구분</th>
+                                <th style="padding:8px;">적립 사유 / 어디서 사용했는지 차감 내역</th>
+                                <th style="padding:8px;">포인트 증감</th>
+                                <th style="padding:8px;">소멸 예정일 / 상태</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                logs.forEach(l => {
+                    const isEarn = l.isEarned !== false && Number(l.amount) >= 0;
+                    pointLogsHtml += `
+                        <tr style="border-bottom:1px solid #fde68a;">
+                            <td style="padding:7px;">${l.dateText || '-'}</td>
+                            <td style="padding:7px;"><span class="badge ${isEarn ? 'badge-active' : 'badge-red'}">${isEarn ? '적립(+)' : '차감(-)'}</span></td>
+                            <td style="padding:7px;"><b>${l.title || '-'}</b></td>
+                            <td style="padding:7px; font-weight:bold; color:${isEarn ? '#15803d' : '#dc2626'};">${isEarn ? '+' : '-'}${Math.abs(Number(l.amount)).toLocaleString()} P</td>
+                            <td style="padding:7px; font-size:11px; color:#b45309;">${l.expireDateText || '적립 1년 후 자동 소멸'}</td>
+                        </tr>
+                    `;
+                });
+                pointLogsHtml += `</tbody></table>`;
+            }
+
             content.innerHTML = `
                 <div style="background:#f8f6f0; border:1px solid #e2dad0; padding:16px; border-radius:12px;">
-                    <h4 style="font-size:14px; color:#0f172a; margin-bottom:10px;">👤 회원 기본 인적사항</h4>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <h4 style="font-size:14px; color:#0f172a;">👤 회원 기본 인적사항 & DB 포인트</h4>
+                        <button class="btn-action btn-gold" style="padding:5px 10px; font-size:11px;" onclick="closeModal('user-detail-modal'); openPointAdjustModal(${index});">💰 포인트 지급/차감 하기</button>
+                    </div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px; color:#1e293b;">
                         <div><b>성명</b>: ${user.name}</div>
                         <div><b>연계 계정</b>: ${user.provider || '🔴 Google 계정'}</div>
-                        <div><b>연락처</b>: <span style="color:#0284c7; font-weight:bold;">${user.phone}</span></div>
-                        <div><b>보유 포인트</b>: <b style="color:#d97706;">${user.points.toLocaleString()} P</b></div>
+                        <div><b>연락처 (DB Key)</b>: <span style="color:#0284c7; font-weight:bold;">${user.phone}</span></div>
+                        <div><b>보유 DB 포인트</b>: <b style="color:#d97706; font-size:15px;">${(user.points || 0).toLocaleString()} P</b> <span style="font-size:11px; color:#be123c;">(미사용 1년 후 소멸)</span></div>
                         <div style="grid-column:span 2;"><b>자택 도로명 주소</b>: ${user.address}</div>
                     </div>
                 </div>
 
-                <div style="background:#f0f9ff; border:1px solid #bae6fd; padding:16px; border-radius:12px;">
-                    <h4 style="font-size:14px; color:#0369a1; margin-bottom:10px;">🐶 등록 반려동물 정밀 프로필</h4>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px; color:#0f172a;">
-                        <div><b>아이 이름</b>: <b style="color:#0284c7;">${user.pet}</b></div>
-                        <div><b>품종 및 체중</b>: 말티즈 (4.5 kg / 남아 중성화 O)</div>
-                        <div><b>주 이용 병원</b>: 명지24시온누리메디컬센터</div>
-                        <div><b>특이사항 / 기저질환</b>: 슬개골 탈구 2기, 정기 안심 케어</div>
-                    </div>
+                <div style="background:#fffbeb; border:1px solid #fde68a; padding:16px; border-radius:12px;">
+                    <h4 style="font-size:14px; color:#92400e; margin-bottom:6px;">💰 이 계정의 포인트 적립 • 사용처 차감 • 1년 소멸 상세 내역 (${logs.length}건)</h4>
+                    ${pointLogsHtml}
                 </div>
 
                 <div style="background:#ffffff; border:1px solid #e2dad0; padding:16px; border-radius:12px;">
@@ -1916,9 +2450,7 @@
 
         // 포인트 지급
         function addPoints(index, amount) {
-            usersData[index].points += amount;
-            alert(`🎉 [${usersData[index].name}] 회원님께 +${amount.toLocaleString()} P 적립이 저장되었습니다!`);
-            persistData();
+            adjustUserDbPoints(index, amount, `🎁 관리자 포인트 +${amount.toLocaleString()}P 지급`, false);
         }
 
         // 회원 삭제
@@ -1926,9 +2458,10 @@
             const user = usersData[index];
             if (!user) return;
             if (confirm(`정말로 [${user.name} (${user.phone})] 회원 정보를 삭제(탈퇴 처리)하시겠습니까?\nFirestore DB 및 포털에서 즉시 제거됩니다.`)) {
-                if (user.docId && typeof db !== 'undefined') {
-                    db.collection("users").doc(user.docId).delete().then(() => {
-                        console.log("☁️ Firestore 회원 문서 삭제 완료:", user.docId);
+                const targetDocId = user.docId || user.phone;
+                if (targetDocId && typeof firebase !== 'undefined' && firebase.apps.length) {
+                    firebase.firestore().collection("users").doc(targetDocId).delete().then(() => {
+                        console.log("☁️ Firestore 회원 문서 삭제 완료:", targetDocId);
                     }).catch(e => console.warn("Firestore 삭제 오류:", e));
                 }
                 usersData.splice(index, 1);
@@ -2043,22 +2576,22 @@
             persistData();
         }
 
-        // 신규/수정 회원 폼
+        // 신규/수정 회원 폼 (기본 1,000P 및 Firestore 실시간 연동)
         function openAddUserModal() {
-            document.getElementById('user-modal-title').innerText = "➕ 신규 회원 직접 등록";
+            document.getElementById('user-modal-title').innerText = "➕ 신규 회원 직접 등록 (기본 1,000P)";
             document.getElementById('edit-user-index').value = "";
             document.getElementById('form-user-name').value = "";
             document.getElementById('form-user-provider').value = "🔴 Google 계정 (g70334098@gmail.com)";
             document.getElementById('form-user-phone').value = "010-";
             document.getElementById('form-user-address').value = "";
             document.getElementById('form-user-pet').value = "";
-            document.getElementById('form-user-points').value = "0";
+            document.getElementById('form-user-points').value = "1000";
             document.getElementById('user-form-modal').style.display = 'flex';
         }
 
         function openEditUserModal(index) {
             const user = usersData[index];
-            document.getElementById('user-modal-title').innerText = "✏️ 회원 정보 직접 수정";
+            document.getElementById('user-modal-title').innerText = "✏️ 회원 정보 및 보유 포인트 직접 수정";
             document.getElementById('edit-user-index').value = index;
             document.getElementById('form-user-name').value = user.name;
             document.getElementById('form-user-provider').value = user.provider || "🔴 Google 계정";
@@ -2071,21 +2604,56 @@
 
         function saveUserForm() {
             const editIdx = document.getElementById('edit-user-index').value;
+            const phoneVal = document.getElementById('form-user-phone').value || "010-0000-0000";
+            const inputPts = parseInt(document.getElementById('form-user-points').value, 10);
+            const finalPts = isNaN(inputPts) ? 1000 : inputPts;
+            const existingUser = editIdx !== "" ? usersData[editIdx] : null;
+            const existingLogs = (existingUser && Array.isArray(existingUser.pointLogs)) ? existingUser.pointLogs : [];
+
+            if (existingUser && existingUser.points !== finalPts) {
+                const diff = finalPts - (existingUser.points || 0);
+                const { nowStr, expStr } = getFormattedDateAndExpire();
+                existingLogs.unshift({
+                    id: "pt_" + Date.now(),
+                    title: diff >= 0 ? "⚙️ 관리자 회원정보 수정 포인트 지급" : "⚙️ 관리자 회원정보 수정 포인트 차감",
+                    amount: diff,
+                    dateText: nowStr,
+                    expireDateText: diff >= 0 ? expStr : `수정 차감 완료 (잔여: ${finalPts.toLocaleString()}P)`,
+                    isEarned: diff >= 0
+                });
+            }
+
             const newUser = {
+                docId: existingUser ? (existingUser.docId || phoneVal) : phoneVal,
                 name: document.getElementById('form-user-name').value || "보호자님",
                 provider: document.getElementById('form-user-provider').value || "🔴 Google 계정",
-                phone: document.getElementById('form-user-phone').value || "010-0000-0000",
+                phone: phoneVal,
                 address: document.getElementById('form-user-address').value || "부산광역시",
                 pet: document.getElementById('form-user-pet').value || "반려동물",
-                points: parseInt(document.getElementById('form-user-points').value) || 0
+                points: finalPts,
+                pointLogs: existingLogs
             };
 
             if (editIdx !== "") {
                 usersData[editIdx] = newUser;
-                alert("💾 회원 정보가 수정 저장되었습니다!");
+                alert("💾 회원 정보 및 DB 포인트가 수정 저장되었습니다!");
             } else {
                 usersData.unshift(newUser);
-                alert("➕ 신규 회원이 등록되었습니다!");
+                alert("➕ 신규 회원이 DB에 등록되었습니다!");
+            }
+
+            if (newUser.docId && typeof firebase !== 'undefined' && firebase.apps.length) {
+                const nowTs = Date.now();
+                firebase.firestore().collection("users").doc(newUser.docId).set({
+                    name: newUser.name,
+                    phone: newUser.phone,
+                    address: newUser.address,
+                    pet: newUser.pet,
+                    points: newUser.points,
+                    point_logs_json: JSON.stringify(newUser.pointLogs),
+                    point_logs_json_ts: nowTs,
+                    updatedAt: nowTs
+                }, { merge: true }).catch(e => console.warn("saveUserForm Firestore sync error:", e));
             }
 
             closeModal('user-form-modal');

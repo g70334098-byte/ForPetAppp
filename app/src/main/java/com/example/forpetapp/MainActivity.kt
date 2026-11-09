@@ -1677,21 +1677,55 @@ fun AdminMainDashboardScreen(adminName: String = "최지훈 대표님", onLogout
                                                 Toast.makeText(context, "전화 걸기 실패", Toast.LENGTH_SHORT).show()
                                             }
                                         },
-                                        modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(8.dp)
+                                        modifier = Modifier.weight(0.9f),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
                                     ) {
-                                        Text("📞 전화 걸기", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                        Text("📞 전화", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                                     }
 
                                     Button(
                                         onClick = {
-                                            Toast.makeText(context, "🎉 [$memberName]님께 +3,000P 지급 완료되었습니다!", Toast.LENGTH_SHORT).show()
+                                            FirebaseSyncManager.adminAdjustUserPointsInCloud(
+                                                targetDocId = phone,
+                                                deltaPoints = 3000,
+                                                reasonTitle = "📸 [관리자 검토 승인] 어플 내 생생후기 (사진+글) 3,000P 지급"
+                                            ) { ok, newPts ->
+                                                Toast.makeText(
+                                                    context,
+                                                    if (ok) "✅ [$memberName]님 후기 검토 승인! +3,000P 지급 완료 (보유: ${newPts}P)" else "🎉 [$memberName]님께 +3,000P 지급 요청이 반영되었습니다!",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                            }
                                         },
-                                        modifier = Modifier.weight(1f),
+                                        modifier = Modifier.weight(1.2f),
                                         shape = RoundedCornerShape(8.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706)),
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
                                     ) {
-                                        Text("🎁 +3,000P 지급", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text("📸 후기승인(+3천P)", fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    Button(
+                                        onClick = {
+                                            FirebaseSyncManager.adminAdjustUserPointsInCloud(
+                                                targetDocId = phone,
+                                                deltaPoints = 10000,
+                                                reasonTitle = "📝 [관리자 검토 승인] 블로그/유튜브 포스팅 10,000P 지급"
+                                            ) { ok, newPts ->
+                                                Toast.makeText(
+                                                    context,
+                                                    if (ok) "✅ [$memberName]님 포스팅 승인! +10,000P 지급 완료 (보유: ${newPts}P)" else "🎉 [$memberName]님께 +10,000P 지급 요청이 반영되었습니다!",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1.2f),
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+                                    ) {
+                                        Text("📝 포스팅(+1만P)", fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -1966,6 +2000,19 @@ object PersistentStorageManager {
         getPrefs(context).edit(commit = true) {
             putString("event_blog_youtube_url_$sanitized", url)
             putString("event_blog_youtube_status_$sanitized", status)
+        }
+    }
+
+    fun loadPhotoReviewStatus(context: android.content.Context, userId: String? = null): String {
+        val sanitized = getSanitizedUserKey(context, userId)
+        return getPrefs(context).getString("event_photo_review_status_$sanitized", "") ?: ""
+    }
+
+    fun savePhotoReviewSubmission(context: android.content.Context, content: String, status: String, userId: String? = null) {
+        val sanitized = getSanitizedUserKey(context, userId)
+        getPrefs(context).edit(commit = true) {
+            putString("event_photo_review_content_$sanitized", content)
+            putString("event_photo_review_status_$sanitized", status)
         }
     }
 
@@ -2750,6 +2797,17 @@ fun ForPetMainScreen(
         } else {
             locationStatusText = "📍 위치 권한 미허용 (GPS 꺼짐)"
             Toast.makeText(context, "위치 권한을 허용하시면 실제 위치 기반 제휴병원 안내 및 레이 배차가 원활합니다.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    DisposableEffect(currentUserId) {
+        val pointListener = if (currentUserId.isNotBlank()) {
+            com.example.forpetapp.data.firebase.FirebaseSyncManager.listenToCurrentUserPointsRealtime(context, currentUserId) { updatedCloudPts ->
+                userPoints = updatedCloudPts
+            }
+        } else null
+        onDispose {
+            pointListener?.remove()
         }
     }
 
@@ -5997,7 +6055,7 @@ fun MyPageScreen(
                             }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("📸 어플 내 생생후기 (사진+글 작성)", fontSize = 11.5.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1E293B))
-                                Text("+3,000 P 즉시지급", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                Text("검토 후 +3,000 P 지급", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                             }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("⭐ 구글 플레이스토어 후기 작성", fontSize = 11.5.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1E293B))
@@ -6686,7 +6744,7 @@ fun MyPageScreen(
         )
     }
 
-    // 7. 마이페이지에서 바로 사진+생생후기 작성하고 3,000P 즉시 지급받는 다이얼로그
+    // 7. 마이페이지에서 사진+생생후기 작성하고 관리자 검토 후 3,000P 지급받는 다이얼로그
     if (showMyPageReviewWriteDialog) {
         PhotoReviewWriteDialog(
             authorName = "${userNickname.ifBlank { "발자국동행" }} 보호자님",
@@ -6696,19 +6754,18 @@ fun MyPageScreen(
                 saved.add(0, newReview)
                 PersistentStorageManager.saveReviewsList(context, saved)
                 if (hasPhoto) {
-                    val updatedPts = userPoints + 3000
-                    PersistentStorageManager.recordPointTransaction(
-                        context = context,
-                        title = "📸 어플 내 생생후기(사진+글) 작성 적립",
-                        amount = 3000,
-                        isEarned = true,
-                        userId = currentUserId
+                    val pendingStatus = "검토 대기중 (관리자 확인 후 3,000P 지급 예정)"
+                    PersistentStorageManager.savePhotoReviewSubmission(context, newReview.content, pendingStatus, currentUserId)
+                    com.example.forpetapp.data.firebase.FirebaseSyncManager.submitPhotoReviewEventToCloud(
+                        userId = currentUserId,
+                        userName = userNickname,
+                        userPhone = userPhone,
+                        petInfo = newReview.petInfo,
+                        reviewContent = newReview.content
                     )
-                    onUpdatePoints(updatedPts)
-                    pointLogRefreshKey++
-                    Toast.makeText(context, "🎉 사진+생생후기 작성 완료! 3,000 포인트가 즉시 지급되었습니다! (미사용 시 1년 후 소멸)", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "📸 사진+생생후기 등록 완료! 관리자 검토 후 +3,000 포인트가 지급됩니다.", Toast.LENGTH_LONG).show()
                 } else {
-                    Toast.makeText(context, "소중한 이용 후기가 등록되었습니다! (사진 첨부 시 3,000P가 지급됩니다)", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "소중한 이용 후기가 등록되었습니다! (사진 첨부 작성 시 관리자 검토 후 3,000P가 지급됩니다)", Toast.LENGTH_LONG).show()
                 }
                 showMyPageReviewWriteDialog = false
             },
@@ -6965,8 +7022,8 @@ fun PhotoReviewWriteDialog(
                     border = BorderStroke(1.dp, Color(0xFFF59E0B))
                 ) {
                     Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("🎁 사진 + 생생후기 작성 시 3,000P 즉시 지급!", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFB45309))
-                        Text("• 사진 1장 첨부 + 후기 글 작성 시 3,000 포인트가 즉시 적립됩니다.", fontSize = 10.5.sp, color = Color(0xFF92400E))
+                        Text("🎁 사진 + 생생후기 작성 시 관리자 검토 후 3,000P 지급!", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFB45309))
+                        Text("• 사진 1장 첨부 + 후기 글 작성 시 관리자 검토 완료 후 3,000 포인트가 적립됩니다.", fontSize = 10.5.sp, color = Color(0xFF92400E))
                         Text("• 지급된 포인트는 안 쓸 경우 적립일로부터 1년 뒤 자동 소멸됩니다.", fontSize = 10.sp, color = Color(0xFF78350F))
                     }
                 }
@@ -7005,7 +7062,7 @@ fun PhotoReviewWriteDialog(
                         border = BorderStroke(1.dp, if (reviewImageUri != null) Color(0xFF16A34A) else Color(0xFF0284C7))
                     ) {
                         Text(
-                            text = if (reviewImageUri != null) "✅ 사진 첨부 완료 (+3,000P 지급 대상)" else "📷 사진 필수 첨부하기 (갤러리 선택 - +3,000P)",
+                            text = if (reviewImageUri != null) "✅ 사진 첨부 완료 (관리자 검토 후 +3,000P 지급 대상)" else "📷 사진 필수 첨부하기 (갤러리 선택 - 검토 후 +3,000P)",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (reviewImageUri != null) Color(0xFF16A34A) else Color(0xFF0284C7)
@@ -7058,7 +7115,7 @@ fun PhotoReviewWriteDialog(
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
             ) {
-                Text(if (reviewImageUri != null) "등록 및 3,000P 받기" else "후기 등록하기", fontWeight = FontWeight.Bold)
+                Text(if (reviewImageUri != null) "후기 등록 및 3,000P 검토 신청" else "후기 등록하기", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -7090,6 +7147,7 @@ fun EventAndPointRewardsDialog(
     }
     val numFormat = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA) }
 
+    var photoReviewStatus by remember { mutableStateOf(PersistentStorageManager.loadPhotoReviewStatus(context, currentUserId)) }
     var isPlayStoreClaimed by remember { mutableStateOf(PersistentStorageManager.isPlayStoreReviewClaimed(context, currentUserId)) }
     var hasVisitedPlayStore by remember { mutableStateOf(false) }
 
@@ -7204,7 +7262,7 @@ fun EventAndPointRewardsDialog(
                     }
                 }
 
-                // 이벤트 2: 어플 내 생생후기 (사진 + 글 작성) 3,000P 지급
+                // 이벤트 2: 어플 내 생생후기 (사진 + 글 작성) 관리자 검토 후 3,000P 지급
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -7220,17 +7278,56 @@ fun EventAndPointRewardsDialog(
                             ) {
                                 Text("2️⃣ 어플 내 생생후기 (사진+작성)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0369A1))
                                 Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF0284C7)) {
-                                    Text("+3,000 P 즉시지급", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                    Text("검토 후 +3,000 P 지급", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                 }
                             }
-                            Text("• 어플 내 이용 후기에서 [사진 첨부 + 후기 글 작성] 완료 시 즉시 3,000 포인트가 지급됩니다.", fontSize = 11.sp, color = Color(0xFF0F172A))
+                            Text("• 어플 내 이용 후기에서 [사진 첨부 + 후기 글 작성] 등록 시 관리자 검토 후 3,000 포인트가 지급됩니다.", fontSize = 11.sp, color = Color(0xFF0F172A))
+                            if (photoReviewStatus.isNotBlank()) {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color.White
+                                ) {
+                                    Text(
+                                        text = "📌 내 생생후기 검수 상태: $photoReviewStatus",
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (photoReviewStatus.contains("완료")) Color(0xFF16A34A) else Color(0xFF0284C7),
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                }
+                            }
                             Button(
                                 onClick = onOpenPhotoReviewWrite,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(8.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
                             ) {
-                                Text("📸 사진+생생후기 작성하고 3,000P 받기", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("📸 사진+생생후기 작성하고 3,000P 검토 신청", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                            if (isAdminUser && photoReviewStatus != "✅ 관리자 검토 완료 (3,000P 지급 완료)") {
+                                OutlinedButton(
+                                    onClick = {
+                                        val doneStatus = "✅ 관리자 검토 완료 (3,000P 지급 완료)"
+                                        PersistentStorageManager.savePhotoReviewSubmission(context, "관리자 검토 완료", doneStatus, currentUserId)
+                                        photoReviewStatus = doneStatus
+                                        val updated = userPoints + 3000
+                                        PersistentStorageManager.recordPointTransaction(
+                                            context = context,
+                                            title = "📸 [관리자 검토 승인] 어플 내 생생후기(사진+글) 3,000P 지급",
+                                            amount = 3000,
+                                            isEarned = true,
+                                            userId = currentUserId
+                                        )
+                                        onUpdatePoints(updated)
+                                        Toast.makeText(context, "✅ [관리자 승인] 생생후기 검토 완료! 3,000P가 지급되었습니다.", Toast.LENGTH_LONG).show()
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(1.dp, Color(0xFF0284C7))
+                                ) {
+                                    Text("👑 [관리자 전용] 생생후기 검토 승인 • 3,000P 즉시 지급", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                }
                             }
                         }
                     }
@@ -8591,15 +8688,41 @@ fun HomeScreenContent(
                         }
 
                         if (isAdminUser) {
-                            TextButton(
-                                onClick = {
-                                    reviewsList.remove(review)
-                                    PersistentStorageManager.saveReviewsList(context, reviewsList)
-                                    Toast.makeText(context, "🗑️ 관리자 권한으로 후기가 삭제되었습니다.", Toast.LENGTH_SHORT).show()
-                                },
-                                contentPadding = PaddingValues(0.dp)
-                            ) {
-                                Text("🗑️ 삭제 (관리자)", fontSize = 11.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                TextButton(
+                                    onClick = {
+                                        val updatedPts = userPoints + 3000
+                                        onUpdatePoints(updatedPts)
+                                        PersistentStorageManager.recordPointTransaction(
+                                            context = context,
+                                            title = "📸 [관리자 검토 승인] 생생후기(사진+글) 3,000P 지급 (${review.authorName})",
+                                            amount = 3000,
+                                            isEarned = true,
+                                            userId = currentUserId
+                                        )
+                                        PersistentStorageManager.savePhotoReviewSubmission(
+                                            context,
+                                            review.content,
+                                            "✅ 관리자 검토 완료 (3,000P 지급 완료)",
+                                            currentUserId
+                                        )
+                                        homePointLogRefreshKey++
+                                        Toast.makeText(context, "✅ [관리자 승인] '${review.authorName}' 후기 검토 완료! +3,000P 지급되었습니다.", Toast.LENGTH_LONG).show()
+                                    },
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text("✅ 3,000P 승인", fontSize = 11.sp, color = Color(0xFF16A34A), fontWeight = FontWeight.Bold)
+                                }
+                                TextButton(
+                                    onClick = {
+                                        reviewsList.remove(review)
+                                        PersistentStorageManager.saveReviewsList(context, reviewsList)
+                                        Toast.makeText(context, "🗑️ 관리자 권한으로 후기가 삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                                    },
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text("🗑️ 삭제 (관리자)", fontSize = 11.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
@@ -8645,11 +8768,11 @@ fun HomeScreenContent(
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF0284C7))
             ) {
-                Text("⭐ 이용 후기 전체보기 (${reviewsList.size}개) & 사진후기 작성(+3,000P) ➔", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text("⭐ 이용 후기 전체보기 (${reviewsList.size}개) & 사진후기 작성(검토후 +3,000P) ➔", fontWeight = FontWeight.Bold, fontSize = 13.sp)
             }
         }
 
-        // 🎁 6-2. 메인화면 하단 이벤트 & 포인트 리워드 탭 (신규가입 1,000P / 생생후기 3,000P / 플레이스토어 3,000P / 블로그·유튜브 10,000P)
+        // 🎁 6-2. 메인화면 하단 이벤트 & 포인트 리워드 탭 (신규가입 1,000P / 생생후기 3,000P(검토후) / 플레이스토어 3,000P / 블로그·유튜브 10,000P)
         item {
             Spacer(modifier = Modifier.height(6.dp))
             Card(
@@ -8711,7 +8834,7 @@ fun HomeScreenContent(
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Text("📸 2. 어플 내 생생후기 (사진 + 글 작성)", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF0F172A))
-                            Text("+3,000 P 즉시지급", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFD97706))
+                            Text("관리자 검토 후 +3,000 P 지급", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFD97706))
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Text("⭐ 3. 구글 플레이스토어 앱 별점 & 후기", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF0F172A))
@@ -11411,19 +11534,19 @@ fun HomeScreenContent(
                 reviewsList.add(0, newReview)
                 PersistentStorageManager.saveReviewsList(context, reviewsList)
                 if (hasPhoto) {
-                    val updatedPts = userPoints + 3000
-                    onUpdatePoints(updatedPts)
-                    PersistentStorageManager.recordPointTransaction(
-                        context = context,
-                        title = "📸 어플 내 생생후기 (사진+글 작성) 포인트 지급",
-                        amount = 3000,
-                        isEarned = true,
-                        userId = currentUserId
+                    val pendingStatus = "검토 대기중 (관리자 확인 후 3,000P 지급 예정)"
+                    PersistentStorageManager.savePhotoReviewSubmission(context, newReview.content, pendingStatus, currentUserId)
+                    com.example.forpetapp.data.firebase.FirebaseSyncManager.submitPhotoReviewEventToCloud(
+                        userId = currentUserId,
+                        userName = userNickname,
+                        userPhone = userPhone,
+                        petInfo = newReview.petInfo,
+                        reviewContent = newReview.content
                     )
                     homePointLogRefreshKey++
-                    Toast.makeText(context, "🎉 사진 + 생생후기 작성이 완료되어 +3,000 P가 즉시 적립되었습니다! (적립일로부터 1년 뒤 자동 소멸)", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "📸 사진 + 생생후기가 등록되었습니다! 관리자 검토 후 +3,000 P가 지급됩니다.", Toast.LENGTH_LONG).show()
                 } else {
-                    Toast.makeText(context, "✅ 소중한 이용 후기가 등록되었습니다! (사진 첨부 작성 시 +3,000P가 지급됩니다)", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "✅ 소중한 이용 후기가 등록되었습니다! (사진 첨부 작성 시 관리자 검토 후 +3,000P가 지급됩니다)", Toast.LENGTH_LONG).show()
                 }
                 showReviewWriteDialog = false
             },
@@ -11463,7 +11586,7 @@ fun HomeScreenContent(
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
                     ) {
-                        Text("📸 사진 + 생생후기 작성하고 +3,000P 즉시 받기 ➔", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("📸 사진 + 생생후기 작성하고 +3,000P 검토 신청 ➔", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
 
                     HorizontalDivider()
