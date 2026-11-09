@@ -4022,8 +4022,8 @@ fun BookingHistoryScreen(
     var showChatForBooking by remember { mutableStateOf<BookingItem?>(null) }
     var showReceiptForBooking by remember { mutableStateOf<BookingItem?>(null) }
 
-    val activeList = remember(bookingList) { bookingList.filter { !it.isCompleted } }
-    val pastList = remember(bookingList) { bookingList.filter { it.isCompleted } }
+    val activeList = bookingList.filter { !it.isCompleted }
+    val pastList = bookingList.filter { it.isCompleted }
 
     Column(
         modifier = Modifier
