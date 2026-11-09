@@ -39,8 +39,6 @@ fun LoginScreen(
     var showAdminLogin by remember { mutableStateOf(false) }
     var logoTapCount by remember { mutableIntStateOf(0) }
     var isStaffModeUnlocked by remember { mutableStateOf(false) }
-    var showPhoneVerificationDialog by remember { mutableStateOf(false) }
-    var pendingLoginData by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
     var currentProvider by remember { mutableStateOf("Google") }
     var currentAccountEmail by remember { mutableStateOf("") }
     var userId by remember { mutableStateOf("") }

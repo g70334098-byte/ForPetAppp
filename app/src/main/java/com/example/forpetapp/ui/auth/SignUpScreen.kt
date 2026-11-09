@@ -50,8 +50,6 @@ fun SignUpScreen(
     var termsModalTitle by remember { mutableStateOf<String?>(null) }
     var termsModalBody by remember { mutableStateOf<String?>(null) }
 
-    var showPhoneVerificationDialog by remember { mutableStateOf(false) }
-    var pendingSignUpData by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
     var currentProvider by remember { mutableStateOf("Google") }
     var currentAccountEmail by remember { mutableStateOf("") }
 

@@ -2901,7 +2901,7 @@ fun LiveGpsMapDialog(
 
     LaunchedEffect(Unit) {
         while (true) {
-            kotlinx.coroutines.delay(kotlin.time.Duration.parse("1s"))
+            kotlinx.coroutines.delay(1000L)
             progress = if (progress >= 0.92f) 0.15f else progress + 0.04f
         }
     }
@@ -3185,9 +3185,9 @@ fun BodycamStreamDialog(
     var currentMillisTime by remember { mutableStateOf("") }
     val audioLevels = remember { mutableStateListOf(14, 28, 20, 35, 18, 30, 22) }
 
-    // 실시간 밀리초 타임스탬프 및 오디오 파형 시뮬레이션 루프
+    // 실시간 타임스탬프 및 오디오 파형 시뮬레이션 루프 (CPU/프레임 드랍 최적화: 500ms 주기)
     LaunchedEffect(Unit) {
-        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", java.util.Locale.KOREAN)
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.KOREAN)
         while (true) {
             currentMillisTime = sdf.format(java.util.Date())
             if (!isMuted) {
@@ -3199,7 +3199,7 @@ fun BodycamStreamDialog(
                     audioLevels[i] = 4
                 }
             }
-            kotlinx.coroutines.delay(kotlin.time.Duration.parse("120ms"))
+            kotlinx.coroutines.delay(500L)
         }
     }
 
