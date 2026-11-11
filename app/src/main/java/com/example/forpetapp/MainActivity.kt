@@ -42,6 +42,7 @@ import com.example.forpetapp.security.AppSecurityManager
 import com.example.forpetapp.security.SecurityScanResult
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
@@ -2786,6 +2787,24 @@ fun ForPetMainScreen(
 ) {
     val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
+    var backPressedTime by remember { mutableStateOf(0L) }
+
+    // 🔙 서브 탭(1: 예약, 2: 케어기록, 3: 마이페이지)에서 뒤로가기 누르면 홈 탭(0)으로 복귀
+    BackHandler(enabled = (selectedTab != 0)) {
+        selectedTab = 0
+    }
+
+    // 🚪 홈 탭(0)에서 뒤로가기 누르면 2초 이내 2회 터치 시 앱 정상 종료 안내
+    BackHandler(enabled = (selectedTab == 0)) {
+        val now = System.currentTimeMillis()
+        if (now - backPressedTime < 2000L) {
+            (context as? Activity)?.finish()
+        } else {
+            backPressedTime = now
+            Toast.makeText(context, "뒤로가기 버튼을 한 번 더 누르면 종료됩니다.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     val currentUserId = remember { PersistentStorageManager.loadUserId(context) }
     val currentUserEmail = remember { PersistentStorageManager.loadUserEmail(context) }
     var userPoints by remember(currentUserId) { mutableIntStateOf(PersistentStorageManager.loadUserPoints(context, 1000, currentUserId)) }
@@ -2816,6 +2835,18 @@ fun ForPetMainScreen(
         mutableStateListOf<BookingItem>().apply {
             addAll(PersistentStorageManager.loadBookingList(context, currentUserId))
         }
+    }
+
+    val activeOrder = bookingList.firstOrNull { order ->
+        !order.isCompleted && (
+            order.status.contains("출동") ||
+            order.status.contains("이동") ||
+            order.status.contains("픽업") ||
+            order.status.contains("병원") ||
+            order.status.contains("진료") ||
+            order.status.contains("운행") ||
+            order.status.contains("배차 완료")
+        )
     }
 
     // ☁️ 실시간 Cloud Firestore 오더 동기화 리스너 (보호자 화면 실시간 연동 - 본인 계정 오더만 필터링)
@@ -3041,13 +3072,95 @@ fun ForPetMainScreen(
             }
         }
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(Color(0xFFEFE5D5))
         ) {
-            when (selectedTab) {
+            // 🚨 운행/이송 중 실시간 가드 직통 긴급 통화 배너
+            if (activeOrder != null) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clickable {
+                            try {
+                                val intent = Intent(Intent.ACTION_DIAL, "tel:01037865394".toUri())
+                                context.startActivity(intent)
+                            } catch (_: Exception) {
+                                Toast.makeText(context, "전화 앱을 열 수 없습니다. (010-3786-5394)", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFFEF2F2),
+                    border = BorderStroke(1.2.dp, Color(0xFFEF4444)),
+                    shadowElevation = 2.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("🚗", fontSize = 20.sp)
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text("아이 안심 이송 • 케어 진행 중", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = Color(0xFF991B1B))
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = Color(0xFFDC2626)
+                                    ) {
+                                        Text(
+                                            activeOrder.status,
+                                            fontSize = 9.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    "${activeOrder.petName} 보호자동행 케어 • 터치 시 펫케어가드 직통 전화",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFFB91C1C),
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFDC2626)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text("📞", fontSize = 12.sp)
+                                Text("가드 직통", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                when (selectedTab) {
                 0 -> HomeScreenContent(
                     isAdminUser = isAdminUser,
                     userPoints = userPoints,
@@ -3245,6 +3358,7 @@ fun ForPetMainScreen(
                     onDeleteAccount = onLogout
                 )
             }
+        }
         }
     }
 
@@ -5994,6 +6108,7 @@ fun DigitalReceiptDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
                     .padding(vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -6012,6 +6127,10 @@ fun DigitalReceiptDialog(
                             Text("발자국동행 안심 이동 케어", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("사업자등록번호", fontSize = 11.5.sp, color = Color.Gray)
+                            Text("251-16-02759", fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("대표자", fontSize = 12.sp, color = Color.Gray)
                             Text("최지훈, 이선하", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }
@@ -6019,27 +6138,94 @@ fun DigitalReceiptDialog(
                             Text("이용 일시", fontSize = 12.sp, color = Color.Gray)
                             Text(booking.time, fontSize = 12.sp)
                         }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("케어 대상 반려동물", fontSize = 12.sp, color = Color.Gray)
+                            Text("${booking.petName} (${booking.species})", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("목적지 제휴병원", fontSize = 12.sp, color = Color.Gray)
+                            Text(booking.hospitalName, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0284C7))
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("배차 전용차량", fontSize = 12.sp, color = Color.Gray)
+                            Text(booking.vehicleInfo, fontSize = 11.5.sp)
+                        }
+
                         HorizontalDivider()
+
+                        Text("💰 요금 정산 세부 명세", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("발자국동행 안심 픽업 기본료", fontSize = 12.sp)
                             Text("30,000 원", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("진료 대행 서비스 수수료", fontSize = 12.sp)
-                            Text("5,000 원", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        if (booking.serviceType.contains("대행")) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("병원 진료/수납 대행 서비스료", fontSize = 12.sp)
+                                Text("5,000 원", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("보유 포인트 차감 할인", fontSize = 12.sp, color = Color(0xFFD97706))
-                            Text("- 3,000 원", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                        if (booking.usedPoints > 0) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("보유 포인트 차감 할인", fontSize = 12.sp, color = Color(0xFFD97706))
+                                Text("- ${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(booking.usedPoints)} 원", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                            }
                         }
+                        if (!booking.couponId.isNullOrBlank()) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("친구초대/이벤트 할인 쿠폰", fontSize = 12.sp, color = Color(0xFF0284C7))
+                                Text("- 5,000 원", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                            }
+                        }
+
                         HorizontalDivider()
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text("최종 결제 금액", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0F172A))
-                            Text(booking.estimatedPrice, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0284C7))
+                            Column {
+                                Text("가결제 승인 금액", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                Text("예약 확정 시 대표 카드 승인", fontSize = 10.sp, color = Color.Gray)
+                            }
+                            Text(booking.estimatedPrice, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0284C7))
                         }
-                        Text("결제 수단: 대표 등록 카드 (****-****-****-5394)", fontSize = 10.sp, color = Color.Gray)
+
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFF1F5F9)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("🏥 병원비 실비 및 차액 정산", fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = Color(0xFF1E293B))
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = if (booking.isCompleted) Color(0xFF0284C7) else Color(0xFFF59E0B)
+                                    ) {
+                                        Text(
+                                            if (booking.isCompleted) "최종 정산 완료" else "진료 후 정산 예정",
+                                            fontSize = 9.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    "• 병원 진료비 실비(진료비/약제비)는 수납 영수증 확인 후 투명하게 청구됩니다.\n• 가결제 승인액과의 차액(환불 또는 추가 승인)은 대표 카드로 자동 정산 완료됩니다.",
+                                    fontSize = 10.5.sp,
+                                    color = Color(0xFF475569),
+                                    lineHeight = 14.5.sp
+                                )
+                                if (!booking.receiptImageUri.isNullOrBlank()) {
+                                    Text("📸 병원비 실비 수납 영수증 원본 첨부 완료", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                }
+                            }
+                        }
+
+                        Text("결제 수단: 대표 등록 카드 (무서명 가결제)", fontSize = 10.5.sp, color = Color.Gray)
                     }
                 }
             }
@@ -6443,6 +6629,96 @@ fun MyPageScreen(
             }
         }
 
+        // 2-3. 🎁 친구 초대 추천 코드 & 원터치 공유
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFF38BDF8))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("🎁", fontSize = 18.sp)
+                            Text("친구 초대하고 5,000원 쿠폰 받기", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                        }
+                    }
+                    Text(
+                        "친구에게 내 추천 코드를 공유해 보세요. 친구 가입 시 1,000P 지급, 첫 케어 이용 완료 시 보호자님께 5,000원 할인 쿠폰이 지급됩니다!",
+                        fontSize = 11.5.sp,
+                        color = Color(0xFF475569),
+                        lineHeight = 16.sp
+                    )
+
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFF0F9FF),
+                        border = BorderStroke(1.dp, Color(0xFFBAE6FD))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text("내 추천 코드", fontSize = 10.5.sp, color = Color(0xFF0369A1))
+                                Text(userReferralCode, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF0284C7))
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                OutlinedButton(
+                                    onClick = {
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        val clip = ClipData.newPlainText("발자국동행 추천코드", userReferralCode)
+                                        clipboard.setPrimaryClip(clip)
+                                        Toast.makeText(context, "📋 내 추천 코드[$userReferralCode]가 복사되었습니다!", Toast.LENGTH_SHORT).show()
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("📋 복사", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                }
+                                Button(
+                                    onClick = {
+                                        try {
+                                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                type = "text/plain"
+                                                putExtra(Intent.EXTRA_SUBJECT, "[발자국동행] 1,000P 웰컴 포인트 & 친구 초대")
+                                                putExtra(
+                                                    Intent.EXTRA_TEXT,
+                                                    "🐾 [발자국동행] 부산 24시 반려동물 안심 병원동행 케어!\n신규 가입 시 추천코드 [$userReferralCode]를 입력하시면 현금처럼 사용 가능한 1,000P 즉시 지급 & 이용 시 5,000원 쿠폰 증정!\nhttps://baldong.co.kr"
+                                                )
+                                            }
+                                            context.startActivity(Intent.createChooser(shareIntent, "친구에게 추천코드 공유하기"))
+                                        } catch (_: Exception) {
+                                            Toast.makeText(context, "공유할 수 있는 앱을 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("💬 친구 초대", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // 3. 고객센터 전화번호 및 안내
         item {
             Card(
@@ -6794,22 +7070,47 @@ fun MyPageScreen(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text("⚠️", fontSize = 20.sp)
-                    Text("회원 탈퇴 및 데이터 삭제", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFDC2626))
+                    Text("회원 탈퇴 및 계정 영구 삭제", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFDC2626))
                 }
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                ) {
                     Text(
-                        "회원 탈퇴 시 모든 이용 내역, 등록된 반려동물 정보, 보유 포인트(${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(userPoints)} P) 및 개인정보가 즉시 영구 파기되며 복구할 수 없습니다.",
-                        fontSize = 13.sp,
+                        "회원 탈퇴를 진행하시면 Google Play 데이터 보호 정책 및 개인정보 처리방침에 따라 모든 개인 데이터가 복구 불가능하도록 즉시 영구 파기됩니다.",
+                        fontSize = 12.5.sp,
                         color = Color(0xFF334155),
-                        lineHeight = 18.sp
+                        lineHeight = 17.sp
                     )
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFFEF2F2),
+                        border = BorderStroke(1.dp, Color(0xFFFECACA)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text("🗑️ 영구 파기되는 데이터 항목 (복구 불가)", fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = Color(0xFF991B1B))
+                            Text("• 회원 프로필 (이름, 닉네임, 연락처, 자택 주소)", fontSize = 11.sp, color = Color(0xFF7F1D1D))
+                            Text("• 등록된 모든 반려동물 정보 (사진, 품종, 병력, 복약 기록)", fontSize = 11.sp, color = Color(0xFF7F1D1D))
+                            Text("• 전체 예약 내역 및 실시간 이동 동행 기록", fontSize = 11.sp, color = Color(0xFF7F1D1D))
+                            Text("• 암호화 저장된 현관 도어락 비밀번호 및 출입 메모", fontSize = 11.sp, color = Color(0xFF7F1D1D))
+                            Text("• 보유 포인트(${java.text.NumberFormat.getNumberInstance(java.util.Locale.KOREA).format(userPoints)} P) 및 보유 쿠폰 전액 즉시 소멸", fontSize = 11.sp, color = Color(0xFF7F1D1D), fontWeight = FontWeight.Bold)
+                            Text("• Cloud Firestore 서버 및 디바이스 로컬 저장소 동시 영구 삭제", fontSize = 11.sp, color = Color(0xFF7F1D1D))
+                        }
+                    }
+
                     Text(
-                        "정말로 탈퇴하시겠습니까?",
+                        "탈퇴 후에는 동일 계정으로 재가입하더라도 이전 데이터를 복구할 수 없습니다. 정말로 탈퇴하시겠습니까?",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        color = Color(0xFFDC2626)
+                        fontSize = 12.5.sp,
+                        color = Color(0xFFDC2626),
+                        lineHeight = 17.sp
                     )
                 }
             },
@@ -7744,16 +8045,43 @@ fun EventAndPointRewardsDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text("🔑 내 추천 코드: $userReferralCode", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = Color(0xFF0F172A))
-                                TextButton(
-                                    onClick = {
-                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                        val clip = ClipData.newPlainText("발자국동행 추천코드", userReferralCode)
-                                        clipboard.setPrimaryClip(clip)
-                                        Toast.makeText(context, "📋 내 추천 코드[$userReferralCode]가 복사되었습니다!", Toast.LENGTH_SHORT).show()
-                                    },
-                                    contentPadding = PaddingValues(0.dp)
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("📋 코드 복사", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                    TextButton(
+                                        onClick = {
+                                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                            val clip = ClipData.newPlainText("발자국동행 추천코드", userReferralCode)
+                                            clipboard.setPrimaryClip(clip)
+                                            Toast.makeText(context, "📋 내 추천 코드[$userReferralCode]가 복사되었습니다!", Toast.LENGTH_SHORT).show()
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text("📋 복사", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                    }
+                                    Button(
+                                        onClick = {
+                                            try {
+                                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                    type = "text/plain"
+                                                    putExtra(Intent.EXTRA_SUBJECT, "[발자국동행] 1,000P 웰컴 포인트 & 친구 초대")
+                                                    putExtra(
+                                                        Intent.EXTRA_TEXT,
+                                                        "🐾 [발자국동행] 부산 24시 반려동물 안심 병원동행 케어!\n신규 가입 시 추천코드 [$userReferralCode]를 입력하시면 현금처럼 사용 가능한 1,000P 즉시 지급 & 이용 시 5,000원 쿠폰 증정!\nhttps://baldong.co.kr"
+                                                    )
+                                                }
+                                                context.startActivity(Intent.createChooser(shareIntent, "친구에게 추천코드 공유하기"))
+                                            } catch (_: Exception) {
+                                                Toast.makeText(context, "공유할 수 있는 앱을 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                    ) {
+                                        Text("💬 친구 초대", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    }
                                 }
                             }
 
