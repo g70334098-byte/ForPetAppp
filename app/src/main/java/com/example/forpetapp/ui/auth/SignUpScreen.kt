@@ -439,7 +439,7 @@ fun SignUpScreen(
                                             error.message?.contains("keyHash", ignoreCase = true) == true ||
                                             error.toString().contains("keyHash", ignoreCase = true)
                                     if (isKeyHashErr) {
-                                        handleKakaoSuccess("발자국보호자", "kakao_user@baldong.co.kr")
+                                        handleKakaoSuccess("발자국보호자", "kakao_user@baldong.com")
                                         return@loginWithKakaoAccount
                                     }
                                     Toast.makeText(context, "카카오 가입 실패: ${error.localizedMessage ?: "다시 시도해 주세요."}", Toast.LENGTH_SHORT).show()

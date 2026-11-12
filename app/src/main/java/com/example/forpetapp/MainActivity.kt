@@ -7023,7 +7023,7 @@ fun MyPageScreen(
                         color = Color(0xFF334155)
                     )
                     Text(
-                        "공식 웹사이트: www.baldong.co.kr | 이메일: k7turbo@naver.com",
+                        "공식 웹사이트: www.baldong.com | 이메일: k7turbo@naver.com",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = Color(0xFF334155)
