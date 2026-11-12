@@ -557,14 +557,16 @@ fun SignUpScreen(
     }
 
     // 약관 내용 상세 팝업 다이얼로그
-    if (termsModalTitle != null && termsModalBody != null) {
+    val modalTitle = termsModalTitle
+    val modalBody = termsModalBody
+    if (modalTitle != null && modalBody != null) {
         AlertDialog(
             onDismissRequest = {
                 termsModalTitle = null
                 termsModalBody = null
             },
             title = {
-                Text(termsModalTitle!!, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Text(modalTitle, fontWeight = FontWeight.Bold, fontSize = 17.sp)
             },
             text = {
                 Surface(
@@ -573,7 +575,7 @@ fun SignUpScreen(
                     color = Color(0xFFF8FAFC)
                 ) {
                     Text(
-                        termsModalBody!!,
+                        modalBody,
                         fontSize = 12.sp,
                         color = Color(0xFF334155),
                         lineHeight = 18.sp,

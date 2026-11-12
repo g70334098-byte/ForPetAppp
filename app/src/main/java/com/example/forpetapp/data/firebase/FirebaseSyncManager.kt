@@ -415,7 +415,7 @@ object FirebaseSyncManager {
                                     doorlockPhotoUri = doc.getString("doorlockPhotoUri"),
                                     encryptedDoorlock = doc.getString("encryptedDoorlock"),
                                     doorlockPurged = doc.getBoolean("doorlockPurged") ?: false,
-                                    usedPoints = (doc.getLong("usedPoints") ?: 0L).toInt(),
+                                    usedPoints = (doc.get("usedPoints") as? Number)?.toInt() ?: doc.getString("usedPoints")?.toIntOrNull() ?: 0,
                                     couponId = doc.getString("couponId")
                                 )
                             } catch (_: Exception) {
@@ -759,7 +759,7 @@ object FirebaseSyncManager {
                                 val phone = doc.getString("phone") ?: ""
                                 val email = doc.getString("email") ?: ""
                                 val provider = doc.getString("provider") ?: "일반"
-                                val points = doc.getLong("points")?.toInt() ?: 0
+                                val points = (doc.get("points") as? Number)?.toInt() ?: doc.getString("points")?.toIntOrNull() ?: 0
                                 val providerIcon = when (provider) {
                                     "Google" -> "🔴 Google"
                                     "Kakao" -> "💛 카카오톡"
@@ -807,13 +807,14 @@ object FirebaseSyncManager {
     }
 
     /**
-     * 기본 버전 설정 초기 생성/보장 (관리자 또는 최초 1회)
+     * 기본 버전 설정 초기 생성/보장 (관리자 또는 최신 앱 실행 시 버전 동기화)
      */
     fun initDefaultVersionConfigIfMissing(currentVersionCode: Long, currentVersionName: String) {
         try {
             val docRef = firestore.collection("app_config").document("version_control")
             docRef.get().addOnSuccessListener { doc ->
-                if (!doc.exists()) {
+                val existingCode = if (doc.exists()) (doc.getLong("minVersionCode") ?: 0L) else 0L
+                if (!doc.exists() || existingCode < currentVersionCode) {
                     val initialConfig = hashMapOf(
                         "minVersionCode" to currentVersionCode,
                         "latestVersionName" to currentVersionName,
@@ -864,7 +865,7 @@ object FirebaseSyncManager {
                         val editor = prefs.edit()
                         var changed = false
                         val sanitized = userId.trim().replace("[^a-zA-Z0-9_]".toRegex(), "_")
-                        val cloudPoints = doc.getLong("points")?.toInt()
+                        val cloudPoints = (doc.get("points") as? Number)?.toInt() ?: doc.getString("points")?.toIntOrNull()
                         if (cloudPoints != null) {
                             val localLogsKey = if (sanitized.isNotBlank()) "point_logs_json_$sanitized" else "point_logs_json"
                             val logsJson = prefs.getString(localLogsKey, null)
@@ -1009,7 +1010,7 @@ object FirebaseSyncManager {
             }
             val docRef = firestore.collection(USERS_COLLECTION).document(cleanDocId)
             docRef.get().addOnSuccessListener { doc ->
-                val currentPts = doc?.getLong("points")?.toInt() ?: 1000
+                val currentPts = (doc?.get("points") as? Number)?.toInt() ?: doc?.getString("points")?.toIntOrNull() ?: 1000
                 val newPts = (currentPts + deltaPoints).coerceAtLeast(0)
                 val existingLogsJson = doc?.getString("point_logs_json") ?: "[]"
                 val logsArray = try {
@@ -1099,7 +1100,7 @@ object FirebaseSyncManager {
                             updated = true
                         }
 
-                        val cloudPoints = snapshot.getLong("points")?.toInt()
+                        val cloudPoints = (snapshot.get("points") as? Number)?.toInt() ?: snapshot.getString("points")?.toIntOrNull()
                         if (cloudPoints != null) {
                             val logsJson = prefs.getString(localLogsKey, null)
                             val hasSpent = logsJson?.contains("\"amount\":-") == true || logsJson?.contains("\"isEarned\":false") == true

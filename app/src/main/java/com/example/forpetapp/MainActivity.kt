@@ -170,9 +170,9 @@ fun ForPetApp() {
                 packageInfo.versionCode.toLong()
             }
         } else {
-            9L
+            68L
         }
-        val currentAppVersionName = packageInfo?.versionName ?: "1.0.8"
+        val currentAppVersionName = packageInfo?.versionName ?: "1.0.67"
 
         // Firestore 버전 설정 문서 초기화 (최초 1회 보장)
         FirebaseSyncManager.initDefaultVersionConfigIfMissing(currentAppVersionCode, currentAppVersionName)
@@ -1326,6 +1326,46 @@ fun GuardMapScreen() {
                 label = { Text("🏥 하단오거리", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
             )
             FilterChip(
+                selected = (selectedLocationKey == "hosp5"),
+                onClick = {
+                    selectedLocationKey = "hosp5"
+                    try {
+                        webViewRef?.evaluateJavascript("focusLocation('hosp5');", null)
+                    } catch (_: Exception) {}
+                },
+                label = { Text("🏥 명지 이로운", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+            )
+            FilterChip(
+                selected = (selectedLocationKey == "hosp6"),
+                onClick = {
+                    selectedLocationKey = "hosp6"
+                    try {
+                        webViewRef?.evaluateJavascript("focusLocation('hosp6');", null)
+                    } catch (_: Exception) {}
+                },
+                label = { Text("🏥 양산 에스", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+            )
+            FilterChip(
+                selected = (selectedLocationKey == "hosp7"),
+                onClick = {
+                    selectedLocationKey = "hosp7"
+                    try {
+                        webViewRef?.evaluateJavascript("focusLocation('hosp7');", null)
+                    } catch (_: Exception) {}
+                },
+                label = { Text("🏥 양산 힐스", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+            )
+            FilterChip(
+                selected = (selectedLocationKey == "hosp8"),
+                onClick = {
+                    selectedLocationKey = "hosp8"
+                    try {
+                        webViewRef?.evaluateJavascript("focusLocation('hosp8');", null)
+                    } catch (_: Exception) {}
+                },
+                label = { Text("🏥 동래 리본", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+            )
+            FilterChip(
                 selected = (selectedLocationKey == "all"),
                 onClick = {
                     selectedLocationKey = "all"
@@ -2317,6 +2357,8 @@ object PersistentStorageManager {
                 put("targetSpecies", org.json.JSONArray(h.targetSpecies))
                 put("departments", org.json.JSONArray(h.departments))
                 put("additionalServices", org.json.JSONArray(h.additionalServices))
+                put("businessHours", h.businessHours)
+                put("parkingInfo", h.parkingInfo)
             }
             jsonArray.put(obj)
         }
@@ -2334,7 +2376,9 @@ object PersistentStorageManager {
                 phone = "0507-1481-7599",
                 targetSpecies = listOf("개", "고양이"),
                 departments = listOf("피부과", "예방의학과", "내과", "이비인후과", "안과", "비뇨기과", "치과", "외과", "임상병리학과", "영상의학과", "정형외과", "산과"),
-                additionalServices = listOf("입원", "미용")
+                additionalServices = listOf("입원실 운영", "미용실 운영"),
+                businessHours = "⏰ 24시간 연중무휴 응급 진료",
+                parkingInfo = "🚗 병원 전용 주차장 완비"
             ),
             HospitalInfo(
                 name = "부산 24시 연산동물의료센터",
@@ -2344,7 +2388,9 @@ object PersistentStorageManager {
                 phone = "051-791-0175",
                 targetSpecies = listOf("개", "고양이"),
                 departments = listOf("피부과", "내과", "안과", "치과", "예방의학과", "이비인후과", "비뇨기과", "외과", "정형외과", "산과"),
-                additionalServices = listOf("입원", "🚗 주차 건물 내 가능", "⏰ 금요일 14시30분까지 (접수마감 12시30분)")
+                additionalServices = listOf("입원실 운영", "24시간 응급 처치 지원"),
+                businessHours = "⏰ 24시간 연중무휴 응급 진료\n(※ 금요일 14:30까지 진료 / 접수마감 12:30)",
+                parkingInfo = "🚗 병원 건물 내 주차 가능"
             ),
             HospitalInfo(
                 name = "24시 이솔동물의료센터",
@@ -2354,7 +2400,9 @@ object PersistentStorageManager {
                 phone = "051-711-7566",
                 targetSpecies = listOf("개", "고양이"),
                 departments = listOf("내과 (만성/호르몬/종양/항암)", "외과 (슬개골/십자인대/정형외과)", "응급의학과 (24시간 수의사 상주)"),
-                additionalServices = listOf("입원", "🚗 건물 뒤편 총 11면 전용 주차 공간", "🚨 24시간 수의사 상주 체계")
+                additionalServices = listOf("입원실 운영", "중환자 집중 케어"),
+                businessHours = "⏰ 24시간 연중무휴 응급 진료 (24시간 수의사 상시 상주)",
+                parkingInfo = "🚗 건물 뒤편 총 11면 전용 주차 공간 완비"
             ),
             HospitalInfo(
                 name = "23시 하단오거리동물병원",
@@ -2364,7 +2412,81 @@ object PersistentStorageManager {
                 phone = "051-291-7582",
                 targetSpecies = listOf("개", "고양이", "토끼", "고슴도치", "페릿", "기니피그", "햄스터", "조류", "설치류", "파충류", "어류", "야생동물"),
                 departments = listOf("피부과", "내과", "안과", "치과", "영상의학과", "예방의학과", "이비인후과", "임상병리학과", "비뇨기과", "외과", "정형외과", "산과"),
-                additionalServices = listOf("입원", "🚗 건물 뒷편과 벽측 약 10대 주차 공간 완비", "🐾 특수동물 전문 진료 (토끼/파충류/조류 등)")
+                additionalServices = listOf("입원실 운영", "🐾 특수동물 전문 진료 (토끼/파충류/조류/페릿/햄스터 등)"),
+                businessHours = "⏰ 매일 09:00 - 23:00 (야간 응급 진료)",
+                parkingInfo = "🚗 건물 뒷편 및 벽측 약 10대 전용 주차 공간 완비"
+            ),
+            HospitalInfo(
+                name = "이로운동물병원",
+                region = "부산 강서구",
+                type = "일반 진료 (주간)",
+                address = "부산 강서구 명지동 3331-7",
+                phone = "0507-1419-7578",
+                targetSpecies = listOf("개", "고양이"),
+                departments = listOf("내과", "외과", "피부과", "안과", "치과", "예방의학과", "기타"),
+                additionalServices = listOf(
+                    "일반 진료 및 필수 예방접종",
+                    "예약 우선 및 내원 접수 가능"
+                ),
+                businessHours = "⏰ 월~금 09:00 - 19:00 (휴게 13:00~14:00 / 접수마감 18:00)\n⏰ 토요일 09:00 - 14:00 (접수마감 13:00)\n🚨 일요일 정기휴무",
+                parkingInfo = "🚗 건물 뒷쪽 골목길 주차 가능"
+            ),
+            HospitalInfo(
+                name = "양산에스동물메디컬센터",
+                region = "경남 양산",
+                type = "전문 메디컬 (주간·연중무휴)",
+                address = "경남 양산시 물금읍 증산리 1776-2",
+                phone = "055-382-2475",
+                targetSpecies = listOf("개", "고양이"),
+                departments = listOf("피부과", "내과", "안과", "치과", "영상의학과", "예방의학과", "이비인후과", "비뇨기과", "외과", "정형외과", "산과"),
+                additionalServices = listOf(
+                    "노령동물 통합진료: 심장/신장/종양 등 노령질환 특화 진단 및 관리",
+                    "최소침습 수술: 내시경/방광경/복강경 정밀 수술 특화",
+                    "고양이 친화 진료: 별도 대기실/진료실/입원실 분리 운영",
+                    "외과센터: 십자인대 TPLO, 슬개골탈구 및 고관절 정형외과 수술",
+                    "안심 수술실: 보호자 CCTV 확인 가능한 보이는 수술실 운영",
+                    "마취통증의학과 전공 수의사 전담 마취 및 통증관리",
+                    "에스동물암센터 연계 정밀 CT 촬영 및 영상 판독",
+                    "입원실 운영"
+                ),
+                businessHours = "⏰ 월~일 10:00 - 19:30 (연중무휴)\n☕ 휴게시간 13:30 - 14:30\n⏱️ 접수마감 13:00, 19:00\n📞 18시 이후 내원 시 사전 유선 문의 필수",
+                parkingInfo = "🚗 건물 뒷편 주차 가능"
+            ),
+            HospitalInfo(
+                name = "힐스동물병원",
+                region = "경남 양산",
+                type = "일반 진료 (주간)",
+                address = "경남 양산시 물금읍 범어리 2799-4 1층",
+                phone = "055-388-8275",
+                targetSpecies = listOf("개", "고양이"),
+                departments = listOf("피부과", "내과", "안과", "치과", "예방의학과", "이비인후과", "비뇨기과", "외과", "정형외과", "산과"),
+                additionalServices = listOf(
+                    "⚠️ 특이사항: 수술 이외의 일반 진료는 사전 예약 불가 (현장 접수 순)",
+                    "주요 진료 질병: 외이염, 아토피피부염, 췌장염, 스케일링, 구내염, 중성화 수술, 결막염, 위이물, 슬개골탈구, 방광결석, 심부전 등",
+                    "📑 메리츠화재 펫보험 간편 청구 지원 병원",
+                    "✂️ 미용실 운영",
+                    "💳 결제수단: 지역화폐(카드형), 간편결제 지원"
+                ),
+                businessHours = "⏰ 월~금 09:00 - 18:30 (휴게 13:00 - 14:00)\n⏰ 토요일 09:00 - 17:00\n🚨 일요일 정기휴무 (매주 일요일)",
+                parkingInfo = "🚗 병원 옆 임시공영주차장 및 골목길 주차 (주차 매우 편리)"
+            ),
+            HospitalInfo(
+                name = "24시 리본동물의료센터",
+                region = "부산 동래구",
+                type = "24시 응급",
+                address = "부산 동래구 명륜동 506-13",
+                phone = "051-711-0006",
+                targetSpecies = listOf("개", "고양이"),
+                departments = listOf("내과", "외과", "안과", "치과", "영상의학과", "임상병리학과", "산과", "비뇨기과", "정형외과", "이비인후과", "예방의학과", "피부과"),
+                additionalServices = listOf(
+                    "영남권 최초 3.0T MRI·64채널 CT, 대학병원급 영상진단 시스템",
+                    "무균양압수술실, 신장투석센터(CCRT), 종양·중증내과센터, 24시 ICU",
+                    "ISFM GOLD 레벨 고양이 전용 진료동 (전용 대기/진료/입원/수술)",
+                    "안과·치과 특성화 진료, 노령 맞춤형 마취 프로토콜",
+                    "입원실 운영"
+                ),
+                businessHours = "⏰ 24시간 연중무휴 응급 진료\n(※ 정규 진료 09:00~19:00 예약우선제 운영 / 야간 응급은 예약 불가)",
+                parkingInfo = "🚗 1. 병원 건물 뒤 지상 주차장: 무료\n🚗 2. 메가마트 주차장: 진료 시 최대 3시간 무료 지원"
             )
         )
         if (jsonStr == null) return defaultList
@@ -2401,11 +2523,33 @@ object PersistentStorageManager {
                         phone = obj.optString("phone"),
                         targetSpecies = speciesList.ifEmpty { listOf("개", "고양이") },
                         departments = deptList,
-                        additionalServices = svcList
+                        additionalServices = svcList,
+                        businessHours = obj.optString("businessHours"),
+                        parkingInfo = obj.optString("parkingInfo")
                     )
                 )
             }
         } catch (_: Exception) {}
+
+        // 최신 병원 데이터 동기화 (진료시간/주차 분리 정보 자동 마이그레이션)
+        var listModified = false
+        defaultList.forEach { defaultHosp ->
+            val existingIdx = list.indexOfFirst { it.name == defaultHosp.name || (defaultHosp.name.isNotEmpty() && it.name.contains(defaultHosp.name.take(4))) }
+            if (existingIdx != -1) {
+                // 기존 데이터가 진료시간/주차가 분리되지 않은 구 버전인 경우 최신으로 업데이트
+                if (list[existingIdx].businessHours.isEmpty() || list[existingIdx].parkingInfo.isEmpty()) {
+                    list[existingIdx] = defaultHosp
+                    listModified = true
+                }
+            } else {
+                list.add(defaultHosp)
+                listModified = true
+            }
+        }
+
+        if (listModified) {
+            saveHospitalList(context, list)
+        }
         return list.ifEmpty { defaultList }
     }
 
@@ -4668,7 +4812,7 @@ fun BookingHistoryScreen(
                         .weight(1f),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(activeList.size) { index ->
+                    items(count = activeList.size, key = { activeList[it].id }) { index ->
                         val booking = activeList[index]
                         Card(
                             modifier = Modifier
@@ -4743,7 +4887,21 @@ fun BookingHistoryScreen(
                                     ) {
                                         Text("⏰ 예약 시간: ${booking.time}", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF475569))
                                         Text("🚙 배차 차량: ${booking.vehicleInfo}", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF0284C7))
-                                        Text("💳 결제 금액: ${booking.estimatedPrice}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text("💳 결제 금액", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF475569))
+                                            Text(
+                                                text = booking.estimatedPrice,
+                                                fontSize = 12.5.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = Color(0xFFD97706),
+                                                softWrap = false,
+                                                maxLines = 1
+                                            )
+                                        }
                                         if (booking.symptomNote.isNotEmpty()) {
                                             Text("📋 전달 사항: ${booking.symptomNote}", fontSize = 12.sp, color = Color.Gray)
                                         }
@@ -4897,7 +5055,7 @@ fun BookingHistoryScreen(
                         .weight(1f),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(pastList.size) { index ->
+                    items(count = pastList.size, key = { pastList[it].id }) { index ->
                         val booking = pastList[index]
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -6173,7 +6331,7 @@ fun DigitalReceiptDialog(
                         }
                         if (!booking.couponId.isNullOrBlank()) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("친구초대/이벤트 할인 쿠폰", fontSize = 12.sp, color = Color(0xFF0284C7))
+                                Text("이벤트 할인 쿠폰 적용", fontSize = 12.sp, color = Color(0xFF0284C7))
                                 Text("- 5,000 원", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                             }
                         }
@@ -6457,7 +6615,7 @@ fun MyPageScreen(
                                     Text("💳", fontSize = 20.sp)
                                     Column {
                                         Text("대표 결제 카드", fontSize = 11.sp, color = Color.Gray)
-                                        Text(registeredCard!!, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF1E293B))
+                                        Text(registeredCard ?: "", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF1E293B))
                                     }
                                 }
                                 TextButton(onClick = { 
@@ -6623,96 +6781,6 @@ fun MyPageScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
                         ) {
                             Text("🎁 이벤트 탭 열기", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
-                        }
-                    }
-                }
-            }
-        }
-
-        // 2-3. 🎁 친구 초대 추천 코드 & 원터치 공유
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, Color(0xFF38BDF8))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("🎁", fontSize = 18.sp)
-                            Text("친구 초대하고 5,000원 쿠폰 받기", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
-                        }
-                    }
-                    Text(
-                        "친구에게 내 추천 코드를 공유해 보세요. 친구 가입 시 1,000P 지급, 첫 케어 이용 완료 시 보호자님께 5,000원 할인 쿠폰이 지급됩니다!",
-                        fontSize = 11.5.sp,
-                        color = Color(0xFF475569),
-                        lineHeight = 16.sp
-                    )
-
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFFF0F9FF),
-                        border = BorderStroke(1.dp, Color(0xFFBAE6FD))
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text("내 추천 코드", fontSize = 10.5.sp, color = Color(0xFF0369A1))
-                                Text(userReferralCode, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF0284C7))
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                OutlinedButton(
-                                    onClick = {
-                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                        val clip = ClipData.newPlainText("발자국동행 추천코드", userReferralCode)
-                                        clipboard.setPrimaryClip(clip)
-                                        Toast.makeText(context, "📋 내 추천 코드[$userReferralCode]가 복사되었습니다!", Toast.LENGTH_SHORT).show()
-                                    },
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Text("📋 복사", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
-                                }
-                                Button(
-                                    onClick = {
-                                        try {
-                                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                                type = "text/plain"
-                                                putExtra(Intent.EXTRA_SUBJECT, "[발자국동행] 1,000P 웰컴 포인트 & 친구 초대")
-                                                putExtra(
-                                                    Intent.EXTRA_TEXT,
-                                                    "🐾 [발자국동행] 부산 24시 반려동물 안심 병원동행 케어!\n신규 가입 시 추천코드 [$userReferralCode]를 입력하시면 현금처럼 사용 가능한 1,000P 즉시 지급 & 이용 시 5,000원 쿠폰 증정!\nhttps://baldong.co.kr"
-                                                )
-                                            }
-                                            context.startActivity(Intent.createChooser(shareIntent, "친구에게 추천코드 공유하기"))
-                                        } catch (_: Exception) {
-                                            Toast.makeText(context, "공유할 수 있는 앱을 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Text("💬 친구 초대", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                }
-                            }
                         }
                     }
                 }
@@ -6928,45 +6996,51 @@ fun MyPageScreen(
                         "(주)위드파우 | 대표자: 최지훈, 이선하",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF64748B)
+                        color = Color(0xFF0F172A)
                     )
                     Text(
                         "브랜드: 발자국동행 (반려동물 안심 이동 케어 & 병원 진료 대행)",
                         fontSize = 10.sp,
-                        color = Color(0xFF94A3B8)
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF334155)
                     )
                     Text(
                         "사업장 소재지: 부산광역시 (정식 사업자 등록 후 공시 예정)",
                         fontSize = 10.sp,
-                        color = Color(0xFF94A3B8)
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF334155)
                     )
                     Text(
-                        "고객센터: 010-3786-5394 (24시간 응급 이송 출동센터 연중무휴)",
+                        "고객센터: 010-3786-5394 (발자국동행 관제센터 | 운영시간 월~일 09:00~19:00)",
                         fontSize = 10.sp,
-                        color = Color(0xFF94A3B8)
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1E293B)
                     )
                     Text(
                         "사업자등록번호: 등록 준비 중 | 통신판매업신고: 등록 준비 중",
                         fontSize = 10.sp,
-                        color = Color(0xFF94A3B8)
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF334155)
                     )
                     Text(
                         "공식 웹사이트: www.baldong.co.kr | 이메일: k7turbo@naver.com",
                         fontSize = 10.sp,
-                        color = Color(0xFF94A3B8)
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF334155)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         "(주)위드파우의 '발자국동행'은 동물병원 진료 예약 대행 및 반려동물 안심 동행 중개 서비스를 제공하며, 고객 보호를 위한 안전결제 정책을 준수합니다.",
                         fontSize = 9.sp,
-                        color = Color(0xFF94A3B8),
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF475569),
                         lineHeight = 13.sp
                     )
                     Text(
                         "Copyright © 2026 WithPaw Inc. All rights reserved.",
                         fontSize = 9.sp,
-                        color = Color(0xFFCBD5E1),
-                        fontWeight = FontWeight.Medium
+                        color = Color(0xFF64748B),
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
@@ -7438,7 +7512,7 @@ fun PointHistoryDetailDialog(
                             }
                         }
                     } else {
-                        items(filteredLogs.size) { index ->
+                        items(count = filteredLogs.size, key = { filteredLogs[it].id }) { index ->
                             val log = filteredLogs[index]
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -8021,118 +8095,6 @@ fun EventAndPointRewardsDialog(
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
                                     Text("👑 [관리자 전용] 포스팅 확인 승인 • 10,000P 즉시 지급", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7E22CE))
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // 이벤트 5: 친구 초대 추천 코드
-                item {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFF8FAFC),
-                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("🔑 내 추천 코드: $userReferralCode", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = Color(0xFF0F172A))
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    TextButton(
-                                        onClick = {
-                                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                            val clip = ClipData.newPlainText("발자국동행 추천코드", userReferralCode)
-                                            clipboard.setPrimaryClip(clip)
-                                            Toast.makeText(context, "📋 내 추천 코드[$userReferralCode]가 복사되었습니다!", Toast.LENGTH_SHORT).show()
-                                        },
-                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
-                                    ) {
-                                        Text("📋 복사", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
-                                    }
-                                    Button(
-                                        onClick = {
-                                            try {
-                                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                                    type = "text/plain"
-                                                    putExtra(Intent.EXTRA_SUBJECT, "[발자국동행] 1,000P 웰컴 포인트 & 친구 초대")
-                                                    putExtra(
-                                                        Intent.EXTRA_TEXT,
-                                                        "🐾 [발자국동행] 부산 24시 반려동물 안심 병원동행 케어!\n신규 가입 시 추천코드 [$userReferralCode]를 입력하시면 현금처럼 사용 가능한 1,000P 즉시 지급 & 이용 시 5,000원 쿠폰 증정!\nhttps://baldong.co.kr"
-                                                    )
-                                                }
-                                                context.startActivity(Intent.createChooser(shareIntent, "친구에게 추천코드 공유하기"))
-                                            } catch (_: Exception) {
-                                                Toast.makeText(context, "공유할 수 있는 앱을 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
-                                            }
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                                    ) {
-                                        Text("💬 친구 초대", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                    }
-                                }
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                OutlinedTextField(
-                                    value = inputFriendCode,
-                                    onValueChange = { inputFriendCode = it.uppercase() },
-                                    placeholder = { Text(if (isReferralRedeemed) "친구 추천 적립 완료" else "친구 추천코드 6자리 입력", fontSize = 11.sp) },
-                                    enabled = !isReferralRedeemed,
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true
-                                )
-                                Button(
-                                    onClick = {
-                                        val trimmedCode = inputFriendCode.trim().uppercase()
-                                        if (isReferralRedeemed) {
-                                            Toast.makeText(context, "⚠️ 추천 코드는 계정당 최초 1회만 적립 가능합니다!", Toast.LENGTH_LONG).show()
-                                        } else if (trimmedCode == userReferralCode) {
-                                            Toast.makeText(context, "⚠️ 본인 추천 코드는 등록할 수 없습니다.", Toast.LENGTH_LONG).show()
-                                        } else if (validReferralCodes.contains(trimmedCode) || (trimmedCode.length == 6 && trimmedCode.all { it.isLetterOrDigit() })) {
-                                            val newPts = userPoints + 3000
-                                            PersistentStorageManager.recordPointTransaction(
-                                                context = context,
-                                                title = "🎁 친구 추천 코드($trimmedCode) 입력 적립",
-                                                amount = 3000,
-                                                isEarned = true,
-                                                userId = currentUserId
-                                            )
-                                            onUpdatePoints(newPts)
-                                            val newCoupon = CouponItem(
-                                                title = "🎉 친구 초대 5,000원 첫 동행 할인 쿠폰",
-                                                discountAmount = 5000,
-                                                validUntil = "2027.12.31"
-                                            )
-                                            userCoupons.add(0, newCoupon)
-                                            PersistentStorageManager.saveCouponList(context, userCoupons)
-                                            isReferralRedeemed = true
-                                            PersistentStorageManager.saveReferralRedeemed(context, true, currentUserId)
-                                            Toast.makeText(context, "🎉 친구 추천 코드[$trimmedCode] 인증 완료! 3,000P가 지급되었습니다!", Toast.LENGTH_LONG).show()
-                                            inputFriendCode = ""
-                                        } else {
-                                            Toast.makeText(context, "❌ 유효한 6자리 추천 코드를 입력해 주세요.", Toast.LENGTH_LONG).show()
-                                        }
-                                    },
-                                    enabled = !isReferralRedeemed,
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
-                                ) {
-                                    Text(if (isReferralRedeemed) "완료" else "적립", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                 }
                             }
                         }
@@ -8723,11 +8685,11 @@ fun HomeScreenContent(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = Color(0xFF0284C7)
+                            color = Color(0xFFDC2626)
                         ) {
-                            Text("공지", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                            Text("필독", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                         }
-                        Text("발자국동행 1:1 병원 진료 대행 및 안심 이동 케어 서비스 정식 안내", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFF0F172A), maxLines = 1)
+                        Text("📢 발자국동행 운영시간 안내 (월~일 09:00~19:00 / 긴급출동 운영시간 내 지원)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF991B1B), maxLines = 1)
                     }
                     Text("더보기 ➔", fontSize = 11.sp, color = Color.Gray)
                 }
@@ -8906,59 +8868,107 @@ fun HomeScreenContent(
                         }
                     }
 
-                    // 3개 핵심 요금 트림 (예약 진료 / 당일 이동 / 긴급 응급)
-                    Row(
+                    // 3개 핵심 요금 트림 (예약 진료 / 당일 이동 / 긴급 응급) - 가로형 카드 리스트
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Surface(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    selectedTrimType = "📅 예약 진료 (예약 O)"
+                                    showBookingDialog = true
+                                },
                             shape = RoundedCornerShape(10.dp),
                             color = Color(0xFFF8FAFC),
                             border = BorderStroke(1.dp, Color(0xFFE2E8F0))
                         ) {
-                            Column(
-                                modifier = Modifier.padding(8.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("📅 예약 진료", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
-                                Text("30,000원", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A))
-                                Text("사전 예약 1:1 동행", fontSize = 9.sp, color = Color.Gray)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("📅", fontSize = 16.sp)
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text("예약 진료 동행", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                        Text("사전 지정 일시 1:1 수석가드 안심 케어", fontSize = 10.5.sp, color = Color.Gray)
+                                    }
+                                }
+                                Text("30,000원", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A), softWrap = false, maxLines = 1)
                             }
                         }
 
                         Surface(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    selectedTrimType = "🚗 당일 이동 (미예약)"
+                                    showBookingDialog = true
+                                },
                             shape = RoundedCornerShape(10.dp),
                             color = Color(0xFFFFFBEB),
                             border = BorderStroke(1.dp, Color(0xFFFDE68A))
                         ) {
-                            Column(
-                                modifier = Modifier.padding(8.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("🚗 당일 이동", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
-                                Text("35,000원", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A))
-                                Text("당일 즉시 접수 케어", fontSize = 9.sp, color = Color.Gray)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("🚗", fontSize = 16.sp)
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text("당일 미예약 이동", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                                        Text("당일 즉시 픽업 & 현장 수속 접수 대행", fontSize = 10.5.sp, color = Color.Gray)
+                                    }
+                                }
+                                Text("35,000원", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A), softWrap = false, maxLines = 1)
                             }
                         }
 
                         Surface(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    selectedTrimType = "🚨 긴급 출동 (응급)"
+                                    showEmergencyDialog = true
+                                },
                             shape = RoundedCornerShape(10.dp),
                             color = Color(0xFFFEF2F2),
                             border = BorderStroke(1.dp, Color(0xFFFECDD3))
                         ) {
-                            Column(
-                                modifier = Modifier.padding(8.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("🚨 24시 응급", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
-                                Text("50,000원", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A))
-                                Text("최우선 즉시 출동", fontSize = 9.sp, color = Color.Gray)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("🚨", fontSize = 16.sp)
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text("긴급출동 (운영시간 내)", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                                        Text("월~일 09:00~19:00 운영 | 응급실 연계 최우선 즉시 배차", fontSize = 10.sp, color = Color(0xFF7F1D1D))
+                                    }
+                                }
+                                Text("50,000원", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFDC2626), softWrap = false, maxLines = 1)
                             }
                         }
                     }
@@ -9339,13 +9349,15 @@ fun HomeScreenContent(
         var newHospDepts by remember { mutableStateOf("피부과, 예방의학과, 내과, 이비인후과, 안과, 비뇨기과, 치과, 외과, 임상병리학과, 영상의학과, 정형외과, 산과") }
         var newHospSvcs by remember { mutableStateOf("입원, 미용") }
 
-        val regions = listOf("전체", "부산 북구", "부산 강서구", "부산 사하구", "부산 사상구", "부산 연제구", "부산진구", "해운대/수영구", "금정구")
+        val regions = listOf("전체", "부산 북구", "부산 강서구", "부산 사하구", "부산 사상구", "부산 연제구", "부산 동래구", "부산진구", "해운대/수영구", "금정구", "경남 양산")
 
         val filteredHospitals = hospitals.filter { item ->
             val regionMatch = selectedRegionFilter == "전체" ||
                     item.region.contains(selectedRegionFilter) ||
-                    selectedRegionFilter.contains(item.region.replace("부산 ", ""))
-            val typeMatch = selectedTypeFilter == "전체" || item.type == selectedTypeFilter
+                    selectedRegionFilter.contains(item.region.replace("부산 ", "").replace("경남 ", ""))
+            val typeMatch = selectedTypeFilter == "전체" ||
+                    item.type == selectedTypeFilter ||
+                    (selectedTypeFilter == "낮 운영" && !item.type.contains("24시"))
             regionMatch && typeMatch
         }
 
@@ -9460,13 +9472,21 @@ fun HomeScreenContent(
                                             )
                                             Surface(
                                                 shape = RoundedCornerShape(4.dp),
-                                                color = if (item.type == "24시 응급") Color(0xFFFFE4E6) else Color(0xFFE0F2FE)
+                                                color = when {
+                                                    item.type.contains("24시") -> Color(0xFFFFE4E6)
+                                                    item.type.contains("메디컬") -> Color(0xFFEDE9FE)
+                                                    else -> Color(0xFFDCFCE7)
+                                                }
                                             ) {
                                                 Text(
                                                     text = item.type,
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = if (item.type == "24시 응급") Color(0xFFE11D48) else Color(0xFF0284C7),
+                                                    color = when {
+                                                        item.type.contains("24시") -> Color(0xFFE11D48)
+                                                        item.type.contains("메디컬") -> Color(0xFF6D28D9)
+                                                        else -> Color(0xFF059669)
+                                                    },
                                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                                     softWrap = false,
                                                     maxLines = 1
@@ -9620,9 +9640,15 @@ fun HomeScreenContent(
                                 HorizontalDivider()
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text("🏥 발자국동행 3가지 서비스 트림 정찰 요금", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
-                                    Text("• 🚨 긴급 응급 출동: 50,000원 (24시 응급실 연결 & 최우선 즉시 배차)", fontSize = 11.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)
+                                    Text("• 🚨 긴급출동 (운영시간 내): 50,000원 (09:00~19:00 운영시간 내 최우선 즉시 배차)", fontSize = 11.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)
                                     Text("• 🚗 미예약 당일 이동: 35,000원 (당일 즉시 픽업 & 현장 수속)", fontSize = 11.sp, color = Color(0xFFD97706), fontWeight = FontWeight.Bold)
                                     Text("• 📅 예약 진료 (예약 O): 30,000원 (지정 일시 1:1 수석가드 안심 동행)", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                                }
+                                HorizontalDivider()
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text("⏰ 발자국동행 공식 운영시간 안내", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF991B1B))
+                                    Text("• 월요일 ~ 일요일 09:00 - 19:00 (연중무휴)", fontSize = 11.sp, color = Color(0xFF7F1D1D), fontWeight = FontWeight.Bold)
+                                    Text("• 긴급출동 역시 운영시간(09:00~19:00) 내에서만 지원되며 19시 이후 심야 출동은 불가합니다.", fontSize = 10.5.sp, color = Color(0xFF991B1B))
                                 }
                                 HorizontalDivider()
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -9632,6 +9658,13 @@ fun HomeScreenContent(
                                 Text("※ 발자국동행은 여객유상운송이 아닌 '1:1 반려동물 병원 진료 대행 및 안심 케어 동행 서비스' 전문 솔루션으로, 서비스 트림별 100% 투명 정액 정찰제로 안전하게 운용됩니다.", fontSize = 10.sp, color = Color(0xFF0284C7), lineHeight = 14.sp)
                             }
                         }
+                    }
+
+                    item {
+                        FaqItem(
+                            question = "Q. 발자국동행 운영시간과 긴급출동은 24시간 가능한가요?",
+                            answer = "아닙니다! 발자국동행의 공식 운영시간은 [월~일 09:00 ~ 19:00 (연중무휴)]입니다. 긴급출동 서비스 역시 24시간 상시 운영이 아니며, 운영시간(09:00~19:00) 내에서만 즉시 배차 및 현장 출동이 지원됩니다. (19:00 이후 심야 시간대에는 관제 및 출동이 불가합니다.)"
+                        )
                     }
 
                     item {
@@ -9686,13 +9719,21 @@ fun HomeScreenContent(
                     Text("🏥 ${hospital.name}", fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.weight(1f))
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = if (hospital.type == "24시 응급") Color(0xFFFFE4E6) else Color(0xFFE0F2FE)
+                        color = when {
+                            hospital.type.contains("24시") -> Color(0xFFFFE4E6)
+                            hospital.type.contains("메디컬") -> Color(0xFFEDE9FE)
+                            else -> Color(0xFFDCFCE7)
+                        }
                     ) {
                         Text(
                             text = hospital.type,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (hospital.type == "24시 응급") Color(0xFFE11D48) else Color(0xFF0284C7),
+                            color = when {
+                                hospital.type.contains("24시") -> Color(0xFFE11D48)
+                                hospital.type.contains("메디컬") -> Color(0xFF6D28D9)
+                                else -> Color(0xFF059669)
+                            },
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
@@ -9700,21 +9741,71 @@ fun HomeScreenContent(
             },
             text = {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 480.dp)
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     HorizontalDivider()
 
+                    // 📍 주소
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text("📍 주소", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
                         Text(hospital.address, fontSize = 13.sp, color = Color(0xFF0F172A), fontWeight = FontWeight.Medium)
                     }
 
+                    // 📞 전화번호 & 🐾 대상
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text("📞 전화번호 & 🐾 대상", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
                         Text("📞 ${hospital.phone} | 🐾 대상: ${hospital.targetSpecies.joinToString(", ")}", fontSize = 13.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
                     }
 
+                    // ⏰ 진료 시간 (영업 시간 안내)
+                    val hoursLines = if (hospital.businessHours.isNotBlank()) {
+                        hospital.businessHours.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
+                    } else {
+                        hospital.additionalServices.filter { it.contains("⏰") || it.contains("시") || it.contains("휴무") || it.contains("24시간") || it.contains("마감") }
+                    }
+                    if (hoursLines.isNotEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFF0FDF4),
+                            border = BorderStroke(1.dp, Color(0xFFBBF7D0)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text("⏰ 진료 시간 (영업 안내)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF15803D))
+                                hoursLines.forEach { line ->
+                                    Text(line, fontSize = 12.sp, color = Color(0xFF166534), fontWeight = FontWeight.Medium, lineHeight = 16.sp)
+                                }
+                            }
+                        }
+                    }
+
+                    // 🚗 주차 안내
+                    val parkingLines = if (hospital.parkingInfo.isNotBlank()) {
+                        hospital.parkingInfo.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
+                    } else {
+                        hospital.additionalServices.filter { it.contains("🚗") || it.contains("주차") }
+                    }
+                    if (parkingLines.isNotEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFEFF6FF),
+                            border = BorderStroke(1.dp, Color(0xFFBFDBFE)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text("🚗 주차 안내", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1D4ED8))
+                                parkingLines.forEach { line ->
+                                    Text(line, fontSize = 12.sp, color = Color(0xFF1E3A8A), fontWeight = FontWeight.Medium, lineHeight = 16.sp)
+                                }
+                            }
+                        }
+                    }
+
+                    // 🩺 진료 과목
                     if (hospital.departments.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text("🩺 진료 과목", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
@@ -9722,10 +9813,25 @@ fun HomeScreenContent(
                         }
                     }
 
-                    if (hospital.additionalServices.isNotEmpty()) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("✨ 부가 서비스 & 특이사항", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
-                            Text(hospital.additionalServices.joinToString(", "), fontSize = 12.sp, color = Color(0xFFD97706), fontWeight = FontWeight.Medium)
+                    // ✨ 부가 서비스 & 특이사항 (진료시간, 주차와 중복되지 않는 순수 서비스/특화안내)
+                    val extraServices = hospital.additionalServices.filterNot { svc ->
+                        svc.contains("🚗") || svc.contains("주차") ||
+                        svc.startsWith("⏰") || (svc.contains("09:00") && svc.contains("19:00")) ||
+                        svc.contains("정기휴무") || svc.startsWith("🚨 24시간")
+                    }
+                    if (extraServices.isNotEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFFFFBEB),
+                            border = BorderStroke(1.dp, Color(0xFFFDE68A)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text("✨ 부가 서비스 & 특이사항", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFB45309))
+                                extraServices.forEach { svc ->
+                                    Text("• ${svc.removePrefix("• ").trim()}", fontSize = 12.sp, color = Color(0xFF78350F), fontWeight = FontWeight.Medium, lineHeight = 16.sp)
+                                }
+                            }
                         }
                     }
                 }
@@ -9847,11 +9953,12 @@ fun HomeScreenContent(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text("📅 예약 진료 (사전 예약)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                                     Text("지정 일시 1:1 수석가드 안심 동행", fontSize = 10.sp, color = Color.Gray)
                                 }
-                                Text("30,000원", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("30,000원", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A), softWrap = false, maxLines = 1)
                             }
 
                             Row(
@@ -9859,11 +9966,12 @@ fun HomeScreenContent(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text("🚗 당일 이동 (미예약 이동)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
                                     Text("당일 즉시 픽업 & 현장 수속 접수", fontSize = 10.sp, color = Color.Gray)
                                 }
-                                Text("35,000원", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("35,000원", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A), softWrap = false, maxLines = 1)
                             }
 
                             Row(
@@ -9871,11 +9979,12 @@ fun HomeScreenContent(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column {
-                                    Text("🚨 24시 응급 출동 (최우선)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
-                                    Text("24시 응급실 직통 연결 즉시 출동", fontSize = 10.sp, color = Color.Gray)
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("🚨 긴급출동 (운영시간 내)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                                    Text("09:00~19:00 운영시간 내 최우선 즉시 출동", fontSize = 10.sp, color = Color.Gray)
                                 }
-                                Text("50,000원", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("50,000원", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A), softWrap = false, maxLines = 1)
                             }
                         }
                     }
@@ -9927,13 +10036,13 @@ fun HomeScreenContent(
                 ) {
                     Text("보호자님, 원하시는 서비스 유형(트림)을 선택해 주세요.", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
 
-                    // 1. 🚨 긴급 출동
+                    // 1. 🚨 긴급출동 (운영시간 내)
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
                                 isHospitalReserved = true
-                                selectedTrimType = "🚨 긴급 출동"
+                                selectedTrimType = "🚨 긴급출동 (운영시간 내)"
                                 showBookingNoticeDialog = false
                                 showBookingDialog = true
                             },
@@ -9943,9 +10052,9 @@ fun HomeScreenContent(
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text("🚨", fontSize = 18.sp)
-                                Text("긴급 출동 (골든타임 응급 이송)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFDC2626))
+                                Text("긴급출동 (운영시간 내 09:00~19:00)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFDC2626))
                             }
-                            Text("24시 응급실 직통 수속 연결 및 최우선 케어카 즉시 배차", fontSize = 11.sp, color = Color(0xFF991B1B))
+                            Text("운영시간 내 최우선 케어카 즉시 배차 (※ 19시 이후 심야 출동 불가)", fontSize = 11.sp, color = Color(0xFF991B1B))
                         }
                     }
 
@@ -10025,7 +10134,7 @@ fun HomeScreenContent(
 
         // 2. 진료 과목 선택
         var selectedDepartment by remember { mutableStateOf("내과") }
-        val departments = listOf("내과", "외과", "안과", "피부과", "치과(스케일링)", "정형외과", "수술(마취)", "암센터(종양)")
+        val departments = listOf("내과", "외과", "안과", "피부과", "치과(스케일링)", "정형외과", "수술(마취)", "암센터(종양)", "기타")
 
         // 3. 과목별 대표 증상 및 수술/암센터 항목 맵
         val departmentSymptomsMap = mapOf(
@@ -10036,7 +10145,8 @@ fun HomeScreenContent(
             "치과(스케일링)" to listOf("스케일링(치석제거)", "발치(유치/동요치)", "입냄새/구취", "잇몸 출혈/통증", "구강 검진"),
             "정형외과" to listOf("슬개골 탈구 2~3기", "십자인대 파열", "골절 의심", "관절염/보행장애"),
             "수술(마취)" to listOf("중성화 수술 (남아/여아)", "전신마취 사전검사", "스케일링&발치 수술", "종양/혹 제거 수술", "슬개골 교정 수술", "복부/외과 수술"),
-            "암센터(종양)" to listOf("종양/혹 정밀 조직검사", "유선종양/복부종양 수술", "항암 치료 & 면역 관리", "CT/초음파 정밀 영상의학", "암 통증 완화 케어")
+            "암센터(종양)" to listOf("종양/혹 정밀 조직검사", "유선종양/복부종양 수술", "항암 치료 & 면역 관리", "CT/초음파 정밀 영상의학", "암 통증 완화 케어"),
+            "기타" to listOf("진료 과목 잘 모름 (수의사 상담)", "원인 불명/이상 증세", "전반적 건강이상/종합상담", "병원 도착 후 진단 희망", "행동 이상/기력 쇠약")
         )
 
         val selectedSymptoms = remember { mutableStateListOf<String>() }
@@ -10088,7 +10198,7 @@ fun HomeScreenContent(
                             Text("$selectedTrimType (1/2: 정보 입력)", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = if (selectedTrimType.contains("긴급")) Color(0xFFDC2626) else Color(0xFF0F172A))
                         }
                         Text(
-                            if (selectedTrimType.contains("긴급")) "24시 응급실 직통 수속 연결 케어카가 최우선 즉시 배차됩니다."
+                            if (selectedTrimType.contains("긴급")) "운영시간(09:00~19:00) 내 최우선 속응 케어카가 즉시 배차됩니다."
                             else if (selectedTrimType.contains("예약 O")) "예약 완료하신 동물병원 명칭을 기재해 주시면 가드가 1:1 안심 케어합니다."
                             else "당일 미예약 건: 가드가 도착 후 인근 추천/희망 병원으로 현장 접수를 도와드립니다.",
                             fontSize = 11.sp,
@@ -10867,18 +10977,19 @@ fun HomeScreenContent(
                                         Text("🎟️", fontSize = 16.sp)
                                         Text("보유 쿠폰 할인 (${userCoupons.size}장 보유)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF166534))
                                     }
-                                    if (selectedCoupon != null) {
+                                    val currentSelectedCoupon = selectedCoupon
+                                    if (currentSelectedCoupon != null) {
                                         Surface(
                                             shape = RoundedCornerShape(4.dp),
                                             color = Color(0xFF22C55E)
                                         ) {
-                                            Text("-${selectedCoupon!!.discountAmount}원 적용", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                            Text("-${currentSelectedCoupon.discountAmount}원 적용", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                         }
                                     }
                                 }
 
                                 if (userCoupons.isEmpty()) {
-                                    Text("사용 가능한 쿠폰이 없습니다. (친구 추천 시 5,000원 쿠폰 지급)", fontSize = 10.sp, color = Color.Gray)
+                                    Text("사용 가능한 쿠폰이 없습니다.", fontSize = 10.sp, color = Color.Gray)
                                 } else {
                                     androidx.compose.foundation.lazy.LazyRow(
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -10953,15 +11064,40 @@ fun HomeScreenContent(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(12.dp),
+                                    .padding(14.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
                                     Text("💳 예상 가결제 금액", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E))
-                                    Text("다음 단계에서 예약 요약 확인 및 결제 수단을 선택합니다.", fontSize = 10.sp, color = Color(0xFFB45309))
+                                    Text("가드 안심 동행 픽업 기준 (정찰제)", fontSize = 10.5.sp, color = Color(0xFFB45309))
                                 }
-                                Text("${formattedPriceStr}원", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFFD97706))
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Row(
+                                    verticalAlignment = Alignment.Bottom,
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Text(
+                                        text = formattedPriceStr,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 20.sp,
+                                        color = Color(0xFFD97706),
+                                        softWrap = false,
+                                        maxLines = 1
+                                    )
+                                    Text(
+                                        text = "원",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.5.sp,
+                                        color = Color(0xFFB45309),
+                                        modifier = Modifier.padding(bottom = 2.dp),
+                                        softWrap = false,
+                                        maxLines = 1
+                                    )
+                                }
                             }
                         }
                     }
@@ -11105,8 +11241,30 @@ fun HomeScreenContent(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("최종 가결제 승인액", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E))
-                                    Text("${formattedPriceStr}원", fontWeight = FontWeight.Bold, fontSize = 19.sp, color = Color(0xFFD97706))
+                                    Text("최종 가결제 승인액", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF92400E), modifier = Modifier.weight(1f))
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.Bottom,
+                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        Text(
+                                            text = formattedPriceStr,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 20.sp,
+                                            color = Color(0xFFD97706),
+                                            softWrap = false,
+                                            maxLines = 1
+                                        )
+                                        Text(
+                                            text = "원",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.5.sp,
+                                            color = Color(0xFFB45309),
+                                            modifier = Modifier.padding(bottom = 2.dp),
+                                            softWrap = false,
+                                            maxLines = 1
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -11335,10 +11493,10 @@ fun HomeScreenContent(
                                 )
                                 homePointLogRefreshKey++
                             }
-                            if (selectedCoupon != null) {
+                            selectedCoupon?.let { sel ->
                                 val allCoupons = PersistentStorageManager.loadCouponList(context)
                                 val updatedCoupons = allCoupons.map { c ->
-                                    if (c.id == selectedCoupon!!.id) c.copy(isUsed = true) else c
+                                    if (c.id == sel.id) c.copy(isUsed = true) else c
                                 }
                                 PersistentStorageManager.saveCouponList(context, updatedCoupons)
                             }
@@ -11534,9 +11692,9 @@ fun HomeScreenContent(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text("🚨", fontSize = 20.sp)
-                        Text("긴급 응급 출동 신청 (병원 미 예약자)", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFFD32F2F))
+                        Text("긴급출동 신청 (운영시간 내: 09:00~19:00)", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFFD32F2F))
                     }
-                    Text("24시 응급 전용차가 최우선 배차됩니다. (상황에 따라 더 빠른 차량이 출동할 수 있습니다)", fontSize = 11.sp, color = Color(0xFFD32F2F))
+                    Text("발자국동행 운영시간 내 최우선 속응 케어카가 배차됩니다. (※ 19시 이후 심야 출동 불가)", fontSize = 11.sp, color = Color(0xFFD32F2F))
                 }
             },
             text = {
@@ -11951,11 +12109,18 @@ fun HomeScreenContent(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("💳 긴급 출동 가결제 예정 금액", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF9F1239))
-                                    Text("50,000원", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFE11D48))
+                                    Text("💳 긴급 출동 가결제 예정 금액", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF9F1239), modifier = Modifier.weight(1f))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.Bottom,
+                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        Text("50,000", fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, color = Color(0xFFE11D48), softWrap = false, maxLines = 1)
+                                        Text("원", fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = Color(0xFF9F1239), modifier = Modifier.padding(bottom = 2.dp), softWrap = false, maxLines = 1)
+                                    }
                                 }
                                 HorizontalDivider(color = Color(0xFFFECDD3))
-                                Text("• [$selectedEmergencyPaymentMethod] 24시 최우선 긴급 응급 케어 가결제 금액이며, 응급실 수속 및 진료 완료 후 최종 케어 항목에 맞춰 자동 정산됩니다.", fontSize = 11.sp, color = Color(0xFFBE123C), lineHeight = 15.sp)
+                                Text("• [$selectedEmergencyPaymentMethod] 운영시간 내 최우선 긴급 케어 가결제 금액이며, 응급실 수속 및 진료 완료 후 최종 케어 항목에 맞춰 자동 정산됩니다.", fontSize = 11.sp, color = Color(0xFFBE123C), lineHeight = 15.sp)
                                 Text("• ℹ️ 차량 출동 전 취소 시 100% 즉시 환불됩니다.", fontSize = 11.sp, color = Color(0xFFBE123C), fontWeight = FontWeight.Bold)
                             }
                         }
@@ -11979,8 +12144,8 @@ fun HomeScreenContent(
                         val newEmergencyBooking = BookingItem(
                             userId = currentUserId,
                             userEmail = currentUserEmail,
-                            serviceTrim = "🚨 24시 긴급 응급 출동",
-                            serviceType = "긴급 응급 출동 (병원 미예약자)",
+                            serviceTrim = "🚨 긴급출동 (운영시간 내 09:00~19:00)",
+                            serviceType = "긴급출동 (운영시간 내)",
                             species = emergencySpecies,
                             petName = emergencyPetName,
                             ownerName = emergencyOwnerName,
@@ -11989,20 +12154,20 @@ fun HomeScreenContent(
                             hospitalName = finalEmergencyHospital,
                             time = selectedDispatchTime,
                             status = "🚨 긴급 배차 중 (최단거리 속응차)",
-                            vehicleInfo = "발자국동행 24시 응급 전용차 (상황별 최우선 속응 차량 배차)",
+                            vehicleInfo = "발자국동행 케어카 (운영시간 내 최우선 속응 차량 배차)",
                             symptomNote = combinedEmergencyNote,
                             estimatedPrice = "[$selectedEmergencyPaymentMethod] 50,000원"
                         )
                         Toast.makeText(context, "⚡ $selectedEmergencyPaymentMethod 긴급 가결제 승인이 완료되었습니다!", Toast.LENGTH_SHORT).show()
                         onAddBooking(newEmergencyBooking)
                         com.example.forpetapp.data.firebase.FirebaseSyncManager.syncOrderToCloud(newEmergencyBooking, context)
-                        Toast.makeText(context, "🚨 [$emergencySpecies] '$emergencyPetName' 아이의 24시 응급 출동 배차가 시작되었습니다!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "🚨 [$emergencySpecies] '$emergencyPetName' 아이의 긴급출동 배차가 시작되었습니다!", Toast.LENGTH_LONG).show()
                         showEmergencyDialog = false
                         onNavigateToBookingTab()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
                 ) {
-                    Text("🚨 긴급 출동 요청하기", fontWeight = FontWeight.Bold)
+                    Text("🚨 긴급출동 예약하기 (09:00~19:00)", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -12203,9 +12368,36 @@ fun HomeScreenContent(
             },
             text = {
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth().height(320.dp),
+                    modifier = Modifier.fillMaxWidth().height(360.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+                            border = BorderStroke(1.dp, Color(0xFFFECACA))
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFDC2626)) {
+                                        Text("필독", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp))
+                                    }
+                                    Text("📢 발자국동행 공식 운영시간 & 긴급출동 안내", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF991B1B))
+                                }
+                                Text("2026.11.12", fontSize = 10.sp, color = Color.Gray)
+                                HorizontalDivider(color = Color(0xFFFECACA))
+                                Text(
+                                    "안녕하세요, 보호자님! 발자국동행 서비스 공식 운영시간을 안내해 드립니다.\n\n" +
+                                    "• ⏰ 공식 운영시간: 월요일 ~ 일요일 09:00 - 19:00 (연중무휴)\n" +
+                                    "• 🚨 긴급출동 서비스: 운영시간(09:00~19:00) 내에서만 최우선 즉시 배차 및 출동이 진행됩니다.\n\n" +
+                                    "※ 발자국동행은 24시간 심야 상시 운영 솔루션이 아니며, 19:00 이후 심야 시간대에는 관제 및 차량 출동이 불가하오니 예약 및 이용에 착오 없으시길 부탁드립니다.",
+                                    fontSize = 11.5.sp,
+                                    color = Color(0xFF7F1D1D),
+                                    lineHeight = 16.sp
+                                )
+                            }
+                        }
+                    }
                     item {
                         Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC))) {
                             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -13037,9 +13229,9 @@ fun EmergencyHotlineGuideDialog(
                     Surface(shape = CircleShape, color = Color(0xFFFFE4E6), modifier = Modifier.size(32.dp)) {
                         Box(contentAlignment = Alignment.Center) { Text("🚨", fontSize = 18.sp) }
                     }
-                    Text("24시 응급 & 골든타임 가이드", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color(0xFF991B1B))
+                    Text("긴급출동 & 골든타임 가이드", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color(0xFF991B1B))
                 }
-                Text("위급 상황 시 1초가 소중합니다. 즉시 다이얼 또는 응급처치를 확인하세요.", fontSize = 11.sp, color = Color.Gray)
+                Text("위급 상황 시 즉시 다이얼(운영 09:00~19:00) 또는 응급처치를 확인하세요.", fontSize = 11.sp, color = Color.Gray)
             }
         },
         text = {
@@ -13055,7 +13247,7 @@ fun EmergencyHotlineGuideDialog(
                     border = BorderStroke(1.dp, Color(0xFFFECDD3))
                 ) {
                     Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("📞 1초 긴급 직통 다이얼 (터치 시 즉시 통화)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF991B1B))
+                        Text("📞 긴급 직통 다이얼 (터치 시 즉시 통화)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF991B1B))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 onClick = {
@@ -13068,7 +13260,7 @@ fun EmergencyHotlineGuideDialog(
                                 contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text("🚨 24시 응급 관제", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text("🚨 관제센터 (09~19시)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     Text("010-3786-5394", fontSize = 10.sp)
                                 }
                             }
@@ -13274,7 +13466,7 @@ fun EmergencyHotlineGuideDialog(
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("🚨 24시 긴급 응급출동 예약하기 (50,000원)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text("🚨 긴급출동 예약하기 (50,000원 | 09:00~19:00)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
         },
@@ -13906,11 +14098,12 @@ fun MyPetDetailScreen(
 
     var isSaved by remember { mutableStateOf(false) }
 
-    val (birthDateText, ageText) = if (selectedBirthMillis != null) {
-        val dateFormat = SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREA)
-        val bText = dateFormat.format(Date(selectedBirthMillis!!))
+    val bMillis = selectedBirthMillis
+    val (birthDateText, ageText) = if (bMillis != null) {
+        val dateFormat = remember { SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREA) }
+        val bText = dateFormat.format(Date(bMillis))
 
-        val birthCal = Calendar.getInstance().apply { timeInMillis = selectedBirthMillis!! }
+        val birthCal = Calendar.getInstance().apply { timeInMillis = bMillis }
         val todayCal = Calendar.getInstance()
         var age = todayCal.get(Calendar.YEAR) - birthCal.get(Calendar.YEAR)
         if (todayCal.get(Calendar.DAY_OF_YEAR) < birthCal.get(Calendar.DAY_OF_YEAR)) {
@@ -14079,10 +14272,11 @@ fun savePetImageToInternalStorage(context: android.content.Context, uri: Uri): S
                             .clickable { galleryLauncher.launch("image/*") },
                         contentAlignment = Alignment.Center
                     ) {
-                        if (petImageUri != null) {
-                            val bitmap = remember(petImageUri) {
+                        val currentPetUri = petImageUri
+                        if (currentPetUri != null) {
+                            val bitmap = remember(currentPetUri) {
                                 try {
-                                    context.contentResolver.openInputStream(petImageUri!!).use { inputStream ->
+                                    context.contentResolver.openInputStream(currentPetUri).use { inputStream ->
                                         BitmapFactory.decodeStream(inputStream)
                                     }
                                 } catch (_: Exception) {

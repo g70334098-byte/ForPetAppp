@@ -250,10 +250,11 @@ fun PhoneVerificationDialog(
                             Toast.makeText(context, "인증번호 6자리를 정확히 입력해 주세요.", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
-                        if (firebaseVerificationId != null) {
+                        val vId = firebaseVerificationId
+                        if (vId != null) {
                             try {
                                 val credential = com.google.firebase.auth.PhoneAuthProvider.getCredential(
-                                    firebaseVerificationId!!,
+                                    vId,
                                     trimmedCode
                                 )
                                 com.google.firebase.auth.FirebaseAuth.getInstance()

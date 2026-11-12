@@ -38,6 +38,21 @@ class GuardGpsForegroundService : Service() {
                 return
             }
 
+            val hasFineLocation = ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+            ) == PackageManager.PERMISSION_GRANTED
+            val hasCoarseLocation = ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION,
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (!hasFineLocation && !hasCoarseLocation) {
+                android.util.Log.w("GuardGpsService", "Location permission missing. Stopping service safely.")
+                stopSelf()
+                return
+            }
+
             startForegroundServiceNotification()
             startContinuousGpsTracking()
         } catch (e: Exception) {
@@ -123,20 +138,22 @@ class GuardGpsForegroundService : Service() {
                 } catch (_: Exception) {}
             }
 
-            if (locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true) {
-                locationManager?.requestLocationUpdates(
-                    LocationManager.GPS_PROVIDER,
-                    10000L, // 10초 주기
-                    5f,     // 5m 이동 주기
-                    locationListener!!,
-                )
-            } else if (locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true) {
-                locationManager?.requestLocationUpdates(
-                    LocationManager.NETWORK_PROVIDER,
-                    10000L,
-                    5f,
-                    locationListener!!,
-                )
+            locationListener?.let { listener ->
+                if (locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true) {
+                    locationManager?.requestLocationUpdates(
+                        LocationManager.GPS_PROVIDER,
+                        10000L, // 10초 주기
+                        5f,     // 5m 이동 주기
+                        listener,
+                    )
+                } else if (locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true) {
+                    locationManager?.requestLocationUpdates(
+                        LocationManager.NETWORK_PROVIDER,
+                        10000L,
+                        5f,
+                        listener,
+                    )
+                }
             }
         } catch (_: Exception) {}
     }

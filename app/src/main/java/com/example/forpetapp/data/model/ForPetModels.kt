@@ -1,6 +1,6 @@
 package com.example.forpetapp.data.model
 
-// 🏥 병원 정보 데이터 클래스 (부산 구별 수동 등록 & 진료 과목/부가 서비스 지원)
+// 🏥 병원 정보 데이터 클래스 (부산/경남 구별 수동 등록 & 진료 시간/주차/진료 과목/부가 서비스 지원)
 data class HospitalInfo(
     val name: String,
     val region: String,
@@ -10,6 +10,8 @@ data class HospitalInfo(
     val targetSpecies: List<String> = listOf("개", "고양이"),
     val departments: List<String> = emptyList(),
     val additionalServices: List<String> = emptyList(),
+    val businessHours: String = "",
+    val parkingInfo: String = "",
 )
 
 // 📱 화면 전환 상태 머신

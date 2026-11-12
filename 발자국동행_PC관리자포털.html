@@ -429,10 +429,17 @@
             </div>
 
             <div style="display:flex; align-items:center; gap:12px;">
+                <!-- ⏰ 운영시간 안내 배지 -->
+                <div style="background:#fff7ed; border:1px solid #ffedd5; padding:8px 14px; border-radius:12px; font-size:12px; color:#c2410c; box-shadow:0 4px 10px rgba(0,0,0,0.03); display:flex; align-items:center; gap:8px;">
+                    <span>⏰ 운영시간:</span>
+                    <span style="font-weight:bold; color:#ea580c;">월~일 09:00 ~ 19:00 (연중무휴)</span>
+                    <span style="font-size:11px; color:#9a3412;">| 긴급출동: 운영시간 내 지원</span>
+                </div>
+
                 <!-- 🚀 실시간 앱 버전 제어 배지 및 원클릭 강제 업데이트 버튼 -->
                 <div id="version-control-badge" style="background:#ffffff; border:1px solid #bae6fd; padding:8px 14px; border-radius:12px; font-size:12px; color:#0369a1; box-shadow:0 4px 10px rgba(0,0,0,0.03); display:flex; align-items:center; gap:8px;">
                     <span>📱 앱 필수 버전:</span>
-                    <span id="current-min-version" style="font-weight:bold; color:#0284c7;">v1.0.13 (Code 14)</span>
+                    <span id="current-min-version" style="font-weight:bold; color:#0284c7;">v1.0.67 (Code 68)</span>
                     <button onclick="openVersionControlModal()" style="background:#0284c7; color:#ffffff; border:none; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer;">⚙️ 버전 설정</button>
                 </div>
 
@@ -518,6 +525,10 @@
                         <option value="yeonsan">📍 [연산동] 부산 연제구 연산동 1953-1 연산동물의료센터 앞</option>
                         <option value="saha_eisol">📍 [하단동] 부산 사하구 하단동 534-7 24시 이솔동물의료센터 앞</option>
                         <option value="saha_hadan5">📍 [하단동] 부산 사하구 하단동 617-10 23시 하단오거리동물병원 앞</option>
+                        <option value="myeongji_eroun">📍 [명지동] 부산 강서구 명지동 3331-7 이로운동물병원 앞</option>
+                        <option value="yangsan_s">📍 [양산 물금] 경남 양산시 물금읍 증산리 1776-2 양산에스동물메디컬센터 앞</option>
+                        <option value="yangsan_hills">📍 [양산 범어] 경남 양산시 물금읍 범어리 2799-4 힐스동물병원 앞</option>
+                        <option value="dongnae_reborn">📍 [동래 명륜동] 부산 동래구 명륜동 506-13 24시 리본동물의료센터 앞</option>
                     </select>
                     <button class="btn-action btn-green" onclick="syncSelectedGuardGps()">📡 선택 가드 GPS 위치 갱신</button>
                     <button class="btn-action btn-gold" onclick="resetPinCoords()">📍 핀 위치 원복</button>
@@ -1123,7 +1134,11 @@
             hosp1: [35.2289650, 129.0093850], // 부산 24시 동행동물의료센터 (덕천동 561-2)
             hosp2: [35.1818200, 129.0823500], // 부산 24시 연산동물의료센터 (연산동 1953-1)
             hosp3: [35.1017800, 128.9664500], // 24시 이솔동물의료센터 (하단동 534-7)
-            hosp4: [35.1051500, 128.9617800]  // 23시 하단오거리동물병원 (하단동 617-10)
+            hosp4: [35.1051500, 128.9617800], // 23시 하단오거리동물병원 (하단동 617-10)
+            hosp5: [35.1047010, 128.9223980], // 이로운동물병원 (명지동 3331-7)
+            hosp6: [35.3084850, 129.0083750], // 양산에스동물메디컬센터 (증산리 1776-2)
+            hosp7: [35.3369529, 129.0144324], // 힐스동물병원 (범어리 2799-4)
+            hosp8: [35.2029100, 129.0809700]  // 24시 리본동물의료센터 (명륜동 506-13)
         };
 
         var savedPinCoords = JSON.parse(localStorage.getItem('baljaguk_pin_coords')) || defaultPinCoords;
@@ -1563,6 +1578,78 @@
                     savePinCoord('hosp4', pos.lat, pos.lng);
                     alert('💾 [23시 하단오거리동물병원] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
                 });
+
+                // 6. 이로운동물병원 커스텀 마커 핀 (부산 강서구 명지동 3331-7) - 일반 주간 진료
+                var hospIcon5 = L.divIcon({
+                    className: 'custom-hospital-marker-5',
+                    html: `<div style="background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(16,185,129,0.4); border: 2.5px solid #ffffff; cursor: move; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 이로운동물병원 (일반 주간 진료)\\n📍 지번 주소: 부산 강서구 명지동 3331-7 (명지국제11로 35)\\n📞 직통: 0507-1419-7578\\n⏰ 영업시간:\\n• 월~금: 09:00 - 19:00 (휴게 13~14시 / 접수마감 18:00)\\n• 토: 09:00 - 14:00 (접수마감 13:00)\\n• 일: 정기휴무 (매주 일요일)\\n🚗 특이사항: 뒷쪽 골목길 주차')">
+                               <span style="font-size: 18px;">🏥</span>
+                               <span>이로운동물병원</span>
+                               <span style="background: #ffffff; color: #059669; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">주간 진료</span>
+                           </div>`,
+                    iconSize: [205, 40],
+                    iconAnchor: [102, 40]
+                });
+                var hospMarker5 = L.marker(savedPinCoords.hosp5 || defaultPinCoords.hosp5, { icon: hospIcon5, draggable: true }).addTo(googleMap);
+                hospMarker5.on('dragend', function(e) {
+                    var pos = e.target.getLatLng();
+                    savePinCoord('hosp5', pos.lat, pos.lng);
+                    alert('💾 [이로운동물병원] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
+                });
+
+                // 7. 양산에스동물메디컬센터 커스텀 마커 핀 (경남 양산시 물금읍 증산리 1776-2) - 주간·연중무휴 전문 메디컬센터
+                var hospIcon6 = L.divIcon({
+                    className: 'custom-hospital-marker-6',
+                    html: `<div style="background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(124,58,237,0.4); border: 2.5px solid #ffffff; cursor: move; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 양산에스동물메디컬센터 (주간·연중무휴 전문 메디컬)\\n📍 지번 주소: 경남 양산시 물금읍 증산리 1776-2 (증산역로 174)\\n📞 직통: 055-382-2475\\n⏰ 진료시간: 매일 10:00 - 19:30 (휴게 13:30~14:30 / 마감 13:00, 19:00)\\n⚠️ 18시 이후 내원 시 사전 유선 문의 필수\\n🩺 특화: 노령동물 통합(심장/신장/종양), 최소침습수술(내시경/복강경), 고양이친화, 암센터협진 CT/줄기세포, 보이는 수술실(CCTV)\\n🐾 진료 대상: 개, 고양이 (입원실 운영)\\n🚗 특이사항: 건물 뒷편 주차 가능')">
+                               <span style="font-size: 18px;">🏥</span>
+                               <span>양산에스메디컬</span>
+                               <span style="background: #ffffff; color: #7c3aed; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">주간·연중무휴</span>
+                           </div>`,
+                    iconSize: [215, 40],
+                    iconAnchor: [107, 40]
+                });
+                var hospMarker6 = L.marker(savedPinCoords.hosp6 || defaultPinCoords.hosp6, { icon: hospIcon6, draggable: true }).addTo(googleMap);
+                hospMarker6.on('dragend', function(e) {
+                    var pos = e.target.getLatLng();
+                    savePinCoord('hosp6', pos.lat, pos.lng);
+                    alert('💾 [양산에스동물메디컬센터] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
+                });
+
+                // 8. 힐스동물병원 커스텀 마커 핀 (경남 양산시 물금읍 범어리 2799-4) - 주간 일반 진료
+                var hospIcon7 = L.divIcon({
+                    className: 'custom-hospital-marker-7',
+                    html: `<div style="background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(16,185,129,0.4); border: 2.5px solid #ffffff; cursor: move; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 힐스동물병원 (주간 일반 진료)\\n📍 지번 주소: 경남 양산시 물금읍 범어리 2799-4 1층 (신주3길 8)\\n📞 직통: 055-388-8275\\n⏰ 진료시간: 평일 09:00 - 18:30 (휴게 13~14시), 토요일 09:00 - 17:00, 일요일 휴무\\n⚠️ 특이사항: 수술 이외의 진료는 사전 예약 불가 (현장 접수 순 진료)\\n📋 부가서비스: 메리츠화재 펫보험 간편 청구 지원, 미용, 지역화폐/간편결제\\n🚗 주차: 옆 임시공영주차장 및 골목길 주차 매우 편리')">
+                               <span style="font-size: 18px;">🏥</span>
+                               <span>양산 힐스동물병원</span>
+                               <span style="background: #ffffff; color: #059669; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">주간 진료</span>
+                           </div>`,
+                    iconSize: [215, 40],
+                    iconAnchor: [107, 40]
+                });
+                var hospMarker7 = L.marker(savedPinCoords.hosp7 || defaultPinCoords.hosp7, { icon: hospIcon7, draggable: true }).addTo(googleMap);
+                hospMarker7.on('dragend', function(e) {
+                    var pos = e.target.getLatLng();
+                    savePinCoord('hosp7', pos.lat, pos.lng);
+                    alert('💾 [힐스동물병원] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
+                });
+
+                // 9. 24시 리본동물의료센터 커스텀 마커 핀 (부산 동래구 명륜동 506-13) - 24시간 응급 진료
+                var hospIcon8 = L.divIcon({
+                    className: 'custom-hospital-marker-8',
+                    html: `<div style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(220,38,38,0.4); border: 2.5px solid #ffffff; cursor: move; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 24시 리본동물의료센터 (24시간 응급 진료)\\n📍 지번 주소: 부산 동래구 명륜동 506-13 동림빌딩 2층 (충렬대로 194)\\n📞 직통: 051-711-0006\\n⏰ 진료시간: 24시간 연중무휴 응급 진료 (정규 09:00~19:00 예약우선제)\\n🩺 특화: 3.0T MRI·64채널 CT, 무균양압수술실, 신장투석센터(CCRT), 종양·중증내과, ISFM GOLD 고양이전용진료동, 안과·치과 특화, 24시 ICU\\n🚗 주차: 건물 뒤 지상 무료 주차 / 메가마트 주차장 최대 3시간 무료 지원')">
+                               <span style="font-size: 18px;">🏥</span>
+                               <span>24시 리본동물의료센터</span>
+                               <span style="background: #ffffff; color: #dc2626; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">24시 응급</span>
+                           </div>`,
+                    iconSize: [225, 40],
+                    iconAnchor: [112, 40]
+                });
+                var hospMarker8 = L.marker(savedPinCoords.hosp8 || defaultPinCoords.hosp8, { icon: hospIcon8, draggable: true }).addTo(googleMap);
+                hospMarker8.on('dragend', function(e) {
+                    var pos = e.target.getLatLng();
+                    savePinCoord('hosp8', pos.lat, pos.lng);
+                    alert('💾 [24시 리본동물의료센터] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
+                });
             }
         }
 
@@ -1611,6 +1698,18 @@
             } else if (locKey === 'saha_hadan5') {
                 lat = 35.1051500; lng = 128.9617800;
                 locName = "부산 사하구 하단동 617-10 하단오거리동물병원 앞";
+            } else if (locKey === 'myeongji_eroun') {
+                lat = 35.1047010; lng = 128.9223980;
+                locName = "부산 강서구 명지동 3331-7 이로운동물병원 앞";
+            } else if (locKey === 'yangsan_s') {
+                lat = 35.3084850; lng = 129.0083750;
+                locName = "경남 양산시 물금읍 증산리 1776-2 양산에스동물메디컬센터 앞";
+            } else if (locKey === 'yangsan_hills') {
+                lat = 35.3369529; lng = 129.0144324;
+                locName = "경남 양산시 물금읍 범어리 2799-4 힐스동물병원 앞";
+            } else if (locKey === 'dongnae_reborn') {
+                lat = 35.2029100; lng = 129.0809700;
+                locName = "부산 동래구 명륜동 506-13 24시 리본동물의료센터 앞";
             }
 
             guard.lat = lat;
@@ -1624,7 +1723,7 @@
 
         // 초기 기본 샘플 데이터 (3가지 서비스 트림 구분: 긴급 50,000원 / 당일미예약 35,000원 / 예약진료 30,000원)
         const defaultOrders = [
-            { id: "ORD-01", trim: "🚨 긴급 출동", type: "🐶 강아지", pet: "초코", owner: "최지훈", phone: "010-3786-5394", pickup: "부산 사하구 하단동 (보호자 자택)", hospital: "명지24시온누리메디컬센터 (응급실)", time: "오늘 오전 10:30", status: "2. 픽업 출발 및 완료 🐶", guard: "박찬헌 가드 (부산 38가 5394)", price: "50,000원", doctorNote: "슬개골 2기 관절 검진 진행하였으며 관절 영양제 복용 권장.", prescription: "하루 2회 식후 영양제 복용" },
+            { id: "ORD-01", trim: "🚨 긴급출동 (운영시간 내)", type: "🐶 강아지", pet: "초코", owner: "최지훈", phone: "010-3786-5394", pickup: "부산 사하구 하단동 (보호자 자택)", hospital: "명지24시온누리메디컬센터 (응급실)", time: "오늘 오전 10:30", status: "2. 픽업 출발 및 완료 🐶", guard: "박찬헌 가드 (부산 38가 5394)", price: "50,000원", doctorNote: "슬개골 2기 관절 검진 진행하였으며 관절 영양제 복용 권장.", prescription: "하루 2회 식후 영양제 복용" },
             { id: "ORD-02", trim: "🚗 미예약 이동 (당일)", type: "🐱 고양이", pet: "해피", owner: "이선하", phone: "010-7521-7399", pickup: "부산 사하구 낙동대로 550", hospital: "사상24시웰니스동물병원", time: "오늘 오후 02:00", status: "4. 진료 완료 & 리포트 전송 🎉", guard: "이가드 가드 (부산 60수 8888)", price: "35,000원", doctorNote: "소화불량 증상 완화 위장약 3일분 처방 완료.", prescription: "식후 30분 위장약 복용" },
             { id: "ORD-03", trim: "📅 예약 진료 (예약 O)", type: "🐶 강아지", pet: "몽이", owner: "홍길동", phone: "010-1234-5678", pickup: "부산 사상구 괘법동", hospital: "하단24시동물메디컬센터", time: "오늘 오후 04:30", status: "1. 배차 대기 중", guard: "박찬헌 가드 (부산 38가 5394)", price: "30,000원", doctorNote: "", prescription: "" }
         ];
@@ -1853,14 +1952,27 @@
                     .onSnapshot((doc) => {
                         if (doc && doc.exists) {
                             const data = doc.data();
-                            const minCode = data.minVersionCode || 9;
-                            const verName = data.latestVersionName || "1.0.8";
+                            const minCode = data.minVersionCode || 68;
+                            const verName = data.latestVersionName || "1.0.67";
                             const badgeText = document.getElementById('current-min-version');
                             if (badgeText) {
                                 badgeText.innerText = `v${verName} (Code ${minCode})`;
                             }
                         }
                     }, (err) => console.warn("Version config sync error:", err));
+
+                // 최신 배포 버전(Code 68, v1.0.67) 자동 보장 및 동기화
+                db.collection("app_config").doc("version_control").get().then((doc) => {
+                    const existingCode = doc.exists && doc.data() ? (doc.data().minVersionCode || 0) : 0;
+                    if (!doc.exists || existingCode < 68) {
+                        db.collection("app_config").doc("version_control").set({
+                            minVersionCode: 68,
+                            latestVersionName: "1.0.67",
+                            updateMessage: "원활한 실시간 예약 및 안심 케어 서비스 이용을 위해 최신 버전 업데이트가 필요합니다. 구글 플레이스토어로 이동하여 업데이트해 주세요.",
+                            updatedAt: Date.now()
+                        }, { merge: true });
+                    }
+                }).catch(e => console.warn("Auto version guarantee error:", e));
 
             } catch (fbErr) {
                 console.warn("Firebase Init Error:", fbErr);
@@ -1870,8 +1982,8 @@
 
         // 🚀 관리자 버전 제어 모달 기능
         function openVersionControlModal() {
-            const currentText = document.getElementById('current-min-version') ? document.getElementById('current-min-version').innerText : 'v1.0.8 (Code 9)';
-            const inputCode = prompt(`[📱 발자국동행 앱 강제 업데이트 설정]\n\n현재 필수 최소 버전: ${currentText}\n\n새로 요구할 최소 VersionCode(숫자)를 입력하세요.\n(예: 9 이상으로 설정하면 8 이하 사용자는 무조건 구글플레이 업데이트 팝업이 뜹니다.)`, "9");
+            const currentText = document.getElementById('current-min-version') ? document.getElementById('current-min-version').innerText : 'v1.0.67 (Code 68)';
+            const inputCode = prompt(`[📱 발자국동행 앱 강제 업데이트 설정]\n\n현재 필수 최소 버전: ${currentText}\n\n새로 요구할 최소 VersionCode(숫자)를 입력하세요.\n(예: 68 이상으로 설정하면 67 이하 사용자는 무조건 구글플레이 업데이트 팝업이 뜹니다.)`, "68");
             if (!inputCode) return;
 
             const parsedCode = parseInt(inputCode, 10);
@@ -1880,7 +1992,7 @@
                 return;
             }
 
-            const inputName = prompt("표시할 최신 버전명을 입력하세요 (예: 1.0.8):", "1.0.8") || "1.0.8";
+            const inputName = prompt("표시할 최신 버전명을 입력하세요 (예: 1.0.67):", "1.0.67") || "1.0.67";
 
             try {
                 const db = firebase.firestore();

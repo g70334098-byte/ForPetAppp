@@ -88,9 +88,53 @@
             gap: 5px;
             white-space: nowrap;
         }
+        .custom-hosp-badge-regular {
+            background: linear-gradient(135deg, #059669, #10b981);
+            color: #ffffff;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 12px;
+            box-shadow: 0 4px 12px rgba(16,185,129,0.45);
+            border: 2px solid #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+        .custom-hosp-badge-special {
+            background: linear-gradient(135deg, #7c3aed, #6366f1);
+            color: #ffffff;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 12px;
+            box-shadow: 0 4px 12px rgba(124,58,237,0.45);
+            border: 2px solid #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
         .badge-sub {
             background: #ffffff;
             color: #dc2626;
+            font-size: 9px;
+            padding: 2px 5px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .badge-sub-regular {
+            background: #ffffff;
+            color: #059669;
+            font-size: 9px;
+            padding: 2px 5px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .badge-sub-special {
+            background: #ffffff;
+            color: #7c3aed;
             font-size: 9px;
             padding: 2px 5px;
             border-radius: 8px;
@@ -254,6 +298,108 @@
                     '</div>'
                 );
 
+                // 6. 이로운동물병원 (부산 강서구 명지동 3331-7) - 주간 일반 진료
+                var hosp5Icon = L.divIcon({
+                    className: '',
+                    html: '<div class="custom-hosp-badge-regular">' +
+                          '<span>🏥</span>' +
+                          '<span>이로운동물병원</span>' +
+                          '<span class="badge-sub-regular">주간 진료</span>' +
+                          '</div>',
+                    iconSize: [175, 36],
+                    iconAnchor: [87, 36]
+                });
+                markers.hosp5 = L.marker([35.1047010, 128.9223980], { icon: hosp5Icon }).addTo(map);
+                markers.hosp5.bindPopup(
+                    '<div style="min-width:230px;">' +
+                    '<b style="font-size:14px;color:#059669;">🏥 이로운동물병원</b> <span style="background:#ecfdf5;color:#059669;font-size:10px;padding:2px 6px;border-radius:6px;font-weight:bold;">주간 진료</span><br>' +
+                    '📍 <b>주소:</b> 부산 강서구 명지동 3331-7 (명지국제11로 35)<br>' +
+                    '📞 <b>직통:</b> <a href="tel:050714197578" style="color:#0284c7;font-weight:bold;">0507-1419-7578 (전화걸기)</a><br>' +
+                    '⏰ <b>진료시간:</b><br>' +
+                    '• 월~금: 09:00 - 19:00 (휴게 13~14시 / 마감 18:00)<br>' +
+                    '• 토: 09:00 - 14:00 (접수마감 13:00)<br>' +
+                    '• 일: 정기휴무 (매주 일요일)<br>' +
+                    '🚗 <b>주차:</b> 뒷쪽 골목길 주차' +
+                    '</div>'
+                );
+
+                // 7. 양산에스동물메디컬센터 (경남 양산시 물금읍 증산리 1776-2) - 주간·연중무휴 전문 메디컬센터
+                var hosp6Icon = L.divIcon({
+                    className: '',
+                    html: '<div class="custom-hosp-badge-special">' +
+                          '<span>🏥</span>' +
+                          '<span>양산에스메디컬</span>' +
+                          '<span class="badge-sub-special">주간·연중무휴</span>' +
+                          '</div>',
+                    iconSize: [185, 36],
+                    iconAnchor: [92, 36]
+                });
+                markers.hosp6 = L.marker([35.3084850, 129.0083750], { icon: hosp6Icon }).addTo(map);
+                markers.hosp6.bindPopup(
+                    '<div style="min-width:250px;max-width:320px;">' +
+                    '<b style="font-size:14px;color:#7c3aed;">🏥 양산에스동물메디컬센터</b> <span style="background:#f5f3ff;color:#7c3aed;font-size:10px;padding:2px 6px;border-radius:6px;font-weight:bold;">주간·연중무휴</span><br>' +
+                    '📍 <b>주소:</b> 경남 양산시 물금읍 증산리 1776-2 (증산역로 174)<br>' +
+                    '📞 <b>직통:</b> <a href="tel:0553822475" style="color:#0284c7;font-weight:bold;">055-382-2475 (전화걸기)</a><br>' +
+                    '⏰ <b>진료시간:</b><br>' +
+                    '• 월~일(연중무휴): 10:00 - 19:30 (휴게 13:30~14:30 / 마감 13:00, 19:00)<br>' +
+                    '<span style="color:#dc2626;font-size:11px;">※ 18시 이후 내원 시 사전 유선 문의 필수</span><br>' +
+                    '🩺 <b>특화진료:</b> 노령동물 통합(심장/신장/종양), 최소침습수술(내시경/복강경), 고양이친화, 암센터협진 CT/줄기세포, 보이는 수술실(CCTV)<br>' +
+                    '🐾 <b>진료 대상:</b> 개, 고양이 (입원실 운영)<br>' +
+                    '🚗 <b>주차:</b> 건물 뒷편 주차 가능' +
+                    '</div>'
+                );
+
+                // 8. 힐스동물병원 (경남 양산시 물금읍 범어리 2799-4) - 주간 일반 진료
+                var hosp7Icon = L.divIcon({
+                    className: '',
+                    html: '<div class="custom-hosp-badge-regular">' +
+                          '<span>🏥</span>' +
+                          '<span>양산 힐스동물병원</span>' +
+                          '<span class="badge-sub-regular">주간 진료</span>' +
+                          '</div>',
+                    iconSize: [185, 36],
+                    iconAnchor: [92, 36]
+                });
+                markers.hosp7 = L.marker([35.3369529, 129.0144324], { icon: hosp7Icon }).addTo(map);
+                markers.hosp7.bindPopup(
+                    '<div style="min-width:250px;max-width:320px;">' +
+                    '<b style="font-size:14px;color:#059669;">🏥 힐스동물병원</b> <span style="background:#ecfdf5;color:#059669;font-size:10px;padding:2px 6px;border-radius:6px;font-weight:bold;">주간 진료</span><br>' +
+                    '📍 <b>주소:</b> 경남 양산시 물금읍 범어리 2799-4 1층 (신주3길 8)<br>' +
+                    '📞 <b>직통:</b> <a href="tel:0553888275" style="color:#0284c7;font-weight:bold;">055-388-8275 (전화걸기)</a><br>' +
+                    '⏰ <b>진료시간:</b><br>' +
+                    '• 월~금: 09:00 - 18:30 (휴게 13:00~14:00)<br>' +
+                    '• 토요일: 09:00 - 17:00<br>' +
+                    '• 일요일: 정기휴무<br>' +
+                    '<span style="color:#dc2626;font-size:11px;">※ 수술 이외의 진료는 사전 예약 불가 (현장 접수 순)</span><br>' +
+                    '🩺 <b>진료과목:</b> 피부과, 내과, 안과, 치과, 영상의학과, 예방의학과, 외과, 정형외과 등<br>' +
+                    '📋 <b>특이사항:</b> 메리츠화재 펫보험 간편 청구 지원, 미용실 운영, 지역화폐/간편결제<br>' +
+                    '🚗 <b>주차:</b> 바로 옆 임시공영주차장 및 골목길 주차 매우 편리' +
+                    '</div>'
+                );
+
+                // 9. 24시 리본동물의료센터 (부산 동래구 명륜동 506-13) - 24시간 응급 진료
+                var hosp8Icon = L.divIcon({
+                    className: '',
+                    html: '<div class="custom-hosp-badge">' +
+                          '<span>🏥</span>' +
+                          '<span>24시 리본동물의료센터</span>' +
+                          '<span class="badge-sub">24시 응급</span>' +
+                          '</div>',
+                    iconSize: [195, 36],
+                    iconAnchor: [97, 36]
+                });
+                markers.hosp8 = L.marker([35.2029100, 129.0809700], { icon: hosp8Icon }).addTo(map);
+                markers.hosp8.bindPopup(
+                    '<div style="min-width:260px;max-width:330px;">' +
+                    '<b style="font-size:14px;color:#dc2626;">🏥 24시 리본동물의료센터</b> <span style="background:#fee2e2;color:#dc2626;font-size:10px;padding:2px 6px;border-radius:6px;font-weight:bold;">24시 응급</span><br>' +
+                    '📍 <b>주소:</b> 부산 동래구 명륜동 506-13 동림빌딩 2층 (충렬대로 194)<br>' +
+                    '📞 <b>직통:</b> <a href="tel:0517110006" style="color:#0284c7;font-weight:bold;">051-711-0006 (전화걸기)</a><br>' +
+                    '⏰ <b>진료시간:</b> 24시간 연중무휴 응급 진료 (정규 09:00~19:00 예약우선제)<br>' +
+                    '🩺 <b>특화진료:</b> 영남권 최초 3.0T MRI·64채널 CT, 무균양압수술실, 신장투석센터(CCRT), 종양·중증내과, ISFM GOLD 고양이전용진료동, 안과·치과 특화, 24시 ICU<br>' +
+                    '🚗 <b>주차:</b> 병원 건물 뒤 지상 무료 주차 / 메가마트 주차장 최대 3시간 무료 지원' +
+                    '</div>'
+                );
+
                 var loader = document.getElementById('loading-indicator');
                 if (loader) loader.style.display = 'none';
 
@@ -282,8 +428,20 @@
             } else if (key === 'hosp4' && markers.hosp4) {
                 map.flyTo([35.1051500, 128.9617800], 16, { duration: 1 });
                 markers.hosp4.openPopup();
+            } else if (key === 'hosp5' && markers.hosp5) {
+                map.flyTo([35.1047010, 128.9223980], 16, { duration: 1 });
+                markers.hosp5.openPopup();
+            } else if (key === 'hosp6' && markers.hosp6) {
+                map.flyTo([35.3084850, 129.0083750], 16, { duration: 1 });
+                markers.hosp6.openPopup();
+            } else if (key === 'hosp7' && markers.hosp7) {
+                map.flyTo([35.3369529, 129.0144324], 16, { duration: 1 });
+                markers.hosp7.openPopup();
+            } else if (key === 'hosp8' && markers.hosp8) {
+                map.flyTo([35.2029100, 129.0809700], 16, { duration: 1 });
+                markers.hosp8.openPopup();
             } else {
-                var group = L.featureGroup([markers.car, markers.hosp1, markers.hosp2, markers.hosp3, markers.hosp4]);
+                var group = L.featureGroup([markers.car, markers.hosp1, markers.hosp2, markers.hosp3, markers.hosp4, markers.hosp5, markers.hosp6, markers.hosp7, markers.hosp8]);
                 map.fitBounds(group.getBounds().pad(0.15), { duration: 1 });
             }
         }

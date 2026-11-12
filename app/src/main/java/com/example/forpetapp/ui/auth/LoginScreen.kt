@@ -53,17 +53,21 @@ fun LoginScreen(
     ) { permissions ->
         val cameraGranted = permissions[android.Manifest.permission.CAMERA] ?: false
         val audioGranted = permissions[android.Manifest.permission.RECORD_AUDIO] ?: false
-        if (cameraGranted || audioGranted) {
-            Toast.makeText(context, "📹 [가드 안심 바디캠 가동 권한 동의 완료] 실시간 바디캠 가동 준비 완료!", Toast.LENGTH_SHORT).show()
+        val locationGranted = (permissions[android.Manifest.permission.ACCESS_FINE_LOCATION] == true) ||
+                              (permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true)
+        if (cameraGranted || audioGranted || locationGranted) {
+            Toast.makeText(context, "📹 [가드 안심 권한 동의 완료] 바디캠 및 실시간 GPS 관제 가동 준비 완료!", Toast.LENGTH_SHORT).show()
         }
-        try {
-            val serviceIntent = Intent(context, GuardGpsForegroundService::class.java)
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                context.startForegroundService(serviceIntent)
-            } else {
-                context.startService(serviceIntent)
-            }
-        } catch (_: Exception) {}
+        if (locationGranted) {
+            try {
+                val serviceIntent = Intent(context, GuardGpsForegroundService::class.java)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    context.startForegroundService(serviceIntent)
+                } else {
+                    context.startService(serviceIntent)
+                }
+            } catch (_: Exception) {}
+        }
         onDriverLoginSuccess()
     }
 
@@ -459,13 +463,17 @@ fun LoginScreen(
                                         Toast.makeText(context, "👨‍✈️ 담당 가드(박찬헌 가드) 계정으로 인증되었습니다!", Toast.LENGTH_SHORT).show()
                                         val hasCamera = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED
                                         val hasAudio = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                        val hasLocation = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                                                          androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
-                                        if (!hasCamera || !hasAudio) {
-                                            Toast.makeText(context, "📹 [가드 안심 바디캠 권한] 바디캠 라이브 생중계를 위해 카메라/오디오 권한을 허용해 주세요.", Toast.LENGTH_SHORT).show()
+                                        if (!hasCamera || !hasAudio || !hasLocation) {
+                                            Toast.makeText(context, "📹 [가드 안심 권한] 바디캠 라이브 및 GPS 관제를 위해 카메라/오디오/위치 권한을 허용해 주세요.", Toast.LENGTH_SHORT).show()
                                             guardPermissionLauncher.launch(
                                                 arrayOf(
                                                     android.Manifest.permission.CAMERA,
-                                                    android.Manifest.permission.RECORD_AUDIO
+                                                    android.Manifest.permission.RECORD_AUDIO,
+                                                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                                    android.Manifest.permission.ACCESS_COARSE_LOCATION
                                                 )
                                             )
                                         } else {

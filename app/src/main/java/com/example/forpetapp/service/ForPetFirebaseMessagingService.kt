@@ -45,7 +45,7 @@ class ForPetFirebaseMessagingService : FirebaseMessagingService() {
 
     private fun sendHeadsUpNotification(title: String, body: String) {
         val channelId = "forpet_urgent_channel"
-        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as? NotificationManager ?: return
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -81,13 +81,15 @@ class ForPetFirebaseMessagingService : FirebaseMessagingService() {
             .setContentIntent(pendingIntent)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
 
-        notificationManager.notify(System.currentTimeMillis().toInt(), notificationBuilder.build())
+        try {
+            notificationManager.notify((System.currentTimeMillis() % 10000).toInt(), notificationBuilder.build())
+        } catch (_: Exception) {}
     }
 
     companion object {
         fun sendLocalNotification(context: Context, title: String, body: String) {
             val channelId = "forpet_urgent_channel"
-            val notificationManager = context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            val notificationManager = context.getSystemService(NOTIFICATION_SERVICE) as? NotificationManager ?: return
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val channel = NotificationChannel(
@@ -121,7 +123,9 @@ class ForPetFirebaseMessagingService : FirebaseMessagingService() {
                 .setStyle(NotificationCompat.BigTextStyle().bigText(body))
                 .build()
 
-            notificationManager.notify((System.currentTimeMillis() % 100000).toInt(), notification)
+            try {
+                notificationManager.notify((System.currentTimeMillis() % 100000).toInt(), notification)
+            } catch (_: Exception) {}
         }
     }
 }
