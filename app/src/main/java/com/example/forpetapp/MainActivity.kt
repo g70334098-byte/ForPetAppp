@@ -2487,6 +2487,43 @@ object PersistentStorageManager {
                 ),
                 businessHours = "⏰ 24시간 연중무휴 응급 진료\n(※ 정규 진료 09:00~19:00 예약우선제 운영 / 야간 응급은 예약 불가)",
                 parkingInfo = "🚗 1. 병원 건물 뒤 지상 주차장: 무료\n🚗 2. 메가마트 주차장: 진료 시 최대 3시간 무료 지원"
+            ),
+            HospitalInfo(
+                name = "닥터펫동물의료센터",
+                region = "부산 부산진구",
+                type = "24시 응급",
+                address = "부산 부산진구 개금동 511-1",
+                phone = "051-891-8575",
+                targetSpecies = listOf("개", "고양이"),
+                departments = listOf("피부과", "내과", "안과", "치과", "예방의학과", "이비인후과", "비뇨기과", "외과", "정형외과", "산과"),
+                additionalServices = listOf(
+                    "신경계 질환 내과적 처방 전문",
+                    "근골격계 정형외과 수술 전문",
+                    "최소 절개 중성화 수술 전문",
+                    "내과 / 외과 전공의 분과 진료",
+                    "고양이 친화 동물병원",
+                    "보호자 대기실 실시간 모니터링 시스템 운영",
+                    "입원실 운영",
+                    "반려동물 동반 가능"
+                ),
+                businessHours = "⏰ 24시간 연중무휴 응급 진료",
+                parkingInfo = "🚗 주차 시설 완비"
+            ),
+            HospitalInfo(
+                name = "신호동물병원",
+                region = "부산 강서구",
+                type = "일반 진료 (주간)",
+                address = "부산 강서구 신호동 304-9",
+                phone = "051-972-0972",
+                targetSpecies = listOf("개", "고양이"),
+                departments = listOf("피부과", "내과", "외과", "안과", "치과", "예방의학과", "비뇨기과", "정형외과"),
+                additionalServices = listOf(
+                    "친절하고 꼼꼼한 맞춤형 반려동물 주치의 진료",
+                    "예방접종 및 건강검진, 기초 내과/외과 케어",
+                    "반려동물 동반 가능"
+                ),
+                businessHours = "⏰ 월~토 10:00 - 19:00\n⏰ 일요일 10:00 - 14:00 (매달 2, 4번째 일요일 정기 휴무)",
+                parkingInfo = "🚗 건물 뒷편 골목길 주차 가능"
             )
         )
         if (jsonStr == null) return defaultList

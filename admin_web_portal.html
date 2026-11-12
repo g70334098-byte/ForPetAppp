@@ -530,6 +530,8 @@
                         <option value="yangsan_s">📍 [양산 물금] 경남 양산시 물금읍 증산리 1776-2 양산에스동물메디컬센터 앞</option>
                         <option value="yangsan_hills">📍 [양산 범어] 경남 양산시 물금읍 범어리 2799-4 힐스동물병원 앞</option>
                         <option value="dongnae_reborn">📍 [동래 명륜동] 부산 동래구 명륜동 506-13 24시 리본동물의료센터 앞</option>
+                        <option value="busanjin_drpet">📍 [부산진구 개금동] 부산 부산진구 개금동 511-1 닥터펫동물의료센터 앞</option>
+                        <option value="gangseo_shinho">📍 [강서구 신호동] 부산 강서구 신호동 304-9 신호동물병원 앞</option>
                     </select>
                     <button class="btn-action btn-green" onclick="syncSelectedGuardGps()">📡 선택 가드 GPS 위치 갱신</button>
                     <button class="btn-action btn-gold" onclick="resetPinCoords()">📍 핀 위치 원복</button>
@@ -1139,7 +1141,9 @@
             hosp5: [35.1047010, 128.9223980], // 이로운동물병원 (명지동 3331-7)
             hosp6: [35.3084850, 129.0083750], // 양산에스동물메디컬센터 (증산리 1776-2)
             hosp7: [35.3369529, 129.0144324], // 힐스동물병원 (범어리 2799-4)
-            hosp8: [35.2029100, 129.0809700]  // 24시 리본동물의료센터 (명륜동 506-13)
+            hosp8: [35.2029100, 129.0809700], // 24시 리본동물의료센터 (명륜동 506-13)
+            hosp9: [35.1535770, 129.0216840], // 닥터펫동물의료센터 (개금동 511-1)
+            hosp10: [35.0811360, 128.8772500] // 신호동물병원 (신호동 304-9)
         };
 
         var savedPinCoords = JSON.parse(localStorage.getItem('baljaguk_pin_coords')) || defaultPinCoords;
@@ -1651,6 +1655,42 @@
                     savePinCoord('hosp8', pos.lat, pos.lng);
                     alert('💾 [24시 리본동물의료센터] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
                 });
+
+                // 10. 닥터펫동물의료센터 커스텀 마커 핀 (부산 부산진구 개금동 511-1) - 24시간 응급 진료
+                var hospIcon9 = L.divIcon({
+                    className: 'custom-hospital-marker-9',
+                    html: `<div style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(220,38,38,0.4); border: 2.5px solid #ffffff; cursor: move; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 닥터펫동물의료센터 (24시간 응급 진료)\\n📍 주소: 부산 부산진구 개금동 511-1 (가야대로 451 개금메디칼빌딩)\\n📞 직통: 051-891-8575\\n⏰ 진료시간: 24시간 연중무휴 응급 진료\\n🩺 특화: 신경계 질환 내과 처방 전문, 근골격계 정형외과 수술 전문, 최소 절개 중성화 수술, 내/외과 분과 진료, 고양이 친화 동물병원, 보호자 대기실 실시간 모니터링, 입원실 완비, 반려동물 동반 가능\\n🚗 주차: 주차 시설 완비')">
+                               <span style="font-size: 18px;">🏥</span>
+                               <span>닥터펫동물의료센터</span>
+                               <span style="background: #ffffff; color: #dc2626; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">24시 응급</span>
+                           </div>`,
+                    iconSize: [225, 40],
+                    iconAnchor: [112, 40]
+                });
+                var hospMarker9 = L.marker(savedPinCoords.hosp9 || defaultPinCoords.hosp9, { icon: hospIcon9, draggable: true }).addTo(googleMap);
+                hospMarker9.on('dragend', function(e) {
+                    var pos = e.target.getLatLng();
+                    savePinCoord('hosp9', pos.lat, pos.lng);
+                    alert('💾 [닥터펫동물의료센터] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
+                });
+
+                // 11. 신호동물병원 커스텀 마커 핀 (부산 강서구 신호동 304-9) - 주간 진료
+                var hospIcon10 = L.divIcon({
+                    className: 'custom-hospital-marker-10',
+                    html: `<div style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(2,132,199,0.4); border: 2.5px solid #ffffff; cursor: move; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 신호동물병원 (주간 진료)\\n📍 주소: 부산 강서구 신호동 304-9 (신호산단1로 124)\\n📞 직통: 051-972-0972\\n⏰ 진료시간: 월~토 10:00 - 19:00 / 일요일 10:00 - 14:00 (매달 2, 4번째 일요일 정기 휴무)\\n🚗 주차: 건물 뒷편 골목길 주차 가능')">
+                               <span style="font-size: 18px;">🏥</span>
+                               <span>신호동물병원</span>
+                               <span style="background: #ffffff; color: #0284c7; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">주간 진료</span>
+                           </div>`,
+                    iconSize: [195, 40],
+                    iconAnchor: [97, 40]
+                });
+                var hospMarker10 = L.marker(savedPinCoords.hosp10 || defaultPinCoords.hosp10, { icon: hospIcon10, draggable: true }).addTo(googleMap);
+                hospMarker10.on('dragend', function(e) {
+                    var pos = e.target.getLatLng();
+                    savePinCoord('hosp10', pos.lat, pos.lng);
+                    alert('💾 [신호동물병원] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
+                });
             }
         }
 
@@ -1711,6 +1751,12 @@
             } else if (locKey === 'dongnae_reborn') {
                 lat = 35.2029100; lng = 129.0809700;
                 locName = "부산 동래구 명륜동 506-13 24시 리본동물의료센터 앞";
+            } else if (locKey === 'busanjin_drpet') {
+                lat = 35.1535770; lng = 129.0216840;
+                locName = "부산 부산진구 개금동 511-1 닥터펫동물의료센터 앞";
+            } else if (locKey === 'gangseo_shinho') {
+                lat = 35.0811360; lng = 128.8772500;
+                locName = "부산 강서구 신호동 304-9 신호동물병원 앞";
             }
 
             guard.lat = lat;

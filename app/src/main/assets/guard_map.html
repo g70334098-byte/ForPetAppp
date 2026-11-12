@@ -400,6 +400,51 @@
                     '</div>'
                 );
 
+                // 10. 닥터펫동물의료센터 (부산 부산진구 개금동 511-1) - 24시간 응급 진료
+                var hosp9Icon = L.divIcon({
+                    className: '',
+                    html: '<div class="custom-hosp-badge">' +
+                          '<span>🏥</span>' +
+                          '<span>닥터펫동물의료센터</span>' +
+                          '<span class="badge-sub">24시 응급</span>' +
+                          '</div>',
+                    iconSize: [195, 36],
+                    iconAnchor: [97, 36]
+                });
+                markers.hosp9 = L.marker([35.1535770, 129.0216840], { icon: hosp9Icon }).addTo(map);
+                markers.hosp9.bindPopup(
+                    '<div style="min-width:260px;max-width:330px;">' +
+                    '<b style="font-size:14px;color:#dc2626;">🏥 닥터펫동물의료센터</b> <span style="background:#fee2e2;color:#dc2626;font-size:10px;padding:2px 6px;border-radius:6px;font-weight:bold;">24시 응급</span><br>' +
+                    '📍 <b>주소:</b> 부산 부산진구 개금동 511-1 (가야대로 451 개금메디칼빌딩)<br>' +
+                    '📞 <b>직통:</b> <a href="tel:0518918575" style="color:#0284c7;font-weight:bold;">051-891-8575 (전화걸기)</a><br>' +
+                    '⏰ <b>진료시간:</b> 24시간 연중무휴 응급 진료<br>' +
+                    '🩺 <b>특화진료:</b> 신경계 질환 내과 처방 전문, 근골격계 정형외과 수술 전문, 최소 절개 중성화 수술, 내/외과 분과 진료, 고양이 친화 병원, 보호자 대기실 실시간 모니터링, 입원실 완비, 반려동물 동반 가능<br>' +
+                    '🚗 <b>주차:</b> 주차 시설 완비' +
+                    '</div>'
+                );
+
+                // 11. 신호동물병원 (부산 강서구 신호동 304-9) - 주간 진료
+                var hosp10Icon = L.divIcon({
+                    className: '',
+                    html: '<div class="custom-hosp-badge">' +
+                          '<span>🏥</span>' +
+                          '<span>신호동물병원</span>' +
+                          '<span class="badge-sub" style="background:#0284c7;">주간 진료</span>' +
+                          '</div>',
+                    iconSize: [180, 36],
+                    iconAnchor: [90, 36]
+                });
+                markers.hosp10 = L.marker([35.0811360, 128.8772500], { icon: hosp10Icon }).addTo(map);
+                markers.hosp10.bindPopup(
+                    '<div style="min-width:260px;max-width:330px;">' +
+                    '<b style="font-size:14px;color:#0284c7;">🏥 신호동물병원</b> <span style="background:#e0f2fe;color:#0284c7;font-size:10px;padding:2px 6px;border-radius:6px;font-weight:bold;">주간 진료</span><br>' +
+                    '📍 <b>주소:</b> 부산 강서구 신호동 304-9 (신호산단1로 124)<br>' +
+                    '📞 <b>직통:</b> <a href="tel:0519720972" style="color:#0284c7;font-weight:bold;">051-972-0972 (전화걸기)</a><br>' +
+                    '⏰ <b>진료시간:</b> 월~토 10:00 - 19:00 / 일요일 10:00 - 14:00 (매달 2, 4번째 일요일 정기 휴무)<br>' +
+                    '🚗 <b>주차:</b> 건물 뒷편 골목길 주차 가능' +
+                    '</div>'
+                );
+
                 var loader = document.getElementById('loading-indicator');
                 if (loader) loader.style.display = 'none';
 
@@ -440,8 +485,14 @@
             } else if (key === 'hosp8' && markers.hosp8) {
                 map.flyTo([35.2029100, 129.0809700], 16, { duration: 1 });
                 markers.hosp8.openPopup();
+            } else if (key === 'hosp9' && markers.hosp9) {
+                map.flyTo([35.1535770, 129.0216840], 16, { duration: 1 });
+                markers.hosp9.openPopup();
+            } else if (key === 'hosp10' && markers.hosp10) {
+                map.flyTo([35.0811360, 128.8772500], 16, { duration: 1 });
+                markers.hosp10.openPopup();
             } else {
-                var group = L.featureGroup([markers.car, markers.hosp1, markers.hosp2, markers.hosp3, markers.hosp4, markers.hosp5, markers.hosp6, markers.hosp7, markers.hosp8]);
+                var group = L.featureGroup([markers.car, markers.hosp1, markers.hosp2, markers.hosp3, markers.hosp4, markers.hosp5, markers.hosp6, markers.hosp7, markers.hosp8, markers.hosp9, markers.hosp10]);
                 map.fitBounds(group.getBounds().pad(0.15), { duration: 1 });
             }
         }
