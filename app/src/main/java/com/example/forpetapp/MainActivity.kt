@@ -172,7 +172,7 @@ fun ForPetApp() {
         } else {
             68L
         }
-        val currentAppVersionName = packageInfo?.versionName ?: "1.0.67"
+        val currentAppVersionName = packageInfo?.versionName ?: "1.0.68"
 
         // Firestore 버전 설정 문서 초기화 (최초 1회 보장)
         FirebaseSyncManager.initDefaultVersionConfigIfMissing(currentAppVersionCode, currentAppVersionName)

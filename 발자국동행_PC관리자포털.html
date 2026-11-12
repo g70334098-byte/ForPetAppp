@@ -440,7 +440,7 @@
                 <!-- 🚀 실시간 앱 버전 제어 배지 및 원클릭 강제 업데이트 버튼 -->
                 <div id="version-control-badge" style="background:#ffffff; border:1px solid #bae6fd; padding:8px 14px; border-radius:12px; font-size:12px; color:#0369a1; box-shadow:0 4px 10px rgba(0,0,0,0.03); display:flex; align-items:center; gap:8px;">
                     <span>📱 앱 필수 버전:</span>
-                    <span id="current-min-version" style="font-weight:bold; color:#0284c7;">v1.0.67 (Code 68)</span>
+                    <span id="current-min-version" style="font-weight:bold; color:#0284c7;">v1.0.68 (Code 69)</span>
                     <button onclick="openVersionControlModal()" style="background:#0284c7; color:#ffffff; border:none; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer;">⚙️ 버전 설정</button>
                 </div>
 
@@ -1999,8 +1999,8 @@
                     .onSnapshot((doc) => {
                         if (doc && doc.exists) {
                             const data = doc.data();
-                            const minCode = data.minVersionCode || 68;
-                            const verName = data.latestVersionName || "1.0.67";
+                            const minCode = data.minVersionCode || 69;
+                            const verName = data.latestVersionName || "1.0.68";
                             const badgeText = document.getElementById('current-min-version');
                             if (badgeText) {
                                 badgeText.innerText = `v${verName} (Code ${minCode})`;
@@ -2008,13 +2008,13 @@
                         }
                     }, (err) => console.warn("Version config sync error:", err));
 
-                // 최신 배포 버전(Code 68, v1.0.67) 자동 보장 및 동기화
+                // 최신 배포 버전(Code 69, v1.0.68) 자동 보장 및 동기화
                 db.collection("app_config").doc("version_control").get().then((doc) => {
                     const existingCode = doc.exists && doc.data() ? (doc.data().minVersionCode || 0) : 0;
-                    if (!doc.exists || existingCode < 68) {
+                    if (!doc.exists || existingCode < 69) {
                         db.collection("app_config").doc("version_control").set({
-                            minVersionCode: 68,
-                            latestVersionName: "1.0.67",
+                            minVersionCode: 69,
+                            latestVersionName: "1.0.68",
                             updateMessage: "원활한 실시간 예약 및 안심 케어 서비스 이용을 위해 최신 버전 업데이트가 필요합니다. 구글 플레이스토어로 이동하여 업데이트해 주세요.",
                             updatedAt: Date.now()
                         }, { merge: true });
@@ -2029,8 +2029,8 @@
 
         // 🚀 관리자 버전 제어 모달 기능
         function openVersionControlModal() {
-            const currentText = document.getElementById('current-min-version') ? document.getElementById('current-min-version').innerText : 'v1.0.67 (Code 68)';
-            const inputCode = prompt(`[📱 발자국동행 앱 강제 업데이트 설정]\n\n현재 필수 최소 버전: ${currentText}\n\n새로 요구할 최소 VersionCode(숫자)를 입력하세요.\n(예: 68 이상으로 설정하면 67 이하 사용자는 무조건 구글플레이 업데이트 팝업이 뜹니다.)`, "68");
+            const currentText = document.getElementById('current-min-version') ? document.getElementById('current-min-version').innerText : 'v1.0.68 (Code 69)';
+            const inputCode = prompt(`[📱 발자국동행 앱 강제 업데이트 설정]\n\n현재 필수 최소 버전: ${currentText}\n\n새로 요구할 최소 VersionCode(숫자)를 입력하세요.\n(예: 69 이상으로 설정하면 68 이하 사용자는 무조건 구글플레이 업데이트 팝업이 뜹니다.)`, "69");
             if (!inputCode) return;
 
             const parsedCode = parseInt(inputCode, 10);
@@ -2039,7 +2039,7 @@
                 return;
             }
 
-            const inputName = prompt("표시할 최신 버전명을 입력하세요 (예: 1.0.67):", "1.0.67") || "1.0.67";
+            const inputName = prompt("표시할 최신 버전명을 입력하세요 (예: 1.0.68):", "1.0.68") || "1.0.68";
 
             try {
                 const db = firebase.firestore();
