@@ -7011,7 +7011,7 @@ fun MyPageScreen(
                         color = Color(0xFF334155)
                     )
                     Text(
-                        "고객센터: 010-3786-5394 (발자국동행 관제센터 | 운영시간 월~일 09:00~19:00)",
+                        "고객센터: 010-3786-5394 (발자국동행 관제센터 | 운영시간: 연중무휴 09:00~19:00)",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1E293B)
@@ -8689,7 +8689,7 @@ fun HomeScreenContent(
                         ) {
                             Text("필독", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                         }
-                        Text("📢 발자국동행 운영시간 안내 (월~일 09:00~19:00 / 긴급출동 운영시간 내 지원)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF991B1B), maxLines = 1)
+                        Text("📢 발자국동행 운영시간 안내 (연중무휴 09:00~19:00 / 긴급출동 운영시간 내 지원)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF991B1B), maxLines = 1)
                     }
                     Text("더보기 ➔", fontSize = 11.sp, color = Color.Gray)
                 }
@@ -8965,7 +8965,7 @@ fun HomeScreenContent(
                                     Text("🚨", fontSize = 16.sp)
                                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                         Text("긴급출동 (운영시간 내)", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
-                                        Text("월~일 09:00~19:00 운영 | 응급실 연계 최우선 즉시 배차", fontSize = 10.sp, color = Color(0xFF7F1D1D))
+                                        Text("연중무휴 09:00~19:00 운영 | 응급실 연계 최우선 즉시 배차", fontSize = 10.sp, color = Color(0xFF7F1D1D))
                                     }
                                 }
                                 Text("50,000원", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFDC2626), softWrap = false, maxLines = 1)
@@ -9663,7 +9663,7 @@ fun HomeScreenContent(
                     item {
                         FaqItem(
                             question = "Q. 발자국동행 운영시간과 긴급출동은 24시간 가능한가요?",
-                            answer = "아닙니다! 발자국동행의 공식 운영시간은 [월~일 09:00 ~ 19:00 (연중무휴)]입니다. 긴급출동 서비스 역시 24시간 상시 운영이 아니며, 운영시간(09:00~19:00) 내에서만 즉시 배차 및 현장 출동이 지원됩니다. (19:00 이후 심야 시간대에는 관제 및 출동이 불가합니다.)"
+                            answer = "아닙니다! 발자국동행의 공식 운영시간은 [연중무휴 09:00 ~ 19:00]입니다. 긴급출동 서비스 역시 24시간 상시 운영이 아니며, 운영시간(09:00~19:00) 내에서만 즉시 배차 및 현장 출동이 지원됩니다. (19:00 이후 심야 시간대에는 관제 및 출동이 불가합니다.)"
                         )
                     }
 
