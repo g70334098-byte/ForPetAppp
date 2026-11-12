@@ -534,6 +534,7 @@ object FirebaseSyncManager {
         detailAddress: String = "",
         points: Int = -1,
         petSummary: String? = null,
+        profileImageUrl: String? = null,
         onComplete: ((Boolean) -> Unit)? = null
     ) {
         try {
@@ -558,6 +559,10 @@ object FirebaseSyncManager {
             }
             if (!petSummary.isNullOrBlank()) {
                 userMap["pet"] = petSummary
+            }
+            if (!profileImageUrl.isNullOrBlank()) {
+                userMap["profileImageUrl"] = profileImageUrl
+                userMap["photoUrl"] = profileImageUrl
             }
 
             val docRef = firestore.collection(USERS_COLLECTION).document(targetId)
@@ -875,6 +880,11 @@ object FirebaseSyncManager {
                             if (sanitized.isNotBlank()) {
                                 editor.putInt("user_points_$sanitized", finalPoints)
                             }
+                            changed = true
+                        }
+                        val cloudProfileImg = doc.getString("profileImageUrl") ?: doc.getString("photoUrl") ?: doc.getString("profile_image")
+                        if (!cloudProfileImg.isNullOrBlank()) {
+                            editor.putString("user_profile_image", cloudProfileImg)
                             changed = true
                         }
                         listOf(

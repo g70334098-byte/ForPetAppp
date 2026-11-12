@@ -2127,15 +2127,33 @@ object PersistentStorageManager {
     }
 
     // 마이페이지 회원 정보 저장/로드 (.commit() 보장)
-    fun saveUserProfile(context: android.content.Context, nickname: String, phone: String, address: String, detailAddress: String, card: String?) {
+    fun saveUserProfile(context: android.content.Context, nickname: String, phone: String, address: String, detailAddress: String, card: String?, profileImage: String? = null) {
+        val encodedImg = if (!profileImage.isNullOrBlank()) {
+            com.example.forpetapp.data.firebase.FirebaseSyncManager.encodeImageUriToDataUrl(context, profileImage) ?: profileImage
+        } else null
         getPrefs(context).edit(commit = true) {
             putString("user_nickname", nickname)
             putString("user_phone", phone)
             putString("user_address", address)
             putString("user_detail_address", detailAddress)
             putString("registered_card", card)
+            if (encodedImg != null) {
+                putString("user_profile_image", encodedImg)
+            }
         }
     }
+
+    fun saveUserProfileImage(context: android.content.Context, imageUriOrBase64: String?) {
+        val encoded = if (!imageUriOrBase64.isNullOrBlank()) {
+            com.example.forpetapp.data.firebase.FirebaseSyncManager.encodeImageUriToDataUrl(context, imageUriOrBase64) ?: imageUriOrBase64
+        } else null
+        getPrefs(context).edit(commit = true) {
+            putString("user_profile_image", encoded)
+        }
+    }
+
+    fun loadUserProfileImage(context: android.content.Context): String? =
+        getPrefs(context).getString("user_profile_image", null)
 
     fun saveReferralRedeemed(context: android.content.Context, redeemed: Boolean, userId: String? = null) {
         val sanitized = getSanitizedUserKey(context, userId)
@@ -2996,6 +3014,7 @@ fun ForPetMainScreen(
     var userAddress by remember { mutableStateOf(PersistentStorageManager.loadUserAddress(context, "")) }
     var userDetailAddress by remember { mutableStateOf(PersistentStorageManager.loadUserDetailAddress(context, "")) }
     var savedRegisteredCard by remember { mutableStateOf(PersistentStorageManager.loadRegisteredCard(context)) }
+    var userProfileImage by remember { mutableStateOf(PersistentStorageManager.loadUserProfileImage(context)) }
 
     // 반려동물 프로필 정보 디스크 파일 초기화 로드
     val initialPetUri: Uri? = PersistentStorageManager.loadPetImageUri(context)?.let { try { it.toUri() } catch (_: Exception) { null } }
@@ -3510,18 +3529,22 @@ fun ForPetMainScreen(
                     userAddress = userAddress,
                     userDetailAddress = userDetailAddress,
                     initialCard = savedRegisteredCard,
+                    userProfileImage = userProfileImage,
                     onUpdateCard = { newCard ->
                         savedRegisteredCard = newCard
-                        PersistentStorageManager.saveUserProfile(context, userNickname, userPhone, userAddress, userDetailAddress, newCard)
+                        PersistentStorageManager.saveUserProfile(context, userNickname, userPhone, userAddress, userDetailAddress, newCard, userProfileImage)
                     },
-                    onUpdateProfile = { newNick, newPhone, newAddress, newDetailAddress ->
+                    onUpdateProfile = { newNick, newPhone, newAddress, newDetailAddress, newProfileImage ->
                         userNickname = newNick
                         userPhone = newPhone
                         userAddress = newAddress
                         userDetailAddress = newDetailAddress
+                        if (newProfileImage != null) {
+                            userProfileImage = newProfileImage
+                        }
 
                         // 디스크 파일(SharedPreferences)에 영구 보존
-                        PersistentStorageManager.saveUserProfile(context, newNick, newPhone, newAddress, newDetailAddress, savedRegisteredCard)
+                        PersistentStorageManager.saveUserProfile(context, newNick, newPhone, newAddress, newDetailAddress, savedRegisteredCard, userProfileImage)
 
                         // ☁️ Cloud Firestore 및 홈페이지(관리자 포털)에 변경된 회원 프로필 즉시 동기화
                         com.example.forpetapp.data.firebase.FirebaseSyncManager.syncUserProfileToCloud(
@@ -3533,7 +3556,8 @@ fun ForPetMainScreen(
                             address = newAddress,
                             detailAddress = newDetailAddress,
                             points = userPoints,
-                            petSummary = "$savedPetName ($savedPetType, ${savedPetWeight}kg)"
+                            petSummary = "$savedPetName ($savedPetType, ${savedPetWeight}kg)",
+                            profileImageUrl = userProfileImage
                         )
                     },
                     onDeleteAccount = onLogout
@@ -6454,8 +6478,9 @@ fun MyPageScreen(
     userAddress: String = "",
     userDetailAddress: String = "",
     initialCard: String? = null,
+    userProfileImage: String? = null,
     onUpdateCard: (String?) -> Unit = {},
-    onUpdateProfile: (String, String, String, String) -> Unit = { _, _, _, _ -> },
+    onUpdateProfile: (String, String, String, String, String?) -> Unit = { _, _, _, _, _ -> },
     onDeleteAccount: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -6476,6 +6501,18 @@ fun MyPageScreen(
     var userPhoneState by remember(userPhone) { mutableStateOf(userPhone) }
     var addressState by remember(userAddress) { mutableStateOf(userAddress) }
     var detailAddressState by remember(userDetailAddress) { mutableStateOf(userDetailAddress) }
+    var profileImageState by remember(userProfileImage) { mutableStateOf(userProfileImage) }
+
+    val profilePhotoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            val encoded = com.example.forpetapp.data.firebase.FirebaseSyncManager.encodeImageUriToDataUrl(context, uri.toString())
+            profileImageState = encoded ?: uri.toString()
+            onUpdateProfile(nickname, userPhoneState, addressState, detailAddressState, profileImageState)
+            Toast.makeText(context, "📸 프로필 사진이 변경되었습니다! (저장 완료)", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     // State for Payment Card (null by default so no card is pre-registered)
     var registeredCard by remember(initialCard) { mutableStateOf(initialCard) }
@@ -6514,14 +6551,51 @@ fun MyPageScreen(
                         verticalAlignment = Alignment.Top,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = Color(0xFFE0F2FE),
-                            modifier = Modifier.size(56.dp)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text("🐶", fontSize = 28.sp)
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFE0F2FE))
+                                    .border(2.dp, Color(0xFF0284C7), CircleShape)
+                                    .clickable { profilePhotoPickerLauncher.launch("image/*") },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val bmp = remember(profileImageState) {
+                                    com.example.forpetapp.data.firebase.FirebaseSyncManager.decodeImageFromUriOrDataUrl(context, profileImageState)
+                                }
+                                if (bmp != null) {
+                                    Image(
+                                        bitmap = bmp.asImageBitmap(),
+                                        contentDescription = "보호자 프로필 사진",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Text("🐶", fontSize = 30.sp)
+                                }
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color(0xFF0284C7),
+                                    modifier = Modifier
+                                        .size(22.dp)
+                                        .align(Alignment.BottomEnd)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text("📷", fontSize = 11.sp)
+                                    }
+                                }
                             }
+                            Text(
+                                text = "사진 변경",
+                                fontSize = 11.sp,
+                                color = Color(0xFF0284C7),
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.clickable { profilePhotoPickerLauncher.launch("image/*") }
+                            )
                         }
 
                         Column(
@@ -6570,8 +6644,8 @@ fun MyPageScreen(
                     ) {
                         Button(
                             onClick = {
-                                onUpdateProfile(nickname, userPhoneState, addressState, detailAddressState)
-                                Toast.makeText(context, "💾 보호자 프로필 정보 및 자택 주소가 성공적으로 저장되었습니다!", Toast.LENGTH_LONG).show()
+                                onUpdateProfile(nickname, userPhoneState, addressState, detailAddressState, profileImageState)
+                                Toast.makeText(context, "💾 보호자 프로필 정보 및 사진이 성공적으로 저장되었습니다!", Toast.LENGTH_LONG).show()
                             },
                             shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
@@ -9792,18 +9866,29 @@ fun HomeScreenContent(
                         Text(hospital.address, fontSize = 13.sp, color = Color(0xFF0F172A), fontWeight = FontWeight.Medium)
                     }
 
-                    // 📞 전화번호 & 🐾 대상
+                    // 📞 전화번호
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("📞 전화번호 & 🐾 대상", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
-                        Text("📞 ${hospital.phone} | 🐾 대상: ${hospital.targetSpecies.joinToString(", ")}", fontSize = 13.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                        Text("📞 전화번호", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
+                        Text(hospital.phone.replace("📞", "").trim(), fontSize = 13.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                    }
+
+                    // 🐾 진료 대상
+                    if (hospital.targetSpecies.isNotEmpty()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("🐾 진료 대상", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
+                            Text(hospital.targetSpecies.joinToString(", ").replace("🐾", "").trim(), fontSize = 13.sp, color = Color(0xFF334155), fontWeight = FontWeight.Medium)
+                        }
                     }
 
                     // ⏰ 진료 시간 (영업 시간 안내)
-                    val hoursLines = if (hospital.businessHours.isNotBlank()) {
+                    val rawHours = if (hospital.businessHours.isNotBlank()) {
                         hospital.businessHours.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
                     } else {
                         hospital.additionalServices.filter { it.contains("⏰") || it.contains("시") || it.contains("휴무") || it.contains("24시간") || it.contains("마감") }
                     }
+                    val hoursLines = rawHours.map { line ->
+                        line.replace("⏰", "").trim().removePrefix("-").trim()
+                    }.filter { it.isNotEmpty() }
                     if (hoursLines.isNotEmpty()) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),
@@ -9821,11 +9906,14 @@ fun HomeScreenContent(
                     }
 
                     // 🚗 주차 안내
-                    val parkingLines = if (hospital.parkingInfo.isNotBlank()) {
+                    val rawParking = if (hospital.parkingInfo.isNotBlank()) {
                         hospital.parkingInfo.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
                     } else {
                         hospital.additionalServices.filter { it.contains("🚗") || it.contains("주차") }
                     }
+                    val parkingLines = rawParking.map { line ->
+                        line.replace("🚗", "").trim().removePrefix("-").trim()
+                    }.filter { it.isNotEmpty() }
                     if (parkingLines.isNotEmpty()) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),

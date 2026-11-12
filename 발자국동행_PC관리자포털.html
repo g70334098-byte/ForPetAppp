@@ -1894,7 +1894,8 @@
                                 address: fullAddr || "주소 미등록 (마이페이지 설정 필요)",
                                 pet: d.pet || "반려동물 (등록 대기)",
                                 points: typeof d.points === 'number' ? d.points : 1000,
-                                pointLogs: Array.isArray(parsedLogs) ? parsedLogs : []
+                                pointLogs: Array.isArray(parsedLogs) ? parsedLogs : [],
+                                profileImage: d.profileImageUrl || d.photoUrl || d.profile_image || ""
                             });
                         });
                         usersData = cloudUsers;
@@ -2172,9 +2173,13 @@
                 const badgeClass = providerStr.includes('Google') ? 'badge-red' : (providerStr.includes('카카오') ? 'badge-yellow' : 'badge-blue');
                 const pts = typeof user.points === 'number' ? user.points : 1000;
 
+                const avatarHtml = user.profileImage ?
+                    `<img src="${user.profileImage}" style="width:28px; height:28px; border-radius:50%; object-fit:cover; vertical-align:middle; margin-right:6px; border:1.5px solid #0284c7;" alt="프로필">` :
+                    `<span style="display:inline-block; width:28px; height:28px; border-radius:50%; background:#e0f2fe; text-align:center; line-height:28px; font-size:14px; margin-right:6px;">🐶</span>`;
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><b style="color:#0284c7; cursor:pointer;" onclick="openUserDetailModal(${index})">${user.name} 🔍</b></td>
+                    <td><div style="display:flex; align-items:center;">${avatarHtml}<b style="color:#0284c7; cursor:pointer;" onclick="openUserDetailModal(${index})">${user.name} 🔍</b></div></td>
                     <td><span class="badge ${badgeClass}">${providerStr}</span></td>
                     <td><b style="color:#0284c7;">${user.phone}</b></td>
                     <td style="font-size:12px;">${user.address}</td>
@@ -2574,17 +2579,25 @@
                 pointLogsHtml += `</tbody></table>`;
             }
 
+            const modalAvatar = user.profileImage ?
+                `<img src="${user.profileImage}" style="width:52px; height:52px; border-radius:50%; object-fit:cover; border:2px solid #0284c7; margin-right:12px; box-shadow:0 2px 6px rgba(0,0,0,0.1);" alt="회원 프로필">` :
+                `<div style="width:52px; height:52px; border-radius:50%; background:#e0f2fe; border:2px solid #38bdf8; display:flex; align-items:center; justify-content:center; font-size:24px; margin-right:12px;">🐶</div>`;
+
             content.innerHTML = `
                 <div style="background:#f8f6f0; border:1px solid #e2dad0; padding:16px; border-radius:12px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                        <h4 style="font-size:14px; color:#0f172a;">👤 회원 기본 인적사항 & DB 포인트</h4>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <div style="display:flex; align-items:center;">
+                            ${modalAvatar}
+                            <div>
+                                <h4 style="font-size:15px; color:#0f172a; margin:0;">${user.name} <span style="font-size:12px; font-weight:normal; color:#64748b;">(${user.provider || '일반'})</span></h4>
+                                <span style="font-size:12px; color:#0284c7; font-weight:bold;">📞 ${user.phone}</span>
+                            </div>
+                        </div>
                         <button class="btn-action btn-gold" style="padding:5px 10px; font-size:11px;" onclick="closeModal('user-detail-modal'); openPointAdjustModal(${index});">💰 포인트 지급/차감 하기</button>
                     </div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px; color:#1e293b;">
-                        <div><b>성명</b>: ${user.name}</div>
-                        <div><b>연계 계정</b>: ${user.provider || '🔴 Google 계정'}</div>
-                        <div><b>연락처 (DB Key)</b>: <span style="color:#0284c7; font-weight:bold;">${user.phone}</span></div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px; color:#1e293b; background:#ffffff; padding:12px; border-radius:8px; border:1px solid #e2dad0;">
                         <div><b>보유 DB 포인트</b>: <b style="color:#d97706; font-size:15px;">${(user.points || 0).toLocaleString()} P</b> <span style="font-size:11px; color:#be123c;">(미사용 1년 후 소멸)</span></div>
+                        <div><b>등록 반려동물</b>: <b style="color:#d97706;">${user.pet || '등록 대기'}</b></div>
                         <div style="grid-column:span 2;"><b>자택 도로명 주소</b>: ${user.address}</div>
                     </div>
                 </div>
