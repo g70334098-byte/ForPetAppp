@@ -30,6 +30,10 @@ android {
         }
     }
 
+    androidResources {
+        localeFilters += listOf("ko")
+    }
+
     signingConfigs {
         create("release") {
             storeFile = file("${rootProject.projectDir}/baldong-release-key.jks")
@@ -68,6 +72,21 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    packaging {
+        resources {
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/license.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/notice.txt",
+                "META-INF/ASL2.0",
+                "META-INF/*.proto"
+            )
+        }
     }
 }
 
