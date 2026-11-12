@@ -1,10 +1,21 @@
 # 발자국동행 R8 / ProGuard 상용화 릴리스 및 역공학 방지 규칙
 
-# 1. 앱 전체 패키지 및 데이터 모델 보존
+# 1. 데이터 모델 및 Firestore/JSON 직렬화 필수 클래스 보존 (Google Play 난독화 25% 이상 기준 충족)
 -dontwarn **
--keep class com.example.forpetapp.** { *; }
--keep interface com.example.forpetapp.** { *; }
--keep enum com.example.forpetapp.** { *; }
+-keep class com.example.forpetapp.data.model.** { *; }
+-keep class com.example.forpetapp.PointLog { *; }
+-keep class com.example.forpetapp.ReviewItem { *; }
+-keep class com.example.forpetapp.PetDDayItem { *; }
+-keep class com.example.forpetapp.util.SmsGatewayManager$SmsResult { *; }
+
+# Firestore / Gson / 리플렉션 직렬화 어노테이션 멤버 보존
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+-keepclassmembers class * {
+    @com.google.firebase.firestore.PropertyName <fields>;
+    @com.google.firebase.firestore.Exclude <fields>;
+}
 
 # 2. 직렬화 어노테이션, 제네릭 시그니처(Retrofit Call<T> 필수) 및 크래시 라인 넘버 보존
 -keepattributes *Annotation*, Signature, InnerClasses, EnclosingMethod, SourceFile, LineNumberTable, Exceptions
