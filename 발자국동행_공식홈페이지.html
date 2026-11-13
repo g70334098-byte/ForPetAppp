@@ -3,345 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>발자국동행 - 반려동물과 함께 걷는 따뜻한 길</title>
-    <meta name="description" content="1:1 수의사 안심 동행 펫 전용 케어카 서비스. 병원 이송부터 진료 수속, 진료 리포트 전송까지 반려동물을 위한 최고의 이동 서비스">
+    <title>발자국동행 - 반려동물 안심 이동 케어 & 병원 진료 대행</title>
     <style>
-        :root {
-            --bg-dark: #f8f6f0;
-            --card-bg: #ffffff;
-            --border-color: #e2dad0;
-            --primary: #0284c7;
-            --primary-hover: #0369a1;
-            --accent-orange: #d97706;
-            --accent-gold: #b45309;
-            --accent-green: #10b981;
-            --text-main: #1e293b;
-            --text-sub: #64748b;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #fcfbfa; color: #1e293b; line-height: 1.6; }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; word-break: keep-all; }
+        /* 상단 네비게이션 */
+        header { background: #EFE5D5; border-bottom: 1px solid #e2dad0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .nav-container { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; }
+        .brand-box { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .brand-logo-img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #D97706; }
+        .brand-text-title { font-weight: bold; font-size: 20px; color: #78350F; letter-spacing: -0.5px; }
+        .brand-text-sub { font-size: 11px; color: #92400E; font-weight: 500; }
 
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            line-height: 1.6;
-            overflow-x: hidden;
-        }
+        .nav-links { display: flex; gap: 28px; list-style: none; align-items: center; }
+        .nav-links a { text-decoration: none; color: #475569; font-weight: 600; font-size: 14px; transition: color 0.2s; }
+        .nav-links a:hover { color: #D97706; }
 
-        header {
-            position: sticky;
-            top: 0;
-            background: rgba(248, 246, 240, 0.95);
-            backdrop-filter: blur(8px);
-            border-bottom: 1px solid var(--border-color);
-            z-index: 1000;
-            padding: 12px 24px;
-        }
+        .btn-cta { background: #D97706; color: white; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(217,119,6,0.2); transition: background 0.2s; }
+        .btn-cta:hover { background: #B45309; }
 
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        /* 메인 히어로 섹션 (따뜻한 베이지 감성) */
+        .hero-section { max-width: 1200px; margin: 0 auto; padding: 60px 24px; display: flex; align-items: center; justify-content: space-between; gap: 40px; }
+        .hero-title-badge { display: inline-flex; align-items: center; gap: 6px; background: #FEF3C7; color: #92400E; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-bottom: 20px; }
+        .hero-title { font-size: 40px; font-weight: 800; color: #0f172a; line-height: 1.3; margin-bottom: 20px; letter-spacing: -1px; }
+        .hero-desc { font-size: 16px; color: #475569; line-height: 1.7; margin-bottom: 30px; max-width: 600px; }
+        .hero-btn-group { display: flex; gap: 12px; flex-wrap: wrap; }
+        .btn-hero-green { background: #10b981; color: white; padding: 14px 24px; border-radius: 10px; font-weight: bold; font-size: 15px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(16,185,129,0.2); }
+        .btn-hero-green:hover { background: #059669; }
+        .btn-hero-outline { background: #ffffff; color: #334155; border: 1px solid #cbd5e1; padding: 14px 24px; border-radius: 10px; font-weight: bold; font-size: 15px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+        .hero-image-box { flex: 1; display: flex; justify-content: center; }
+        .hero-main-img { width: 100%; max-width: 480px; border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); object-fit: cover; }
 
-        .brand-box {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-decoration: none;
-            color: var(--text-main);
-        }
+        /* 공통 섹션 스타일 */
+        .section-header { text-align: center; margin-bottom: 40px; }
+        .section-header h2 { font-size: 28px; font-weight: 800; color: #0f172a; margin-bottom: 10px; letter-spacing: -0.5px; }
+        .section-header p { font-size: 15px; color: #64748b; }
 
-        .brand-logo-img {
-            width: 46px;
-            height: 46px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid var(--primary);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
+        /* 서비스 특징 섹션 */
+        .features-section { max-width: 1200px; margin: 0 auto; padding: 60px 24px; }
+        .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+        .card-feature { background: #ffffff; border: 1px solid #e2dad0; border-radius: 16px; padding: 28px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); transition: transform 0.2s; }
+        .card-feature:hover { transform: translateY(-4px); }
+        .card-icon { font-size: 32px; margin-bottom: 16px; }
+        .card-title { font-size: 18px; font-weight: bold; color: #0f172a; margin-bottom: 10px; }
+        .card-desc { font-size: 13px; color: #475569; line-height: 1.6; }
 
-        .brand-text-title {
-            font-size: 18px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            white-space: nowrap;
-            color: var(--text-main);
-        }
+        /* 요금표 섹션 */
+        .hospital-section { max-width: 1200px; margin: 0 auto; padding: 60px 24px; }
+        .hospital-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+        .hospital-card { background: #ffffff; border-radius: 16px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.04); display: flex; flex-direction: column; gap: 12px; }
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; }
+        .badge-red { background: #fee2e2; color: #b91c1c; }
+        .badge-yellow { background: #fef3c7; color: #b45309; }
+        .badge-blue { background: #e0f2fe; color: #0369a1; }
 
-        .brand-text-sub {
-            font-size: 11px;
-            color: var(--accent-orange);
-            font-weight: 700;
-            white-space: nowrap;
-        }
+        /* 푸터 스타일 */
+        footer { background: #0f172a; color: #94a3b8; padding: 50px 24px; font-size: 12px; }
+        .footer-container { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
 
-        .nav-links {
-            display: flex;
-            gap: 24px;
-            align-items: center;
-            list-style: none;
-        }
-
-        .nav-links a {
-            color: var(--text-sub);
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 600;
-            transition: color 0.2s;
-        }
-
-        .nav-links a:hover { color: var(--primary); }
-
-        .btn-cta {
-            background-color: var(--primary);
-            color: #ffffff;
-            padding: 8px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 800;
-            text-decoration: none;
-            transition: 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
-            white-space: nowrap;
-        }
-
-        .btn-cta:hover { transform: translateY(-2px); }
-
-        .hero-section {
-            padding: 80px 24px;
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            gap: 40px;
-            align-items: center;
-        }
-
-        .hero-title-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(16, 185, 129, 0.12);
-            border: 1px solid var(--accent-green);
-            color: #047857;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 800;
-            margin-bottom: 16px;
-        }
-
-        .hero-title {
-            font-size: 40px;
-            font-weight: 900;
-            line-height: 1.3;
-            letter-spacing: -0.5px;
-            margin-bottom: 20px;
-            color: #0f172a;
-        }
-
-        .hero-desc {
-            font-size: 15px;
-            color: var(--text-sub);
-            margin-bottom: 32px;
-            max-width: 540px;
-            line-height: 1.6;
-        }
-
-        .hero-btn-group {
-            display: flex;
-            gap: 14px;
-            flex-wrap: wrap;
-        }
-
-        .btn-hero-green {
-            background-color: var(--accent-green);
-            color: #ffffff;
-            padding: 14px 28px;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: 800;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
-            transition: 0.2s;
-        }
-
-        .btn-hero-green:hover { transform: translateY(-3px); background-color: #059669; }
-
-        .btn-hero-outline {
-            border: 2px solid var(--primary);
-            color: var(--primary);
-            background: #ffffff;
-            padding: 12px 26px;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: 800;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: 0.2s;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-
-        .btn-hero-outline:hover { background: rgba(2, 132, 199, 0.08); }
-
-        .hero-image-box {
-            text-align: center;
-            position: relative;
-        }
-
-        .hero-main-img {
-            width: 100%;
-            max-width: 440px;
-            border-radius: 24px;
-            box-shadow: 0 16px 36px rgba(0,0,0,0.12);
-            border: 4px solid #ffffff;
-        }
-
-        .features-section {
-            background-color: #f1ede4;
-            padding: 80px 24px;
-            border-top: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .section-header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .section-header h2 { font-size: 28px; font-weight: 900; margin-bottom: 10px; color: #0f172a; }
-        .section-header p { font-size: 14px; color: var(--text-sub); }
-
-        .grid-cards {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-        }
-
-        .card-feature {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 26px 18px;
-            text-align: center;
-            transition: 0.3s;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.04);
-        }
-
-        .card-feature:hover {
-            transform: translateY(-8px);
-            border-color: var(--primary);
-            box-shadow: 0 12px 30px rgba(2, 132, 199, 0.15);
-        }
-
-        .card-icon {
-            font-size: 40px;
-            margin-bottom: 14px;
-            display: inline-block;
-        }
-
-        .card-title {
-            font-size: 17px;
-            font-weight: 800;
-            margin-bottom: 8px;
-            color: #0f172a;
-        }
-
-        .card-desc {
-            font-size: 13px;
-            color: var(--text-sub);
-            line-height: 1.5;
-        }
-
-        .hospital-section {
-            background-color: var(--bg-dark);
-            padding: 80px 24px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .hospital-grid {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-
-        .hospital-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-        }
-
-        .hospital-card h3 { font-size: 16px; color: #0f172a; font-weight: 800; }
-        .hospital-card p { font-size: 13px; color: var(--text-sub); }
-
-        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; }
-        .badge-red { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
-        .badge-yellow { background: #fffbeb; color: #d97706; border: 1px solid #fde047; }
-        .badge-blue { background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; }
-
-        footer {
-            background-color: #0f172a;
-            border-top: 1px solid var(--border-color);
-            padding: 40px 24px;
-            color: #94a3b8;
-            font-size: 13px;
-        }
-
-        .footer-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        @media (max-width: 900px) {
-            header { padding: 10px 16px; }
-            .nav-container { flex-direction: column; gap: 10px; text-align: center; }
-            .brand-box { justify-content: center; }
-            .brand-text-title { font-size: 17px; }
-            .brand-text-sub { font-size: 10px; }
+        @media (max-width: 768px) {
+            .hero-section { flex-direction: column; text-align: center; }
+            .hero-desc { margin: 0 auto 30px auto; }
+            .hero-btn-group { justify-content: center; }
             .nav-links { display: none; }
-
-            .hero-section { padding: 32px 16px; grid-template-columns: 1fr; text-align: center; gap: 24px; }
-            .hero-title-badge { font-size: 11px; padding: 5px 12px; border-radius: 20px; justify-content: center; width: 100%; }
-            .hero-title { font-size: 25px; font-weight: 900; line-height: 1.35; letter-spacing: -0.5px; margin-bottom: 12px; text-align: center; }
-            .hero-desc { font-size: 13px; line-height: 1.6; margin: 0 auto 20px auto; text-align: center; }
-            .hero-btn-group { justify-content: center; gap: 10px; flex-direction: column; width: 100%; }
-            .btn-hero-green, .btn-hero-outline { width: 100%; justify-content: center; padding: 12px; font-size: 14px; }
-
-            .section-header h2 { font-size: 22px; }
-            .section-header p { font-size: 12px; }
-
-            .grid-cards { grid-template-columns: 1fr; gap: 14px; }
-            .card-feature { padding: 20px 16px; }
-
-            .hospital-section { padding: 36px 16px; }
-            .hospital-grid { grid-template-columns: 1fr; gap: 14px; }
-
-            .footer-container { flex-direction: column; text-align: center; gap: 14px; }
         }
     </style>
 </head>
@@ -360,9 +85,6 @@
 
             <ul class="nav-links">
                 <li><a href="company.html">회사소개</a></li>
-                <li><a href="index.html#services">서비스 안내</a></li>
-                <li><a href="index.html#pricing">투명 정찰 요금안내</a></li>
-                <li><a href="index.html#reviews">실시간 이용 후기</a></li>
                 <li><a href="careers.html">채용</a></li>
             </ul>
 
@@ -413,6 +135,36 @@
 
         <div class="hero-image-box">
             <img src="hero_visual.jpg" class="hero-main-img" alt="발자국동행 메인 비주얼">
+        </div>
+    </section>
+
+    <!-- 1. 이용 프로세스 안내 (How It Works) -->
+    <section class="features-section" style="background: #ffffff; border-top: 1px solid #e2dad0; border-bottom: 1px solid #e2dad0;">
+        <div class="section-header">
+            <h2>발자국동행 이용 프로세스</h2>
+            <p>예약부터 안전한 귀가까지, 4단계로 간편하고 투명하게 진행됩니다.</p>
+        </div>
+        <div class="grid-cards" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+            <div class="card-feature" style="background: #f8fafc; border: 1px solid #e2e8f0; text-align: center;">
+                <div style="font-size: 32px; font-weight: bold; color: #D97706; margin-bottom: 8px;">01</div>
+                <h3 class="card-title" style="margin-bottom: 6px;">앱 간편 예약 신청</h3>
+                <p class="card-desc">원하시는 서비스 트림(긴급/당일/예약)과 병원, 반려동물 정보를 입력합니다.</p>
+            </div>
+            <div class="card-feature" style="background: #f8fafc; border: 1px solid #e2e8f0; text-align: center;">
+                <div style="font-size: 32px; font-weight: bold; color: #D97706; margin-bottom: 8px;">02</div>
+                <h3 class="card-title" style="margin-bottom: 6px;">전문 가드 자택 픽업</h3>
+                <p class="card-desc">동물운송업 수료증을 보유한 가드가 자택(또는 무인)으로 안전하게 방문합니다.</p>
+            </div>
+            <div class="card-feature" style="background: #f8fafc; border: 1px solid #e2e8f0; text-align: center;">
+                <div style="font-size: 32px; font-weight: bold; color: #D97706; margin-bottom: 8px;">03</div>
+                <h3 class="card-title" style="margin-bottom: 6px;">병원 진료 밀착 동행</h3>
+                <p class="card-desc">동물병원 접수부터 진료 대행, 수의사 소견 청취까지 전 과정을 완벽히 케어합니다.</p>
+            </div>
+            <div class="card-feature" style="background: #f8fafc; border: 1px solid #e2e8f0; text-align: center;">
+                <div style="font-size: 32px; font-weight: bold; color: #D97706; margin-bottom: 8px;">04</div>
+                <h3 class="card-title" style="margin-bottom: 6px;">모바일 리포트 & 귀가</h3>
+                <p class="card-desc">진료 영수증과 처방전 실물 사진 리포트를 전송받고 아이가 안전하게 귀가합니다.</p>
+            </div>
         </div>
     </section>
 
@@ -490,10 +242,32 @@
         </div>
     </section>
 
+    <!-- 2. 안심 보안 하이라이트 -->
+    <section class="hospital-section" style="background: #fffbeb; border-top: 1px solid #fde68a; border-bottom: 1px solid #fde68a;">
+        <div class="section-header">
+            <h2>발자국동행의 철저한 4대 안심 보안 시스템</h2>
+            <p>보호자님이 부재중이셔도 아이를 믿고 맡길 수 있는 독보적인 안전 장치</p>
+        </div>
+        <div class="hospital-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+            <div class="hospital-card" style="border: 1px solid #fde68a; background: #ffffff;">
+                <h3 style="font-size:16px; color:#92400E; margin-bottom:8px;">🛡️ 도어락 비밀번호 즉시 파기</h3>
+                <p style="font-size:13px; color:#451a03; line-height:1.6;">무인 픽업 시 입력된 출입 비밀번호는 아이의 자택 귀가 완료 및 콜 마감 즉시 서버와 기기에서 100% 영구 파기(포맷)됩니다.</p>
+            </div>
+            <div class="hospital-card" style="border: 1px solid #fde68a; background: #ffffff;">
+                <h3 style="font-size:16px; color:#92400E; margin-bottom:8px;">📹 가드 바디캠 안심 보관</h3>
+                <p style="font-size:13px; color:#451a03; line-height:1.6;">픽업부터 병원 이동, 귀가까지 전 과정의 이송 영상이 안전하게 보관되어 신뢰할 수 있는 투명한 케어를 보장합니다.</p>
+            </div>
+            <div class="hospital-card" style="border: 1px solid #fde68a; background: #ffffff;">
+                <h3 style="font-size:16px; color:#92400E; margin-bottom:8px;">📜 정식 동물운송업 자격 수료</h3>
+                <p style="font-size:13px; color:#451a03; line-height:1.6;">정부 지자체 정식 등록 및 동물운송업 전문 수료증을 보유한 검증된 베테랑 가드들만 운행에 참여합니다.</p>
+            </div>
+        </div>
+    </section>
+
     <!-- 생생 이용 후기 연동 섹션 -->
     <section class="features-section" id="reviews" style="background-color: #f1ede4;">
         <div class="section-header">
-            <h2>⭐ 발자국동행 보호자님들의 생생 이용 후기</h2>
+            <h2>발자국동행 보호자님들의 생생 이용 후기</h2>
             <p>부산 전 지역 보호자님들이 직접 경험하신 감동 안심 케어 리뷰 (평점 4.9 / 5.0)</p>
         </div>
 
@@ -526,6 +300,41 @@
                 <h3 style="font-size:15px; color:#0f172a; margin-top:6px;">사상구 보호자님 <span style="font-size:12px; color:#64748b; font-weight:normal;">(푸들 해피)</span></h3>
                 <p style="color:#334155; font-size:13px; line-height:1.6;">"당일 갑자기 다리를 절어서 급하게 신청했는데, 차량 내부가 너무 쾌적하고 실시간으로 아이 상태를 꼼꼼하게 케어해 주셔서 너무 안심되었습니다."</p>
                 <p style="font-size:11px; color:#94a3b8; margin-top:auto;">🗓️ 2026.10.18 (어플 수록 검증 후기)</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. 자주 묻는 질문 (FAQ) -->
+    <section class="features-section" id="faq" style="background: #f8fafc; border-top: 1px solid #e2dad0;">
+        <div class="section-header">
+            <h2>자주 묻는 질문 (FAQ)</h2>
+            <p>보호자님들께서 가장 자주 물어보시는 질문들을 모았습니다.</p>
+        </div>
+        <div style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px;">
+            <div style="background: #ffffff; border: 1px solid #e2dad0; border-radius: 12px; padding: 20px;">
+                <h3 style="font-size: 15px; color: #0f172a; margin-bottom: 6px; font-weight: bold;">Q. 보호자가 출근 중이거나 집에 없어도 픽업이 가능한가요?</h3>
+                <p style="font-size: 13px; color: #334155; line-height: 1.6; margin: 0;">네, 완벽하게 가능합니다! 무인 픽업 옵션을 선택하시고 도어락 비밀번호를 입력해 주시면, 전문 가드가 안전하게 아이를 데리고 병원에 다녀온 뒤 안전하게 귀가시켜 드립니다. 비밀번호는 귀가 완료 즉시 100% 영구 파기됩니다.</p>
+            </div>
+            <div style="background: #ffffff; border: 1px solid #e2dad0; border-radius: 12px; padding: 20px;">
+                <h3 style="font-size: 15px; color: #0f172a; margin-bottom: 6px; font-weight: bold;">Q. 아이가 겁이 많거나 입마개가 필요한 경우에도 이용할 수 있나요?</h3>
+                <p style="font-size: 13px; color: #334155; line-height: 1.6; margin: 0;">네, 물론입니다. 예약 시 '특이사항'이나 아이의 성향을 적어주시면, 동물 운송 전문 교육을 수료한 가드가 아이가 스트레스를 받지 않도록 세심하고 안전하게 케어합니다.</p>
+            </div>
+            <div style="background: #ffffff; border: 1px solid #e2dad0; border-radius: 12px; padding: 20px;">
+                <h3 style="font-size: 15px; color: #0f172a; margin-bottom: 6px; font-weight: bold;">Q. 진료비와 이동 요금은 어떻게 결제되나요?</h3>
+                <p style="font-size: 13px; color: #334155; line-height: 1.6; margin: 0;">이동 요금은 서비스 트림별 정액 정찰제(긴급 5만, 당일 3만 5천, 예약 3만)로 적용되며, 병원 진료비(영수증)는 진료 완료 후 모바일로 투명하게 실비 내역이 전송되어 안전하게 정산됩니다.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. 하단 앱 다운로드 CTA 배너 -->
+    <section style="background: linear-gradient(135deg, #78350F 0%, #D97706 100%); color: white; padding: 60px 20px; text-align: center;">
+        <div style="max-width: 800px; margin: 0 auto;">
+            <h2 style="font-size: 28px; font-weight: bold; margin-bottom: 12px;">소중한 우리 아이의 든든한 병원 동행 파트너</h2>
+            <p style="font-size: 15px; opacity: 0.9; margin-bottom: 30px; line-height: 1.6;">지금 바로 '발자국동행' 앱을 다운로드하고, 부산 전 지역 프리미엄 1:1 안심 케어 서비스를 경험해 보세요!</p>
+            <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+                <a href="발자국동행_앱_설치파일.apk" style="background: #10b981; color: white; padding: 14px 28px; border-radius: 10px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" download>
+                    <span>▶</span> Google Play 앱 설치 (.apk)
+                </a>
             </div>
         </div>
     </section>
