@@ -12569,26 +12569,6 @@ fun HomeScreenContent(
                             }
                         }
                     }
-                    item {
-                        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC))) {
-                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("📢 발자국동행 1:1 병원 진료 대행 서비스 정식 운영 안내", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                                Text("2026.10.18", fontSize = 10.sp, color = Color.Gray)
-                                HorizontalDivider()
-                                Text("부산 전 지역 (강서, 사하, 사상, 진구, 해운대 등)에 보호자 맞춤형 1:1 병원 진료 대행 및 안심 이동 케어 서비스가 정식 운영 중입니다.", fontSize = 11.sp, color = Color(0xFF334155), lineHeight = 15.sp)
-                            }
-                        }
-                    }
-                    item {
-                        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC))) {
-                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("📢 기아 레이(RAY) 펫 전용차 정기 살균 소독 안내", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                                Text("2026.10.15", fontSize = 10.sp, color = Color.Gray)
-                                HorizontalDivider()
-                                Text("아이들의 위생과 건강을 위해 매 운행 종료 후 인체 무해 유기농 소독수로 레이 케어카 차내 전체 살균 소독을 실시합니다.", fontSize = 11.sp, color = Color(0xFF334155), lineHeight = 15.sp)
-                            }
-                        }
-                    }
                 }
             },
             confirmButton = {
