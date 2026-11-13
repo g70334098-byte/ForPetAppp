@@ -270,7 +270,7 @@ fun DriverMainDashboardScreen(
                     .weight(1f),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(driverOrders.size) { index ->
+                items(count = driverOrders.size, key = { driverOrders[it].id }) { index ->
                     val order = driverOrders[index]
                     val isDoorlockUnlocked = unlockedDoorlockId == order.id
 
