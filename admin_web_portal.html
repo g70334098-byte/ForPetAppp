@@ -394,6 +394,37 @@
 </head>
 <body>
 
+    <!-- 🔒 관리자 보안 인증 모달 (해킹 및 무단 접근 방지) -->
+    <div id="admin-auth-modal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); z-index: 99999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(6px);">
+        <div style="background: white; padding: 40px; border-radius: 20px; width: 100%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); text-align: center;">
+            <div style="font-size: 36px; margin-bottom: 12px;">🔒</div>
+            <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 8px;">발자국동행 관리자 보안 인증</h2>
+            <p style="font-size: 13px; color: #64748b; margin-bottom: 24px;">총괄 관리자(대표님) 전용 포털입니다.<br>보안을 위해 비밀번호를 입력해 주세요.</p>
+            <input type="password" id="admin-pwd-input" placeholder="관리자 비밀번호 입력" style="width: 100%; padding: 14px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 15px; margin-bottom: 14px; text-align: center; outline: none;" onkeydown="if(event.key==='Enter') verifyAdminPwd()">
+            <div id="admin-auth-err" style="color: #dc2626; font-size: 12px; font-weight: bold; margin-bottom: 12px; display: none;">❌ 비밀번호가 올바르지 않습니다.</div>
+            <button onclick="verifyAdminPwd()" style="width: 100%; padding: 14px; background: #0284c7; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 15px; cursor: pointer; transition: background 0.2s;">안전 로그인</button>
+            <div style="margin-top: 16px; font-size: 11px; color: #94a3b8;">© WithPaw Inc. Secure Access Control</div>
+        </div>
+    </div>
+    <script>
+        function verifyAdminPwd() {
+            const pwd = document.getElementById('admin-pwd-input').value.trim();
+            if (pwd === "942800" || pwd === "7521739ee@") {
+                sessionStorage.setItem('adminAuth', 'true');
+                document.getElementById('admin-auth-modal').style.display = 'none';
+            } else {
+                const errEl = document.getElementById('admin-auth-err');
+                errEl.style.display = 'block';
+                document.getElementById('admin-pwd-input').value = '';
+            }
+        }
+        window.addEventListener('DOMContentLoaded', () => {
+            if (sessionStorage.getItem('adminAuth') === 'true') {
+                document.getElementById('admin-auth-modal').style.display = 'none';
+            }
+        });
+    </script>
+
     <!-- 사이드바 -->
     <sidebar>
         <div>
