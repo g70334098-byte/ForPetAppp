@@ -3967,7 +3967,7 @@ fun BodycamStreamDialog(
                     ) {
                         Text("LIVE 🔴", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                     }
-                    Text("레이 바디캠 HD 실시간 생중계", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("레이 바디캠 실시간 현장 관제", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
             }
         },
@@ -4010,7 +4010,7 @@ fun BodycamStreamDialog(
                         ) {
                             Text("📹 🐾", fontSize = 36.sp)
                             Text("'${booking.petName}' 아이 전용 펫시트 안심 탑승 중", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
-                            Text("기아 레이 전용 1080p Full HD 저조도 나이트비전 작동 중", fontSize = 10.sp, color = Color(0xFF38BDF8))
+                            Text("기아 레이 전용 안심 바디캠 가동 중", fontSize = 10.sp, color = Color(0xFF38BDF8))
 
                             // 쾌적 환경 센서 뱃지
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -10172,7 +10172,7 @@ fun HomeScreenContent(
                         ) {
                             Text("✨ 전 요금 기본 포함 안심 케어", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF166534))
                             Text("• 1:1 수석 가드 전담 안심 동행 (보호자 부재 케어 가능)", fontSize = 11.sp, color = Color(0xFF15803D))
-                            Text("• 실시간 고화질 바디캠 라이브 스트리밍 시청", fontSize = 11.sp, color = Color(0xFF15803D))
+                            Text("• 실시간 안심 바디캠 모니터링 시청", fontSize = 11.sp, color = Color(0xFF15803D))
                             Text("• 레이 전용 펫시트 & 안전 펜스 & 차내 공기케어", fontSize = 11.sp, color = Color(0xFF15803D))
                             Text("• 수의사 진료 소견 리포트 & 영수증/처방전 사진 전송", fontSize = 11.sp, color = Color(0xFF15803D))
                         }
