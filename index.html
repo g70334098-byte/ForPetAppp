@@ -359,11 +359,11 @@
             </a>
 
             <ul class="nav-links">
-                <li><a href="javascript:void(0);" onclick="openModal('company')">회사소개</a></li>
-                <li><a href="#services">서비스 안내</a></li>
-                <li><a href="#pricing">투명 정찰 요금안내</a></li>
-                <li><a href="#reviews">실시간 이용 후기</a></li>
-                <li><a href="javascript:void(0);" onclick="openModal('careers')">채용</a></li>
+                <li><a href="company.html">회사소개</a></li>
+                <li><a href="index.html#services">서비스 안내</a></li>
+                <li><a href="index.html#pricing">투명 정찰 요금안내</a></li>
+                <li><a href="index.html#reviews">실시간 이용 후기</a></li>
+                <li><a href="careers.html">채용</a></li>
             </ul>
 
             <div style="display: flex; gap: 8px; align-items: center;">
@@ -565,9 +565,9 @@
                     (주)위드파우의 '발자국동행'은 동물병원 진료 예약 대행 및 반려동물 안심 동행 중개 서비스를 제공하며, 고객 보호를 위한 안전결제 정책을 준수합니다.<br>
                     ※ 공식 운영시간(09:00~19:00) 외 심야 시간대에는 차량 출동 및 관제가 지원되지 않습니다.
                     <div style="display: flex; gap: 16px; margin-top: 8px;">
-                        <a href="javascript:void(0);" onclick="openModal('privacy')" style="color: #64748b; text-decoration: none;">개인정보처리방침</a>
-                        <a href="javascript:void(0);" onclick="openModal('terms')" style="color: #64748b; text-decoration: none;">이용약관</a>
-                        <a href="javascript:void(0);" onclick="openModal('location')" style="color: #64748b; text-decoration: none;">위치기반서비스 이용약관</a>
+                        <a href="privacy.html" style="color: #64748b; text-decoration: none;">개인정보처리방침</a>
+                        <a href="terms.html" style="color: #64748b; text-decoration: none;">이용약관</a>
+                        <a href="location.html" style="color: #64748b; text-decoration: none;">위치기반서비스 이용약관</a>
                     </div>
                 </div>
                 <div style="color: #475569; font-size: 11px; font-weight: 600; margin-top: 4px;">
@@ -576,112 +576,5 @@
             </div>
         </div>
     </footer>
-
-    <!-- 약관 모달 팝업 -->
-    <div id="termsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center; padding:20px;">
-        <div style="background:#ffffff; color:#0f172a; width:100%; max-width:600px; max-height:80vh; border-radius:12px; overflow-y:auto; padding:24px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.3);">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">
-                <h3 id="modalTitle" style="font-size:18px; font-weight:bold; color:#0f172a; margin:0;">약관 제목</h3>
-                <button onclick="closeModal()" style="background:none; border:none; font-size:20px; cursor:pointer; color:#64748b; font-weight:bold;">✕</button>
-            </div>
-            <div id="modalContent" style="font-size:13px; color:#334155; line-height:1.7; white-space:pre-line;">
-                약관 내용이 여기에 표시됩니다.
-            </div>
-            <div style="margin-top:20px; text-align:right;">
-                <button onclick="closeModal()" style="background:#0284c7; color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:bold; cursor:pointer;">확인</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const termsData = {
-            privacy: {
-                title: "개인정보처리방침",
-                content: `(주)위드파우('발자국동행')는 고객님의 개인정보를 소중히 여기며, 개인정보보호법 및 정보통신망 이용촉진 및 정보보호 등에 관한 법률을 준수하고 있습니다.
-
-1. 수집하는 개인정보 항목
-- 필수항목: 성명, 연락처(휴대폰 번호), 주소(픽업지), 반려동물 정보(이름, 종, 몸무게, 특이사항), 도어락 비밀번호(무인 픽업 시 임시 수집)
-- 수집방법: 앱 내 예약 신청 및 서비스 이용 과정
-
-2. 개인정보의 수집 및 이용 목적
-- 반려동물 병원 동행 및 이동 대행 서비스 제공
-- 요금 결제, 정산 및 환불 처리
-- 고객 상담, 불만 처리 및 공지사항 전달
-
-3. 도어락 비밀번호 처리 및 영구 파기 (중요)
-- 무인 픽업/드랍 서비스 이용 시 수집되는 도어락 비밀번호 등 출입 보안 정보는 안전한 인계를 위한 임시 용도로만 사용되며, **귀가 완료 및 콜 마감 즉시 서버 및 가드 기기에서 100% 영구 파기(포맷)**됩니다. 회사는 고객의 동의 없이 출입 정보를 장기 보관하지 않습니다.
-
-4. 개인정보의 보유 및 이용 기간
-- 서비스 제공 완료 및 정산 완료 후, 관련 법령에 따른 보존 기간(전자상거래 등에서의 소비자 보호에 관한 법률 등)을 준수하며 목적 달성 즉시 파기합니다.`
-            },
-            terms: {
-                title: "서비스 이용약관",
-                content: `제1조(목적)
-이 약관은 (주)위드파우('발자국동행')가 제공하는 반려동물 안심 이동 케어 및 병원 진료 대행 중개 서비스의 이용조건 및 절차에 관한 사항을 규정함을 목적으로 합니다.
-
-제2조(용어의 정의)
-1. "서비스"라 함은 회사가 제공하는 반려동물 병원 동행, 픽업 이동, 진료 리포트 전송 등의 모든 기능을 의미합니다.
-2. "이용자"라 함은 서비스에 접속하여 이 약관에 따라 회사가 제공하는 서비스를 받는 보호자를 의미합니다.
-
-제3조(서비스의 제공 및 변경)
-1. 회사는 연중무휴 09:00 ~ 19:00 동안 서비스를 제공함을 원칙으로 합니다.
-2. 회사는 사전에 공지하거나 긴급한 사유가 있는 경우 서비스의 내용을 변경할 수 있습니다.
-
-제4조(취소 및 환불 규정)
-1. 픽업 출동 전 예약 취소 시: 결제금액의 100% 전액 즉시 환불됩니다.
-2. 가드가 출동을 시작하거나 현장에 도착한 이후 취소 시: 출동 수수료 및 취소 수수료가 부과될 수 있습니다.
-
-제5조(책임 한계 및 면책 조항)
-1. 회사는 안전한 이송을 위해 최선을 다하나, 반려동물의 돌발적인 행동(탈출, 자해 등), 기병(지병)의 악화, 또는 제3자의 과실로 인해 발생한 사고에 대해서는 회사의 고의 또는 중대한 과실이 없는 경우 그 책임을 지지 않습니다.
-2. 이용자는 반려동물의 성향, 공격성, 전염병 여부 등을 사전에 정확히 고지해야 하며, 이를 누락하여 발생한 문제에 대한 책임은 이용자에게 있습니다.`
-            },
-            location: {
-                title: "위치기반서비스 이용약관",
-                content: `제1조(목적)
-이 약관은 (주)위드파우('발자국동행')가 제공하는 위치기반서비스와 관련하여 회사와 개인위치정보주체의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.
-
-제2조(서비스의 내용)
-1. 실시간 가드 차량 위치 추적 및 이송 경로 안내 서비스
-2. 보호자 자택 및 제휴 동물병원 위치 확인 서비스
-
-제3조(개인위치정보의 이용 또는 제공 목적)
-1. 회사는 개인위치정보를 이용하여 고객에게 실시간 이송 현황, 차량 위치 관제 및 안전 귀가 경로 안내 서비스를 제공합니다.
-2. 회사는 고객의 동의 없이 개인위치정보를 제3자에게 제공하지 않으며, 위치정보 수집·이용·제공 목적 달성 즉시 파기합니다.`
-            },
-            company: {
-                title: "(주)위드파우 회사소개",
-                content: `(주)위드파우는 반려동물과 보호자가 더 행복하고 안전한 일상을 누릴 수 있도록 돕는 펫 헬스케어 전문 기업입니다.
-
-주력 브랜드인 '발자국동행'은 바쁜 일상, 거동 불편, 또는 직장 출근 등으로 반려동물 병원 동행이 어려운 보호자님들을 대신하여, 1:1 전용 케어카 픽업부터 동물병원 진료 대행, 상세 리포트 및 영수증 실시간 전송까지 완벽한 원스톱 프리미엄 안심 케어 서비스를 제공합니다.
-
-당사는 정직한 서비스, 철저한 보안(도어락 비번 즉시 파기), 투명한 정산 시스템을 바탕으로 반려동물 케어 업계의 새로운 표준을 만들어가고 있습니다.`
-            },
-            careers: {
-                title: "인재 채용 (Careers)",
-                content: `(주)위드파우 '발자국동행'과 함께 반려동물 케어 혁신을 만들어갈 열정 있는 인재를 기다립니다.
-
-1. 모집 부문 (상시 인재 풀 등록)
-- 펫 동행 매니저 (파트타임 / 정직원): 운전면허 소지자 및 반려동물 양육 경험자 우대
-- 앱 서비스 개발자 (Flutter / Android / Web): 모바일 플랫폼 운영 및 고도화 담당
-
-2. 지원 방법
-- 이력서 및 자기소개서를 아래 이메일로 보내주시면 검토 후 개별 연락드립니다.
-- 이메일: k7turbo@naver.com
-- 문의: 010-3786-5394 (관제센터)`
-            }
-        };
-
-        function openModal(type) {
-            const data = termsData[type];
-            if (!data) return;
-            document.getElementById('modalTitle').innerText = data.title;
-            document.getElementById('modalContent').innerText = data.content;
-            document.getElementById('termsModal').style.display = 'flex';
-        }
-
-        function closeModal() {
-            document.getElementById('termsModal').style.display = 'none';
-        }
-    </script>
 </body>
 </html>
