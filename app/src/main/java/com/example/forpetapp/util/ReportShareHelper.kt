@@ -96,6 +96,44 @@ object ReportShareHelper {
     }
 
     /**
+     * 1.5. 펫보험 원터치 청구서 카카오톡/문자 공유 헬퍼
+     */
+    fun shareInsuranceClaimReport(context: Context, booking: BookingItem) {
+        try {
+            val shareText = """
+                🏥 [발자국동행] 펫보험 간편 보험금 청구 서류 요약
+                ────────────────────
+                • 피보험자(보호자): ${booking.ownerName}
+                • 피보험 객체(반려동물): ${booking.petName} (${booking.species})
+                • 진료 일시: ${booking.time}
+                • 방문 동물병원: ${booking.hospitalName}
+                
+                🩺 수의사 진단 및 소견:
+                ${booking.doctorNote.ifEmpty { "슬개골/내과/피부 등 정밀 검진 및 처방 수속" }}
+                
+                💊 처방 및 투약 지침:
+                ${booking.prescription.ifEmpty { "병원 처방약 및 주사 처치 완료" }}
+                
+                🧾 청구 구비 서류 첨부 상태:
+                - 병원 진료비 영수증 사진: ${if (!booking.receiptImageUri.isNullOrBlank()) "첨부 완료 ✅" else "앱 내 수록"}
+                - 처방전 및 약 봉투 사진: ${if (!booking.prescriptionImageUri.isNullOrBlank()) "첨부 완료 ✅" else "앱 내 수록"}
+                
+                ────────────────────
+                ※ 메리츠화재, DB손해보험, KB손해보험, 현대해상 등 펫보험 앱/팩스 청구용 서류로 즉시 활용 가능합니다.
+            """.trimIndent()
+
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, shareText)
+                putExtra(Intent.EXTRA_SUBJECT, "[펫보험 청구] ${booking.petName} 진료 서류")
+            }
+            context.startActivity(Intent.createChooser(intent, "펫보험 간편 청구서 공유하기"))
+        } catch (e: Exception) {
+            Toast.makeText(context, "공유하기 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
      * 2. 정식 PDF 진료 리포트 문서 생성 및 저장
      */
     fun generateAndSavePdfReport(context: Context, booking: BookingItem): File? {

@@ -4857,6 +4857,7 @@ fun BookingHistoryScreen(
     var historyTab by remember { mutableIntStateOf(0) } // 0: 진행 중, 1: 이전 예약 내역
     var selectedBookingForDetail by remember { mutableStateOf<BookingItem?>(null) }
     var selectedReportBooking by remember { mutableStateOf<BookingItem?>(null) }
+    var showInsuranceClaimForBooking by remember { mutableStateOf<BookingItem?>(null) }
     var bookingToCancel by remember { mutableStateOf<BookingItem?>(null) }
 
     var showGpsMapForBooking by remember { mutableStateOf<BookingItem?>(null) }
@@ -5745,6 +5746,19 @@ fun BookingHistoryScreen(
                             }
                         }
                     }
+
+                    item {
+                        Button(
+                            onClick = {
+                                showInsuranceClaimForBooking = report
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF166534))
+                        ) {
+                            Text("🏥 펫보험 간편 청구서 원터치 생성", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -5770,6 +5784,13 @@ fun BookingHistoryScreen(
                     }
                 }
             }
+        )
+    }
+
+    showInsuranceClaimForBooking?.let { claimBooking ->
+        PetInsuranceClaimDialog(
+            booking = claimBooking,
+            onDismiss = { showInsuranceClaimForBooking = null }
         )
     }
 
@@ -7891,6 +7912,102 @@ fun PhotoReviewWriteDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("취소")
+            }
+        }
+    )
+}
+
+// 🏥 펫보험 간편 청구서 자동 생성 다이얼로그 (메리츠, DB, KB, 현대해상 등 원터치 연동)
+@Composable
+fun PetInsuranceClaimDialog(
+    booking: BookingItem,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("🏥", fontSize = 20.sp)
+                Text("펫보험 원터치 간편 청구서", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
+            }
+        },
+        text = {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().height(420.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFEFF6FF),
+                        border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("💡 펫보험금 청구 안내", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1E40AF))
+                            Text("가드가 수령해 온 병원 영수증과 수의사 정밀 소견서가 통합 정리되었습니다. 주요 펫보험사(메리츠, DB, KB 등) 팩스 및 앱 접수용으로 즉시 사용 가능합니다.", fontSize = 11.sp, color = Color(0xFF1E3A8A), lineHeight = 15.sp)
+                        }
+                    }
+                }
+
+                // 1. 피보험자 및 청구 대상 동물 정보
+                item {
+                    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, Color(0xFFE2E8F0))) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("📋 1. 피보험자 및 반려동물 정보", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                            Text("• 피보험자(보호자): ${booking.ownerName}", fontSize = 11.sp, color = Color(0xFF334155))
+                            Text("• 청구 대상: ${booking.petName} (${booking.species})", fontSize = 11.sp, color = Color(0xFF334155))
+                            Text("• 진료 동물병원: ${booking.hospitalName}", fontSize = 11.sp, color = Color(0xFF334155))
+                            Text("• 진료 일시: ${booking.time}", fontSize = 11.sp, color = Color(0xFF334155))
+                        }
+                    }
+                }
+
+                // 2. 진단 소견 및 처방 내역
+                item {
+                    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, Color(0xFFE2E8F0))) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("🩺 2. 수의사 진단 소견 & 처방", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                            Text(booking.doctorNote.ifEmpty { "슬개골/내과/피부 등 정밀 검진 및 처방 수속 완료" }, fontSize = 11.sp, color = Color(0xFF334155), lineHeight = 15.sp)
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                            Text("💊 처방 내역: ${booking.prescription.ifEmpty { "병원 처방약 수령 완료" }}", fontSize = 11.sp, color = Color(0xFF0284C7))
+                        }
+                    }
+                }
+
+                // 3. 주요 펫보험사 팩스/앱 바로가기 안내
+                item {
+                    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, Color(0xFFCBD5E1))) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("🏢 3. 대표 펫보험사 팩스 청구 번호", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                            Text("• 메리츠 펫퍼민트: 팩스 1688-0012", fontSize = 11.sp, color = Color(0xFFD97706), fontWeight = FontWeight.Bold)
+                            Text("• DB손해보험 프로미펫: 팩스 0505-180-0012", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                            Text("• KB손해보험 펫보험: 팩스 0505-060-0012", fontSize = 11.sp, color = Color(0xFF166534), fontWeight = FontWeight.Bold)
+                            Text("• 현대해상 굿앤굿 펫: 팩스 0505-080-0012", fontSize = 11.sp, color = Color(0xFF7C3AED), fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    com.example.forpetapp.util.ReportShareHelper.shareInsuranceClaimReport(context, booking)
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF166534))
+            ) {
+                Text("💬 보험사 청구서 공유/발송", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = {
+                    com.example.forpetapp.util.ReportShareHelper.generateAndSavePdfReport(context, booking)
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+            ) {
+                Text("📄 정식 PDF 서류 저장", fontWeight = FontWeight.Bold)
             }
         }
     )
