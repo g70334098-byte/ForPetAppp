@@ -21,6 +21,44 @@ import java.util.Locale
 object ReportShareHelper {
 
     /**
+     * 0. 갤러리에 이미지 저장 (병원 영수증/처방전 등)
+     */
+    fun saveBitmapToGallery(context: Context, bitmap: android.graphics.Bitmap) {
+        try {
+            val fileName = "발자국동행_진료자료_${System.currentTimeMillis()}.jpg"
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                val resolver = context.contentResolver
+                val contentValues = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/발자국동행")
+                }
+                val uri = resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                if (uri != null) {
+                    resolver.openOutputStream(uri)?.use { outputStream ->
+                        bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 100, outputStream)
+                    }
+                    Toast.makeText(context, "📸 갤러리('발자국동행' 폴더)에 사진이 저장되었습니다.", Toast.LENGTH_LONG).show()
+                }
+            } else {
+                val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+                val appDir = File(picturesDir, "발자국동행")
+                if (!appDir.exists()) appDir.mkdirs()
+                val file = File(appDir, fileName)
+                val outputStream = FileOutputStream(file)
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 100, outputStream)
+                outputStream.close()
+                val mediaScanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+                mediaScanIntent.data = android.net.Uri.fromFile(file)
+                context.sendBroadcast(mediaScanIntent)
+                Toast.makeText(context, "📸 갤러리('발자국동행' 폴더)에 사진이 저장되었습니다.", Toast.LENGTH_LONG).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "사진 저장 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
      * 1. 카카오톡 / 메시지 텍스트 진료 리포트 공유하기
      */
     fun shareReportViaKakaoOrSms(context: Context, booking: BookingItem) {
@@ -39,6 +77,8 @@ object ReportShareHelper {
                 
                 💊 처방 및 케어 지침:
                 ${booking.prescription.ifEmpty { "별도 처방약 없음 (정상 귀가)" }}
+                
+                ※ 앱 내에서 병원 영수증, 수의사 진료 기록지, 처방전 등 상세 사진 자료를 확인할 수 있습니다.
                 
                 ────────────────────
                 발자국동행 1:1 안심 케어 서비스로 안전하게 귀가 완료되었습니다.
@@ -126,7 +166,15 @@ object ReportShareHelper {
 
             canvas.drawLine(40f, y, 555f, y, linePaint); y += 30f
 
-            // 4. 하단 직인 및 보증
+            // 4. 첨부 파일 안내
+            val hasPhotos = !booking.receiptImageUri.isNullOrBlank() || !booking.clinicalNoteImageUri.isNullOrBlank() || !booking.prescriptionImageUri.isNullOrBlank()
+            if (hasPhotos) {
+                canvas.drawText("4. 영수증 및 진료 자료 첨부", 40f, y, boldPaint); y += 24f
+                canvas.drawText("앱 내 진료 리포트에서 병원 영수증, 소견서, 처방전을 사진으로 확인 가능합니다.", 50f, y, subPaint); y += 20f
+                canvas.drawLine(40f, y, 555f, y, linePaint); y += 30f
+            }
+
+            // 5. 하단 직인 및 보증
             canvas.drawText("상기 진료 대행 및 안심 케어 과정이 이상 없이 완료되었음을 공식 확인합니다.", 50f, y, subPaint); y += 30f
             canvas.drawText("발자국동행 동물병원 동행 케어 총괄", 260f, y, boldPaint)
             val sealPaint = Paint().apply {
@@ -138,20 +186,46 @@ object ReportShareHelper {
 
             pdfDoc.finishPage(page)
 
-            // 파일 저장
-            val downloadsDir = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) ?: context.filesDir
             val fileName = "발자국동행_진료리포트_${booking.petName}_${System.currentTimeMillis()}.pdf"
-            val file = File(downloadsDir, fileName)
 
-            val outputStream = FileOutputStream(file)
-            pdfDoc.writeTo(outputStream)
-            outputStream.close()
+            // 스마트폰 '다운로드' 폴더에 저장 (MediaStore 활용)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                val resolver = context.contentResolver
+                val contentValues = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/발자국동행")
+                }
+
+                val uri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                if (uri != null) {
+                    resolver.openOutputStream(uri)?.use { outputStream ->
+                        pdfDoc.writeTo(outputStream)
+                    }
+                    pdfDoc.close()
+                    Toast.makeText(context, "📄 내 파일 > 다운로드 > '발자국동행' 폴더에 PDF가 저장되었습니다.", Toast.LENGTH_LONG).show()
+                    return null // 안드로이드 10 이상은 File 객체 대신 Uri를 사용하지만 리턴은 생략
+                }
+            } else {
+                // 안드로이드 9 이하 레거시 저장
+                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                val appDir = File(downloadsDir, "발자국동행")
+                if (!appDir.exists()) appDir.mkdirs()
+
+                val file = File(appDir, fileName)
+                val outputStream = FileOutputStream(file)
+                pdfDoc.writeTo(outputStream)
+                outputStream.close()
+                pdfDoc.close()
+
+                Toast.makeText(context, "📄 다운로드 폴더에 PDF가 저장되었습니다.", Toast.LENGTH_LONG).show()
+                return file
+            }
+            
             pdfDoc.close()
-
-            Toast.makeText(context, "📄 [PDF 리포트 저장 완료]\n${file.name}", Toast.LENGTH_LONG).show()
-            file
+            null
         } catch (e: Exception) {
-            Toast.makeText(context, "PDF 생성 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "PDF 저장 실패 (저장소 권한 등을 확인하세요): ${e.message}", Toast.LENGTH_SHORT).show()
             null
         }
     }
