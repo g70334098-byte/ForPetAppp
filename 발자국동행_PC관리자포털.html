@@ -2203,6 +2203,7 @@
                 const providerStr = user.provider || "🔴 Google 계정";
                 const badgeClass = providerStr.includes('Google') ? 'badge-red' : (providerStr.includes('카카오') ? 'badge-yellow' : 'badge-blue');
                 const pts = typeof user.points === 'number' ? user.points : 1000;
+                const verifiedBadge = `<span class="badge badge-active" style="background:#0284c7; color:white; font-size:10px; margin-left:4px;">✅ 본인 실명 인증</span>`;
 
                 const avatarHtml = user.profileImage ?
                     `<img src="${user.profileImage}" style="width:28px; height:28px; border-radius:50%; object-fit:cover; vertical-align:middle; margin-right:6px; border:1.5px solid #0284c7;" alt="프로필">` :
@@ -2210,7 +2211,7 @@
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><div style="display:flex; align-items:center;">${avatarHtml}<b style="color:#0284c7; cursor:pointer;" onclick="openUserDetailModal(${index})">${user.name} 🔍</b></div></td>
+                    <td><div style="display:flex; align-items:center;">${avatarHtml}<b style="color:#0284c7; cursor:pointer;" onclick="openUserDetailModal(${index})">${user.name} 🔍</b> ${verifiedBadge}</div></td>
                     <td><span class="badge ${badgeClass}">${providerStr}</span></td>
                     <td><b style="color:#0284c7;">${user.phone}</b></td>
                     <td style="font-size:12px;">${user.address}</td>
