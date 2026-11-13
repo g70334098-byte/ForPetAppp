@@ -16,7 +16,7 @@ data class HospitalInfo(
 
 // 📱 화면 전환 상태 머신
 enum class ScreenState {
-    LOGIN, SIGNUP, MAIN, DRIVER, ADMIN
+    ONBOARDING, TERMS, LOGIN, SIGNUP, MAIN, DRIVER, ADMIN
 }
 
 // 🐾 다중 반려동물 프로필 정보 데이터 클래스 (다견/다묘 가정 100% 등록 지원)
@@ -57,7 +57,12 @@ data class BookingItem(
     val doctorNote: String = "",
     val prescription: String = "",
     val receiptImageUri: String? = null,
+    val clinicalNoteImageUri: String? = null,
     val prescriptionImageUri: String? = null,
+    val bodycamPhotoUri: String? = null,
+    val returnPhotoUri: String? = null,
+    val guardRating: Int = 0,
+    val guardReview: String = "",
     val doorlockPhotoUri: String? = null,
     val encryptedDoorlock: String? = null,
     val doorlockPurged: Boolean = false,

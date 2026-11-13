@@ -99,6 +99,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.sp
+import com.example.forpetapp.ui.auth.OnboardingScreen
+import com.example.forpetapp.ui.auth.TermsAgreementScreen
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -133,7 +135,19 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ForPetApp() {
     val context = LocalContext.current
-    var currentScreen by remember { mutableStateOf(ScreenState.LOGIN) }
+    val prefs = remember { context.getSharedPreferences("forpet_prefs", Context.MODE_PRIVATE) }
+    var isOnboarded by remember { mutableStateOf(prefs.getBoolean("is_onboarded", false)) }
+    var isTermsAgreed by remember { mutableStateOf(prefs.getBoolean("is_terms_agreed", false)) }
+
+    var currentScreen by remember { 
+        mutableStateOf(
+            when {
+                !isOnboarded -> ScreenState.ONBOARDING
+                !isTermsAgreed -> ScreenState.TERMS
+                else -> ScreenState.LOGIN
+            }
+        ) 
+    }
     var isAdminUser by remember { mutableStateOf(false) }
     var currentAdminName by remember { mutableStateOf("최지훈 대표님") }
     var securityWarningMessage by remember { mutableStateOf<String?>(null) }
@@ -302,6 +316,20 @@ fun ForPetApp() {
             color = Color(0xFFEFE5D5)
         ) {
             when (currentScreen) {
+                ScreenState.ONBOARDING -> OnboardingScreen(
+                    onFinish = {
+                        prefs.edit().putBoolean("is_onboarded", true).apply()
+                        isOnboarded = true
+                        currentScreen = ScreenState.TERMS
+                    }
+                )
+                ScreenState.TERMS -> TermsAgreementScreen(
+                    onAgreed = {
+                        prefs.edit().putBoolean("is_terms_agreed", true).apply()
+                        isTermsAgreed = true
+                        currentScreen = ScreenState.LOGIN
+                    }
+                )
                 ScreenState.LOGIN -> LoginScreen(
                     onLoginSuccess = { isAdmin, isDedicatedAdminWorkspace, adminName ->
                         isAdminUser = isAdmin
@@ -2265,6 +2293,7 @@ object PersistentStorageManager {
                 put("prescription", item.prescription)
                 put("receiptImageUri", item.receiptImageUri ?: "")
                 put("prescriptionImageUri", item.prescriptionImageUri ?: "")
+                put("bodycamPhotoUri", item.bodycamPhotoUri ?: "")
                 put("doorlockPhotoUri", item.doorlockPhotoUri ?: "")
                 put("encryptedDoorlock", item.encryptedDoorlock ?: "")
                 put("doorlockPurged", item.doorlockPurged)
@@ -2308,6 +2337,7 @@ object PersistentStorageManager {
                         prescription = obj.optString("prescription"),
                         receiptImageUri = obj.optString("receiptImageUri").ifEmpty { null },
                         prescriptionImageUri = obj.optString("prescriptionImageUri").ifEmpty { null },
+                        bodycamPhotoUri = obj.optString("bodycamPhotoUri").ifEmpty { null },
                         doorlockPhotoUri = obj.optString("doorlockPhotoUri").ifEmpty { null },
                         encryptedDoorlock = obj.optString("encryptedDoorlock").ifEmpty { null },
                         doorlockPurged = obj.optBoolean("doorlockPurged", false),
@@ -3956,6 +3986,22 @@ fun BodycamStreamDialog(
                     border = BorderStroke(1.dp, Color(0xFF0284C7))
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
+                        val bodycamBmp = remember(booking.bodycamPhotoUri) {
+                            booking.bodycamPhotoUri?.takeIf { it.isNotBlank() }?.let { uriStr ->
+                                FirebaseSyncManager.decodeImageFromUriOrDataUrl(context, uriStr)
+                            }
+                        }
+
+                        if (bodycamBmp != null) {
+                            androidx.compose.foundation.Image(
+                                bitmap = bodycamBmp.asImageBitmap(),
+                                contentDescription = "실시간 바디캠 캡처",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
+                            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
+                        }
+
                         // 중앙 비디오 뷰
                         Column(
                             modifier = Modifier.align(Alignment.Center),

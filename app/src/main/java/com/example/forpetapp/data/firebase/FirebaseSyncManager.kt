@@ -118,7 +118,12 @@ object FirebaseSyncManager {
                 put("doctorNote", booking.doctorNote)
                 put("prescription", booking.prescription)
                 put("receiptImageUri", booking.receiptImageUri ?: "")
+                put("clinicalNoteImageUri", booking.clinicalNoteImageUri ?: "")
                 put("prescriptionImageUri", booking.prescriptionImageUri ?: "")
+                put("bodycamPhotoUri", booking.bodycamPhotoUri ?: "")
+                put("returnPhotoUri", booking.returnPhotoUri ?: "")
+                put("guardRating", booking.guardRating)
+                put("guardReview", booking.guardReview)
                 put("doorlockPhotoUri", booking.doorlockPhotoUri ?: "")
                 put("encryptedDoorlock", booking.encryptedDoorlock ?: "")
                 put("doorlockPurged", booking.doorlockPurged)
@@ -177,7 +182,12 @@ object FirebaseSyncManager {
                         doctorNote = obj.optString("doctorNote", ""),
                         prescription = obj.optString("prescription", ""),
                         receiptImageUri = obj.optString("receiptImageUri").ifEmpty { null },
+                        clinicalNoteImageUri = obj.optString("clinicalNoteImageUri").ifEmpty { null },
                         prescriptionImageUri = obj.optString("prescriptionImageUri").ifEmpty { null },
+                        bodycamPhotoUri = obj.optString("bodycamPhotoUri").ifEmpty { null },
+                        returnPhotoUri = obj.optString("returnPhotoUri").ifEmpty { null },
+                        guardRating = obj.optInt("guardRating", 0),
+                        guardReview = obj.optString("guardReview", ""),
                         doorlockPhotoUri = obj.optString("doorlockPhotoUri").ifEmpty { null },
                         encryptedDoorlock = obj.optString("encryptedDoorlock").ifEmpty { null },
                         doorlockPurged = obj.optBoolean("doorlockPurged", false),
@@ -214,7 +224,10 @@ object FirebaseSyncManager {
     fun syncOrderToCloud(booking: BookingItem, context: Context? = null, onComplete: ((Boolean) -> Unit)? = null) {
         try {
             val encodedReceipt = if (context != null) encodeImageUriToDataUrl(context, booking.receiptImageUri) else booking.receiptImageUri
+            val encodedClinicalNote = if (context != null) encodeImageUriToDataUrl(context, booking.clinicalNoteImageUri) else booking.clinicalNoteImageUri
             val encodedPrescription = if (context != null) encodeImageUriToDataUrl(context, booking.prescriptionImageUri) else booking.prescriptionImageUri
+            val encodedBodycam = if (context != null) encodeImageUriToDataUrl(context, booking.bodycamPhotoUri) else booking.bodycamPhotoUri
+            val encodedReturnPhoto = if (context != null) encodeImageUriToDataUrl(context, booking.returnPhotoUri) else booking.returnPhotoUri
             val encodedDoorlock = if (context != null) encodeImageUriToDataUrl(context, booking.doorlockPhotoUri) else booking.doorlockPhotoUri
 
             val orderMap = hashMapOf(
@@ -238,7 +251,12 @@ object FirebaseSyncManager {
                 "doctorNote" to booking.doctorNote,
                 "prescription" to booking.prescription,
                 "receiptImageUri" to (encodedReceipt ?: ""),
+                "clinicalNoteImageUri" to (encodedClinicalNote ?: ""),
                 "prescriptionImageUri" to (encodedPrescription ?: ""),
+                "bodycamPhotoUri" to (encodedBodycam ?: ""),
+                "returnPhotoUri" to (encodedReturnPhoto ?: ""),
+                "guardRating" to booking.guardRating,
+                "guardReview" to booking.guardReview,
                 "doorlockPhotoUri" to (encodedDoorlock ?: ""),
                 "encryptedDoorlock" to (booking.encryptedDoorlock ?: ""),
                 "doorlockPurged" to booking.doorlockPurged,
@@ -411,7 +429,12 @@ object FirebaseSyncManager {
                                     doctorNote = doc.getString("doctorNote") ?: "",
                                     prescription = doc.getString("prescription") ?: "",
                                     receiptImageUri = doc.getString("receiptImageUri"),
+                                    clinicalNoteImageUri = doc.getString("clinicalNoteImageUri"),
                                     prescriptionImageUri = doc.getString("prescriptionImageUri"),
+                                    bodycamPhotoUri = doc.getString("bodycamPhotoUri"),
+                                    returnPhotoUri = doc.getString("returnPhotoUri"),
+                                    guardRating = (doc.get("guardRating") as? Number)?.toInt() ?: doc.getString("guardRating")?.toIntOrNull() ?: 0,
+                                    guardReview = doc.getString("guardReview") ?: "",
                                     doorlockPhotoUri = doc.getString("doorlockPhotoUri"),
                                     encryptedDoorlock = doc.getString("encryptedDoorlock"),
                                     doorlockPurged = doc.getBoolean("doorlockPurged") ?: false,
@@ -830,6 +853,56 @@ object FirebaseSyncManager {
                 }
             }
         } catch (_: Exception) {}
+    }
+
+    /**
+     * 1-3. g70334098 보호자님 예시 진료 리포트 오더 보장 및 생성
+     */
+    fun ensureSampleReportOrderForUser(
+        context: Context? = null,
+        ownerNick: String = "g70334098",
+        ownerEmail: String = "g70334098@gmail.com",
+        ownerPhone: String = "010-3786-5394"
+    ) {
+        try {
+            val sampleId = "ORD-20261112-G70334098"
+            val docRef = firestore.collection(ORDERS_COLLECTION).document(sampleId)
+            docRef.get().addOnSuccessListener { doc ->
+                if (!doc.exists()) {
+                    val sampleOrder = BookingItem(
+                        id = sampleId,
+                        userId = "g70334098",
+                        userEmail = ownerEmail,
+                        serviceTrim = "📅 예약 진료 (예약 O)",
+                        serviceType = "🏥 1:1 병원 안심 진료 대행",
+                        species = "강아지",
+                        petName = "초코",
+                        ownerName = ownerNick,
+                        ownerPhone = ownerPhone,
+                        pickupAddress = "부산 강서구 명지국제8로 230 (더샵명지퍼스트월드)",
+                        hospitalName = "닥터펫동물의료센터 (부산진구 개금동)",
+                        time = "2026.11.12 14:00 (진료 및 귀가 완료)",
+                        status = "5. 귀가 및 케어 완료",
+                        vehicleInfo = "발자국동행 전용 케어카 (박찬헌 가드 동행)",
+                        symptomNote = "📍 픽업: 부산 강서구 명지국제8로 230 | 증상: 정기 건강검진 및 슬개골 탈구 촉진 검사, 펫보험 진단서 발급 요청",
+                        estimatedPrice = "35,000원 (정산 완료)",
+                        isCompleted = true,
+                        doctorNote = "[신경계 및 근골격계 정밀 검진 결과]\n" +
+                            "1. 신체 검사: 체중 3.8kg, 체온 38.4℃(정상), 심박수 및 호흡수 모두 안정적인 정상 범위입니다.\n" +
+                            "2. 슬개골 탈구 촉진: 양측 슬개골 좌우 2기 유지 중이나, 염증 소견이나 보행 파행 증상은 관찰되지 않았습니다. 근육량이 양호하여 현재 수술 단계는 아니며, 관절 영양제 복용과 미끄럼 방지 매트 환경 유지를 권장합니다.\n" +
+                            "3. 귀/피부 검사: 외이도 청결 상태 양호, 경미한 피부 건조증에 대해 보습 약용 샴푸 처방 완료되었습니다.\n" +
+                            "4. 담당의 종합 소견: 아이가 병원 진료 및 대기 시간 동안 가드님 품에서 매우 얌전하고 안정적으로 협조해 주었습니다. 6개월 후 정기 리체크를 권장합니다.",
+                        prescription = "• 조제약: 관절 보조제(콘드로이틴/글루코사민) 30일분 하루 1회 식후 복용\n" +
+                            "• 약용 샴푸: 저자극 세라마이드 보습 샴푸 (주 1회 목욕 시 사용)\n" +
+                            "• 주의사항: 소파 및 침대 점프 착지 제한, 산책 시 평지 위주 20~30분 가벼운 운동 권장",
+                        doorlockPurged = true
+                    )
+                    syncOrderToCloud(sampleOrder, context)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "ensureSampleReportOrderForUser error: ${e.message}")
+        }
     }
 
     /**
