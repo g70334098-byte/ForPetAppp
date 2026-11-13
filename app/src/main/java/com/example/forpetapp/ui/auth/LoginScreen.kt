@@ -429,6 +429,49 @@ fun LoginScreen(
                         onClick = {
                             val trimmedId = userId.trim()
                             val trimmedPw = userPw.trim()
+
+                            fun loginAsGuard(guardName: String) {
+                                if (trimmedPw == "942800") {
+                                    errorMessage = ""
+                                    context.getSharedPreferences("BaljagukAppDiskPrefs", android.content.Context.MODE_PRIVATE)
+                                        .edit()
+                                        .putBoolean("is_guard_authorized_device", true)
+                                        .putString("logged_guard_name", guardName)
+                                        .apply()
+
+                                    Toast.makeText(context, "👨‍✈️ 담당 가드($guardName) 계정으로 인증되었습니다!", Toast.LENGTH_SHORT).show()
+                                    val hasCamera = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                    val hasAudio = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                    val hasLocation = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                                                      androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+                                    if (!hasCamera || !hasAudio || !hasLocation) {
+                                        Toast.makeText(context, "📹 [가드 안심 권한] 바디캠 라이브 및 GPS 관제를 위해 카메라/오디오/위치 권한을 허용해 주세요.", Toast.LENGTH_SHORT).show()
+                                        guardPermissionLauncher.launch(
+                                            arrayOf(
+                                                android.Manifest.permission.CAMERA,
+                                                android.Manifest.permission.RECORD_AUDIO,
+                                                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                                android.Manifest.permission.ACCESS_COARSE_LOCATION
+                                            )
+                                        )
+                                    } else {
+                                        try {
+                                            val serviceIntent = Intent(context, GuardGpsForegroundService::class.java)
+                                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                                context.startForegroundService(serviceIntent)
+                                            } else {
+                                                context.startService(serviceIntent)
+                                            }
+                                        } catch (_: Exception) {}
+                                        onDriverLoginSuccess()
+                                    }
+                                } else {
+                                    errorMessage = "❌ 비밀번호가 일치하지 않습니다."
+                                    Toast.makeText(context, "비밀번호를 확인해 주세요.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+
                             when (trimmedId) {
                                 "k7turbo" -> {
                                     if (trimmedPw == "942800") {
@@ -450,48 +493,9 @@ fun LoginScreen(
                                         Toast.makeText(context, "비밀번호를 확인해 주세요.", Toast.LENGTH_SHORT).show()
                                     }
                                 }
-                                "driver" -> {
-                                    if (trimmedPw == "942800") {
-                                        errorMessage = ""
-                                        // 🛡️ 승인된 가드 단말기 인증 플래그 저장
-                                        context.getSharedPreferences("BaljagukAppDiskPrefs", android.content.Context.MODE_PRIVATE)
-                                            .edit()
-                                            .putBoolean("is_guard_authorized_device", true)
-                                            .putString("logged_guard_name", "박찬헌 가드")
-                                            .apply()
-
-                                        Toast.makeText(context, "👨‍✈️ 담당 가드(박찬헌 가드) 계정으로 인증되었습니다!", Toast.LENGTH_SHORT).show()
-                                        val hasCamera = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                                        val hasAudio = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                                        val hasLocation = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
-                                                          androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-                                        if (!hasCamera || !hasAudio || !hasLocation) {
-                                            Toast.makeText(context, "📹 [가드 안심 권한] 바디캠 라이브 및 GPS 관제를 위해 카메라/오디오/위치 권한을 허용해 주세요.", Toast.LENGTH_SHORT).show()
-                                            guardPermissionLauncher.launch(
-                                                arrayOf(
-                                                    android.Manifest.permission.CAMERA,
-                                                    android.Manifest.permission.RECORD_AUDIO,
-                                                    android.Manifest.permission.ACCESS_FINE_LOCATION,
-                                                    android.Manifest.permission.ACCESS_COARSE_LOCATION
-                                                )
-                                            )
-                                        } else {
-                                            try {
-                                                val serviceIntent = Intent(context, GuardGpsForegroundService::class.java)
-                                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                                                    context.startForegroundService(serviceIntent)
-                                                } else {
-                                                    context.startService(serviceIntent)
-                                                }
-                                            } catch (_: Exception) {}
-                                            onDriverLoginSuccess()
-                                        }
-                                    } else {
-                                        errorMessage = "❌ 비밀번호가 일치하지 않습니다."
-                                        Toast.makeText(context, "비밀번호를 확인해 주세요.", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
+                                "driver", "guard1" -> loginAsGuard("박찬헌 가드")
+                                "guard2" -> loginAsGuard("김민수 가드")
+                                "guard3" -> loginAsGuard("이지은 가드")
                                 else -> {
                                     errorMessage = "❌ 아이디 또는 비밀번호가 일치하지 않습니다."
                                     Toast.makeText(context, "아이디 및 비밀번호를 확인해 주세요.", Toast.LENGTH_SHORT).show()

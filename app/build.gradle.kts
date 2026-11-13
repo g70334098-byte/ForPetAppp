@@ -6,6 +6,15 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+// 🛠️ 자동 패치: MainActivity.kt 내 context 파라미터 안전 보정
+val mainActivityFile = file("src/main/java/com/example/forpetapp/MainActivity.kt")
+if (mainActivityFile.exists()) {
+    val rawText = mainActivityFile.readText()
+    if (rawText.contains("this@MainActivity, \"g70334098\"")) {
+        mainActivityFile.writeText(rawText.replace("this@MainActivity, \"g70334098\"", "context, \"g70334098\""))
+    }
+}
+
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
@@ -20,8 +29,8 @@ android {
         applicationId = "com.baldong.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 70
-        versionName = "1.0.70"
+        versionCode = 75
+        versionName = "1.0.75"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
