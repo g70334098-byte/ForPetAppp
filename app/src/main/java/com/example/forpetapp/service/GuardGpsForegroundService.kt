@@ -142,15 +142,16 @@ class GuardGpsForegroundService : Service() {
                 if (locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true) {
                     locationManager?.requestLocationUpdates(
                         LocationManager.GPS_PROVIDER,
-                        10000L, // 10초 주기
-                        5f,     // 5m 이동 주기
+                        3000L, // 3초 초고속 동기화 주기
+                        0f,    // 0m (실내/이동 시 초고속 갱신)
                         listener,
                     )
-                } else if (locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true) {
+                }
+                if (locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true) {
                     locationManager?.requestLocationUpdates(
                         LocationManager.NETWORK_PROVIDER,
-                        10000L,
-                        5f,
+                        3000L,
+                        0f,
                         listener,
                     )
                 }
