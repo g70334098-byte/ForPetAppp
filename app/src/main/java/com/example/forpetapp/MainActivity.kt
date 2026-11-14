@@ -7325,11 +7325,28 @@ fun MyPageScreen(
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = { showTermsDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("확인 및 동의", fontWeight = FontWeight.Bold)
+                    TextButton(
+                        onClick = {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("http://www.baldong.com/privacy.html"))
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        }
+                    ) {
+                        Text("🌐 웹 약관 전문 보기", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                    }
+
+                    Button(
+                        onClick = { showTermsDialog = false },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                    ) {
+                        Text("확인 및 동의", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         )
