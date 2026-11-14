@@ -382,15 +382,26 @@ fun DriverMainDashboardScreen(
                                     }
                                 }
 
-                                // 내비게이션 연동 버튼
+                                // 내비게이션 연동 버튼 (카카오내비 ➔ T맵 ➔ 네이버지도 3단계 무장애 연동)
                                 IconButton(
                                     onClick = {
+                                        val destName = order.hospitalName.trim().ifEmpty { "동물병원" }
+                                        val encodedDest = android.net.Uri.encode(destName)
                                         try {
-                                            // 카카오내비 목적지 길안내 호출 (없으면 플레이스토어로)
-                                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("kakaomap://route?ep=${order.hospitalName}"))
-                                            context.startActivity(intent)
-                                        } catch (e: Exception) {
-                                            Toast.makeText(context, "카카오맵/카카오내비 앱이 설치되어 있지 않습니다.", Toast.LENGTH_SHORT).show()
+                                            val kakaoIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("kakaomap://search?q=$encodedDest"))
+                                            context.startActivity(kakaoIntent)
+                                        } catch (_: Exception) {
+                                            try {
+                                                val tmapIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("tmap://search?name=$encodedDest"))
+                                                context.startActivity(tmapIntent)
+                                            } catch (_: Exception) {
+                                                try {
+                                                    val naverIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://m.map.naver.com/search2/search.naver?query=$encodedDest"))
+                                                    context.startActivity(naverIntent)
+                                                } catch (e: Exception) {
+                                                    Toast.makeText(context, "🗺️ 내비게이션 연결: $destName", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
                                         }
                                     },
                                     modifier = Modifier.background(Color(0xFFFACC15), CircleShape).size(40.dp)
