@@ -129,6 +129,8 @@ object FirebaseSyncManager {
                 put("doorlockPurged", booking.doorlockPurged)
                 put("usedPoints", booking.usedPoints)
                 put("couponId", booking.couponId ?: "")
+                put("multiPetDiscountAmount", booking.multiPetDiscountAmount)
+                put("selectedPetList", booking.selectedPetList ?: "")
             }
             array.put(obj)
             prefs.edit().putString(KEY_PENDING_ORDERS, array.toString()).apply()
@@ -192,7 +194,9 @@ object FirebaseSyncManager {
                         encryptedDoorlock = obj.optString("encryptedDoorlock").ifEmpty { null },
                         doorlockPurged = obj.optBoolean("doorlockPurged", false),
                         usedPoints = obj.optInt("usedPoints", 0),
-                        couponId = obj.optString("couponId").ifEmpty { null }
+                        couponId = obj.optString("couponId").ifEmpty { null },
+                        multiPetDiscountAmount = obj.optInt("multiPetDiscountAmount", 0),
+                        selectedPetList = obj.optString("selectedPetList").ifEmpty { null }
                     )
                     syncOrderToCloud(booking, context)
                 }
@@ -262,6 +266,8 @@ object FirebaseSyncManager {
                 "doorlockPurged" to booking.doorlockPurged,
                 "usedPoints" to booking.usedPoints,
                 "couponId" to (booking.couponId ?: ""),
+                "multiPetDiscountAmount" to booking.multiPetDiscountAmount,
+                "selectedPetList" to (booking.selectedPetList ?: ""),
                 "updatedAt" to System.currentTimeMillis(),
             )
 
@@ -439,7 +445,9 @@ object FirebaseSyncManager {
                                     encryptedDoorlock = doc.getString("encryptedDoorlock"),
                                     doorlockPurged = doc.getBoolean("doorlockPurged") ?: false,
                                     usedPoints = (doc.get("usedPoints") as? Number)?.toInt() ?: doc.getString("usedPoints")?.toIntOrNull() ?: 0,
-                                    couponId = doc.getString("couponId")
+                                    couponId = doc.getString("couponId"),
+                                    multiPetDiscountAmount = (doc.get("multiPetDiscountAmount") as? Number)?.toInt() ?: doc.getString("multiPetDiscountAmount")?.toIntOrNull() ?: 0,
+                                    selectedPetList = doc.getString("selectedPetList")
                                 )
                             } catch (_: Exception) {
                                 null

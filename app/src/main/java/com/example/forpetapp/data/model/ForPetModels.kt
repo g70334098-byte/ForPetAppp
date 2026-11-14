@@ -68,6 +68,8 @@ data class BookingItem(
     val doorlockPurged: Boolean = false,
     val usedPoints: Int = 0,
     val couponId: String? = null,
+    val multiPetDiscountAmount: Int = 0,
+    val selectedPetList: String? = null,
 )
 
 // 💬 1:1 안심 톡 메시지 데이터 클래스

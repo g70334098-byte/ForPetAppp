@@ -10597,6 +10597,8 @@ fun HomeScreenContent(
         var bookingStep by remember { mutableIntStateOf(1) }
         var showIdentityVerificationDialog by remember { mutableStateOf(false) }
         var pendingVerificationAction by remember { mutableStateOf<((String, String) -> Unit)?>(null) }
+        var isMultiPetSelected by remember { mutableStateOf(false) }
+        var multiPetCount by remember { mutableIntStateOf(2) }
 
         AlertDialog(
             onDismissRequest = {
@@ -10694,6 +10696,47 @@ fun HomeScreenContent(
                                         selectedLabelColor = Color.White
                                     )
                                 )
+                            }
+                        }
+                    }
+
+                    // 1-0-1. 🐾 다견·다묘 가구 콤보 케어 할인 선택 카드
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = if (isMultiPetSelected) Color(0xFFFFFBEB) else Color(0xFFF8FAFC)),
+                            border = BorderStroke(1.dp, if (isMultiPetSelected) Color(0xFFF59E0B) else Color(0xFFE2E8F0))
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("🐾", fontSize = 16.sp)
+                                        Text("다견·다묘 콤보 동행 케어 (2마리 이상)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                    }
+                                    Switch(
+                                        checked = isMultiPetSelected,
+                                        onCheckedChange = { isMultiPetSelected = it }
+                                    )
+                                }
+                                if (isMultiPetSelected) {
+                                    Text("🎉 둘째 아이 50% 콤보 할인 적용 중! (-15,000원 자동 절약)", fontSize = 11.sp, color = Color(0xFFD97706), fontWeight = FontWeight.Bold)
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        FilterChip(
+                                            selected = (multiPetCount == 2),
+                                            onClick = { multiPetCount = 2 },
+                                            label = { Text("2마리 동시 케어 (-15,000원)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                        )
+                                        FilterChip(
+                                            selected = (multiPetCount == 3),
+                                            onClick = { multiPetCount = 3 },
+                                            label = { Text("3마리 동시 케어 (-25,000원)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
