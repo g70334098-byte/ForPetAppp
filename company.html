@@ -5,11 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>발자국동행 - 회사소개</title>
     <style>
+        * { box-sizing: border-box; }
         body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 0; line-height: 1.6; }
-        header { background: #EFE5D5; border-bottom: 1px solid #e2dad0; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+        header { background: #EFE5D5; border-bottom: 1px solid #e2dad0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .nav-container { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; position: relative; }
         .brand-box { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .brand-logo-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+        .brand-logo-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #D97706; }
         .brand-text-title { font-weight: bold; font-size: 18px; color: #78350F; }
+        .nav-links { display: flex; gap: 24px; list-style: none; align-items: center; margin: 0; padding: 0; }
+        .nav-links a { text-decoration: none; color: #475569; font-weight: 600; font-size: 14px; transition: color 0.2s; }
+        .nav-links a:hover { color: #D97706; }
+        .mobile-menu-btn { display: none; background: transparent; border: none; font-size: 24px; color: #78350F; cursor: pointer; padding: 6px; }
+        .mobile-nav-drawer { display: none; flex-direction: column; background: #FDFBF7; border-top: 1px solid #e2dad0; padding: 12px 20px; box-shadow: 0 8px 16px rgba(0,0,0,0.06); }
+        .mobile-nav-drawer.active { display: flex; }
+        .mobile-nav-drawer a { text-decoration: none; color: #334155; font-weight: 700; font-size: 15px; padding: 12px 6px; border-bottom: 1px solid #f1ece1; display: flex; justify-content: space-between; }
+        .mobile-nav-drawer a:last-child { border-bottom: none; }
+
         .container { max-width: 800px; margin: 40px auto; background: #ffffff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
         .company-header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #e2e8f0; padding-bottom: 30px; }
         .company-logo { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 3px solid #EFE5D5; }
@@ -20,16 +31,76 @@
         .back-btn { display: inline-block; margin-top: 30px; background: #D97706; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; }
         footer { background: #0f172a; color: #94a3b8; padding: 40px 24px; font-size: 12px; margin-top: 80px; }
         .footer-container { max-width: 1000px; margin: 0 auto; line-height: 1.7; }
+
+        @media (max-width: 768px) {
+            .nav-container { padding: 12px 16px; }
+            .nav-links { display: none; }
+            .mobile-menu-btn { display: block; }
+            .container { margin: 20px 16px; padding: 24px 20px; }
+        }
     </style>
 </head>
 <body>
     <header>
-        <a href="index.html" class="brand-box">
-            <img src="official_logo.png" class="brand-logo-img" alt="로고">
-            <div class="brand-text-title">발자국동행</div>
-        </a>
-        <a href="index.html" style="color: #78350F; text-decoration: none; font-weight: bold; font-size: 14px;">홈으로 ➔</a>
+        <div class="nav-container">
+            <a href="index.html" class="brand-box">
+                <img src="official_logo.png" class="brand-logo-img" alt="로고">
+                <div class="brand-text-title">발자국동행</div>
+            </a>
+            <ul class="nav-links">
+                <li><a href="company.html" style="color: #D97706;">회사소개</a></li>
+                <li><a href="index.html#services">이용방법</a></li>
+                <li><a href="index.html#pricing">요금안내</a></li>
+                <li><a href="index.html#reviews">이용후기</a></li>
+                <li><a href="careers.html">채용</a></li>
+                <li><a href="index.html" style="color:#78350F; font-weight:bold;">홈으로 ➔</a></li>
+            </ul>
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="메뉴 열기" onclick="toggleMobileMenu()">
+                ☰
+            </button>
+        </div>
+        <nav class="mobile-nav-drawer" id="mobileNavDrawer">
+            <a href="company.html" style="color: #D97706;">
+                <span>🏢 회사소개 (현재 페이지)</span>
+                <span>✓</span>
+            </a>
+            <a href="index.html#services">
+                <span>📋 이용방법</span>
+                <span style="color:#D97706; font-size:13px;">➔</span>
+            </a>
+            <a href="index.html#pricing">
+                <span>💰 요금안내</span>
+                <span style="color:#D97706; font-size:13px;">➔</span>
+            </a>
+            <a href="index.html#reviews">
+                <span>⭐ 이용후기</span>
+                <span style="color:#D97706; font-size:13px;">➔</span>
+            </a>
+            <a href="careers.html">
+                <span>🔥 가드 채용</span>
+                <span style="color:#D97706; font-size:13px;">➔</span>
+            </a>
+            <a href="index.html">
+                <span>🏠 메인 홈으로 이동</span>
+                <span style="color:#D97706; font-size:13px;">➔</span>
+            </a>
+        </nav>
     </header>
+
+    <script>
+        function toggleMobileMenu() {
+            var drawer = document.getElementById('mobileNavDrawer');
+            var btn = document.getElementById('mobileMenuBtn');
+            if (drawer.classList.contains('active')) {
+                drawer.classList.remove('active');
+                btn.innerHTML = '☰';
+            } else {
+                drawer.classList.add('active');
+                btn.innerHTML = '✕';
+            }
+        }
+    </script>
+
     <div class="container">
         <div class="company-header">
             <img src="official_logo.png" class="company-logo" alt="발자국동행 로고">
