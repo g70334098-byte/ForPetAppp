@@ -133,6 +133,7 @@
             <!-- PC 네비게이션 링크 -->
             <ul class="nav-links">
                 <li><a href="company.html">회사소개</a></li>
+                <li><a href="company.html#webtoon">웹툰스토리</a></li>
                 <li><a href="index.html#services">이용방법</a></li>
                 <li><a href="index.html#pricing">요금안내</a></li>
                 <li><a href="index.html#reviews">이용후기</a></li>
@@ -155,10 +156,14 @@
             </div>
         </div>
 
-        <!-- 모바일 드롭다운 메뉴 (회사소개, 이용방법, 요금안내, 이용후기, 채용) -->
+        <!-- 모바일 드롭다운 메뉴 (회사소개, 웹툰, 이용방법, 요금안내, 이용후기, 채용) -->
         <nav class="mobile-nav-drawer" id="mobileNavDrawer">
             <a href="company.html" onclick="toggleMobileMenu()">
                 <span>🏢 회사소개</span>
+                <span style="color:#D97706; font-size:13px;">➔</span>
+            </a>
+            <a href="company.html#webtoon" onclick="toggleMobileMenu()">
+                <span>🎨 브랜드 웹툰 (하루 일과)</span>
                 <span style="color:#D97706; font-size:13px;">➔</span>
             </a>
             <a href="index.html#services" onclick="toggleMobileMenu()">
@@ -255,6 +260,22 @@
                 <h3 class="card-title" style="margin-bottom: 6px;">안전 귀가 & 모바일 리포트</h3>
                 <p class="card-desc">귀가 완료 즉시 수의사 소견 요약과 처방전, 결제 영수증을 앱으로 전달합니다.</p>
             </div>
+        </div>
+
+        <!-- 브랜드 스토리 웹툰 바로가기 배너 -->
+        <div style="margin-top: 32px; background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); border: 1.5px solid #FDE68A; border-radius: 16px; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; box-shadow: 0 4px 15px rgba(217, 119, 6, 0.07);">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <span style="font-size: 36px; line-height: 1;">🎨</span>
+                <div>
+                    <div style="display: inline-block; background: #D97706; color: white; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; margin-bottom: 4px;">1분 브랜드 스토리</div>
+                    <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: #78350F;">어떻게 진행되는지 궁금하신가요? 웹툰으로 확인해보세요!</h4>
+                    <p style="margin: 4px 0 0; font-size: 13px; color: #92400E; line-height: 1.5;">직장인 보호자의 고민부터 픽업, 병원 진료 동행, 도어락 비번 자동 파기까지 8컷으로 한눈에 보기</p>
+                </div>
+            </div>
+            <a href="company.html#webtoon" style="background: #D97706; color: white; padding: 12px 20px; border-radius: 10px; font-weight: 700; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(217, 119, 6, 0.25); white-space: nowrap;">
+                <span>📖 웹툰 보러가기</span>
+                <span>➔</span>
+            </a>
         </div>
     </section>
 
