@@ -2031,8 +2031,8 @@
                     .onSnapshot((doc) => {
                         if (doc && doc.exists) {
                             const data = doc.data();
-                            const minCode = data.minVersionCode || 70;
-                            const verName = data.latestVersionName || "1.0.70";
+                            const minCode = data.minVersionCode || 88;
+                            const verName = data.latestVersionName || "1.0.88";
                             const badgeText = document.getElementById('current-min-version');
                             if (badgeText) {
                                 badgeText.innerText = `v${verName} (Code ${minCode})`;
@@ -2040,13 +2040,13 @@
                         }
                     }, (err) => console.warn("Version config sync error:", err));
 
-                // 최신 배포 버전(Code 70, v1.0.70) 자동 보장 및 동기화
+                // 최신 배포 버전(Code 88, v1.0.88) 자동 보장 및 동기화
                 db.collection("app_config").doc("version_control").get().then((doc) => {
                     const existingCode = doc.exists && doc.data() ? (doc.data().minVersionCode || 0) : 0;
-                    if (!doc.exists || existingCode < 70) {
+                    if (!doc.exists || existingCode < 88) {
                         db.collection("app_config").doc("version_control").set({
-                            minVersionCode: 70,
-                            latestVersionName: "1.0.70",
+                            minVersionCode: 88,
+                            latestVersionName: "1.0.88",
                             updateMessage: "원활한 실시간 예약 및 안심 케어 서비스 이용을 위해 최신 버전 업데이트가 필요합니다. 구글 플레이스토어로 이동하여 업데이트해 주세요.",
                             updatedAt: Date.now()
                         }, { merge: true });
