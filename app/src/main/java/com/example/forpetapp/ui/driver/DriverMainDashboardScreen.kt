@@ -97,6 +97,25 @@ fun DriverMainDashboardScreen(
         }
     }
 
+    var selectedOrderForDoorlockVideo by remember { mutableStateOf<BookingItem?>(null) }
+    val doorlockVideoLauncher = rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val videoUri = result.data?.data
+            val order = selectedOrderForDoorlockVideo
+            if (order != null && videoUri != null) {
+                val updated = order.copy(doorlockPhotoUri = videoUri.toString())
+                val idx = driverOrders.indexOfFirst { it.id == order.id }
+                if (idx != -1) driverOrders[idx] = updated
+                PersistentStorageManager.saveBookingList(context, driverOrders, "DRIVER_ALL")
+                FirebaseSyncManager.syncOrderToCloud(updated, context)
+                Toast.makeText(context, "🎥 [자택 입장 안심] 도어락 비번 입력 및 자택 입장 동영상이 성공적으로 저장 및 암호화 보관되었습니다!", Toast.LENGTH_LONG).show()
+                selectedOrderForDoorlockVideo = null
+            }
+        }
+    }
+
     // ☁️ 실시간 Cloud Firestore 오더 동기화 리스너 (가드 워크스페이스)
     DisposableEffect(Unit) {
         val listener = FirebaseSyncManager.listenToCloudOrders { cloudOrders ->
@@ -463,9 +482,27 @@ fun DriverMainDashboardScreen(
                                             Text("• 세대 출입: 보호자 직접 인계 또는 사전 전달된 출입키", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
                                         }
                                         if (!order.doorlockPhotoUri.isNullOrBlank()) {
-                                            Text("• 현관 위치 사진 첨부됨 (인계 서명 시 확인 가능)", fontSize = 11.sp, color = Color(0xFF0284C7))
+                                            Text("• 자택 입장 동영상/사진 증빙 첨부됨 (안심 암호화 보관중)", fontSize = 11.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
                                         }
                                         Text("※ 출동 중에만 암호 해제되며 안심 귀가 완료 시 클라우드에서 즉시 영구 파기(삭제)됩니다.", fontSize = 10.sp, color = Color.Gray)
+
+                                        Button(
+                                            onClick = {
+                                                try {
+                                                    selectedOrderForDoorlockVideo = order
+                                                    val intent = android.content.Intent(android.provider.MediaStore.ACTION_VIDEO_CAPTURE)
+                                                    doorlockVideoLauncher.launch(intent)
+                                                } catch (e: Exception) {
+                                                    Toast.makeText(context, "🎥 동영상 촬영을 시작할 수 없습니다: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                }
+                                            },
+                                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                                            shape = RoundedCornerShape(8.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706)),
+                                            contentPadding = PaddingValues(vertical = 6.dp)
+                                        ) {
+                                            Text("🎥 도어락 비번 입력 & 자택 입장 동영상 촬영", fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = Color.White)
+                                        }
 
                                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                                             TextButton(
