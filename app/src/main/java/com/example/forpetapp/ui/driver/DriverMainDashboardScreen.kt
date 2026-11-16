@@ -490,7 +490,9 @@ fun DriverMainDashboardScreen(
                                             onClick = {
                                                 try {
                                                     selectedOrderForDoorlockVideo = order
-                                                    val intent = android.content.Intent(android.provider.MediaStore.ACTION_VIDEO_CAPTURE)
+                                                    val intent = android.content.Intent(android.provider.MediaStore.ACTION_VIDEO_CAPTURE).apply {
+                                                        putExtra(android.provider.MediaStore.EXTRA_DURATION_LIMIT, 600) // 최대 10분(600초) 긴급 수색/입장 연속 촬영 보장
+                                                    }
                                                     doorlockVideoLauncher.launch(intent)
                                                 } catch (e: Exception) {
                                                     Toast.makeText(context, "🎥 동영상 촬영을 시작할 수 없습니다: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -501,7 +503,7 @@ fun DriverMainDashboardScreen(
                                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706)),
                                             contentPadding = PaddingValues(vertical = 6.dp)
                                         ) {
-                                            Text("🎥 도어락 비번 입력 & 자택 입장 동영상 촬영", fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = Color.White)
+                                            Text("🎥 도어락 입력 & 자택 입장 동영상 촬영 (최대 10분)", fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = Color.White)
                                         }
 
                                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
