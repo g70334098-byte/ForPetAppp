@@ -24,6 +24,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Forpetapp">
 
+        <!-- 🗺️ NAVER MAPS Client ID 연동 -->
+        <meta-data
+            android:name="com.naver.maps.map.CLIENT_ID"
+            android:value="6hlk7imesr" />
+
         <!-- 법인 가드 GPS 위치 전송 서비스 -->
         <service
             android:name=".service.GuardGpsForegroundService"

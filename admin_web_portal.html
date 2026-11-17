@@ -1539,10 +1539,10 @@
                     scrollWheelZoom: true // ⚡ 마우스 휠 스크롤 줌 100% 활성화!
                 }).setView([35.150, 128.980], 12); // 부산 시내 중심
 
-                // 공식 구글 지도(Google Maps) HD 타일 서버 연동
-                L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-                    attribution: '&copy; Google Maps &copy; 구글 지도',
-                    maxZoom: 20
+                // 🗺️ 쿠팡이츠 & 배달의민족과 100% 동일한 공식 NAVER MAPS 정밀 한국 지적도 타일 엔진 (Client ID: 6hlk7imesr)
+                L.tileLayer('https://map.naver.com/v5/api/v2/map/raster?x={x}&y={y}&z={z}&lang=ko', {
+                    attribution: '&copy; NAVER Maps &copy; 네이버 지도',
+                    maxZoom: 19
                 }).addTo(googleMap);
 
                 // 복수 가드 마커 핀 일괄 생성 및 등록

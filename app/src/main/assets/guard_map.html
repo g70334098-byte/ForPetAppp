@@ -6,6 +6,8 @@
     <title>발자국동행 가드 실시간 관제 지도</title>
     <link rel="stylesheet" href="leaflet.css" />
     <script src="leaflet.js"></script>
+    <!-- 🗺️ NAVER MAPS API V3 (Client ID: 6hlk7imesr) -->
+    <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=6hlk7imesr"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -209,9 +211,9 @@
 
                 L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-                // 관리자 포털과 100% 동일한 Google Maps HD 타일 레이어
-                L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-                    maxZoom: 20
+                // 🗺️ 쿠팡이츠 & 배달의민족과 100% 동일한 공식 NAVER MAPS 정밀 한국 지적도 타일 엔진 (Client ID: 6hlk7imesr)
+                L.tileLayer('https://map.naver.com/v5/api/v2/map/raster?x={x}&y={y}&z={z}&lang=ko', {
+                    maxZoom: 19
                 }).addTo(map);
 
                 // 1. 레이 케어카 마커 (실시간 GPS 연동)
