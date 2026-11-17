@@ -3711,7 +3711,7 @@ fun LiveGpsMapDialog(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text("🗺️", fontSize = 20.sp)
-                    Text("실시간 레이 케어카 안심 관제", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("실시간 안심 관제", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
                 Surface(
                     shape = RoundedCornerShape(20.dp),
@@ -3724,37 +3724,33 @@ fun LiveGpsMapDialog(
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // 1. 내비게이션 경로 요약 헤더
+                // 1. 내비게이션 경로 요약 헤더 (슬림 모드)
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(8.dp),
                     color = Color(0xFF0F172A)
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("🏡 ${booking.pickupAddress.ifBlank { "자택 픽업지" }} ➔ 🏥 ${booking.hospitalName}", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
-                            Text("발자국동행 레이 펫케어카 (부산 38가 5394)", fontSize = 11.sp, color = Color(0xFF38BDF8))
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text("실시간 위치 동기화", fontWeight = FontWeight.Bold, color = Color(0xFF4ADE80), fontSize = 12.sp)
-                            Text("안심 이동 케어 중", fontSize = 10.sp, color = Color.Gray)
+                        Column(verticalArrangement = Arrangement.spacedBy(1.dp), modifier = Modifier.weight(1f)) {
+                            Text("🏡 ${booking.pickupAddress.ifBlank { "자택 픽업지" }} ➔ 🏥 ${booking.hospitalName}", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 11.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text("발자국동행 레이 펫케어카 | 🟢 실시간 위치 관제 중", fontSize = 10.sp, color = Color(0xFF38BDF8))
                         }
                     }
                 }
 
-                // 실시간 관제 구글 지도 뷰어
+                // 실시간 관제 지도 뷰어 (지도 영역 420dp로 대폭 확장)
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(300.dp),
+                        .height(420.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     border = BorderStroke(1.dp, Color(0xFFCBD5E1))
