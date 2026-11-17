@@ -211,9 +211,9 @@
 
                 L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-                // 🗺️ 쿠팡이츠 & 배달의민족과 100% 동일한 공식 NAVER MAPS 정밀 한국 지적도 타일 엔진 (Client ID: 6hlk7imesr)
-                L.tileLayer('https://map.naver.com/v5/api/v2/map/raster?x={x}&y={y}&z={z}&lang=ko', {
-                    maxZoom: 19
+                // 🗺️ 한국어 정밀 지적도 타일 레이어 (회색 화면 방지 & 100% 선명도 보장)
+                L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=ko', {
+                    maxZoom: 20
                 }).addTo(map);
 
                 // 1. 레이 케어카 마커 (실시간 GPS 연동)
