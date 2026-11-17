@@ -721,6 +721,8 @@ fun DriverMainDashboardScreen(
         ) { uri -> if (uri != null) uploadedPrescriptionUri = uri }
 
         AlertDialog(
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+            modifier = Modifier.fillMaxWidth(0.95f),
             onDismissRequest = { selectedOrderForReport = null },
             title = {
                 Text("📄 수의사 소견 및 영수증/처방전 업로드", fontWeight = FontWeight.Bold, fontSize = 16.sp)
@@ -1018,6 +1020,8 @@ fun GuardQuickNotificationDialog(
     )
 
     AlertDialog(
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier.fillMaxWidth(0.95f),
         onDismissRequest = onDismiss,
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

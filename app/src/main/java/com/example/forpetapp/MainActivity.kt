@@ -3678,6 +3678,8 @@ fun LiveGpsMapDialog(
     }
 
     AlertDialog(
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier.fillMaxWidth(0.95f),
         onDismissRequest = onDismiss,
         title = {
             Row(
@@ -3975,6 +3977,8 @@ fun BodycamStreamDialog(
     }
 
     AlertDialog(
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier.fillMaxWidth(0.95f),
         onDismissRequest = onDismiss,
         title = {
             Row(
@@ -4195,6 +4199,8 @@ fun TimelineProgressDialog(
     )
 
     AlertDialog(
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier.fillMaxWidth(0.95f),
         onDismissRequest = onDismiss,
         title = {
             Row(
@@ -4541,6 +4547,8 @@ fun DriverChatDialog(
     }
 
     AlertDialog(
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier.fillMaxWidth(0.95f),
         onDismissRequest = onDismiss,
         title = {
             Row(
@@ -6431,6 +6439,8 @@ fun DigitalReceiptDialog(
     onDismiss: () -> Unit
 ) {
     AlertDialog(
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier.fillMaxWidth(0.95f),
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
