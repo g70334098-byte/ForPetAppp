@@ -67,19 +67,39 @@
         footer { background: #0f172a; color: #94a3b8; padding: 50px 24px; font-size: 12px; }
         .footer-container { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
 
-        /* 모바일 반응형 미디어 쿼리 */
+        /* 모바일 반응형 미디어 쿼리 (가독성 & 모바일 디자인 전면 최적화) */
         @media (max-width: 768px) {
-            .nav-container { padding: 12px 16px; }
-            .brand-text-title { font-size: 17px; }
+            .nav-container { padding: 10px 14px; }
+            .brand-text-title { font-size: 16px; }
             .brand-text-sub { display: none; }
-            .hero-section { flex-direction: column; text-align: center; padding: 36px 16px; }
-            .hero-desc { margin: 0 auto 30px auto; }
-            .hero-btn-group { justify-content: center; }
+            .brand-logo-img { width: 36px; height: 36px; }
+
+            .hero-section { flex-direction: column; text-align: center; padding: 28px 16px; gap: 24px; }
+            .hero-title { font-size: 22px !important; line-height: 1.4 !important; margin-bottom: 14px !important; }
+            .hero-title span { font-size: 20px !important; }
+            .hero-desc { font-size: 13.5px; line-height: 1.6; margin: 0 auto 20px auto; padding: 0 4px; }
+            .hero-btn-group { flex-direction: column; width: 100%; gap: 10px; }
+            .btn-hero-green, .btn-hero-outline { width: 100%; justify-content: center; padding: 13px 16px; font-size: 14px; }
+            .hero-main-img { max-width: 100%; border-radius: 14px; }
+
+            /* 섹션 여백 및 헤더 감성 축소 */
+            .features-section, .hospital-section { padding: 32px 14px; }
+            .section-header { margin-bottom: 22px; }
+            .section-header h2 { font-size: 20px; letter-spacing: -0.5px; }
+            .section-header p { font-size: 13px; margin-top: 4px; }
+
+            /* 그리드 카드 단일 열 수직 정렬 */
+            .grid-cards, .hospital-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
+            .card-feature, .hospital-card { padding: 20px 16px !important; border-radius: 14px !important; }
+
+            /* 웹툰 배너 모바일 모드 */
+            .webtoon-banner-box { flex-direction: column; text-align: center; padding: 18px 16px !important; }
+            .webtoon-banner-box a { width: 100%; justify-content: center; margin-top: 6px; }
 
             /* 데스크톱 네비게이션 링크 숨김 */
             .nav-links { display: none; }
-            .nav-actions .btn-cta span:last-child { display: none; } /* 모바일에서는 아이콘 위주로 축소 */
-            .nav-actions .btn-cta { padding: 8px 10px; }
+            .nav-actions .btn-cta span:last-child { display: none; }
+            .nav-actions .btn-cta { padding: 7px 10px; font-size: 12px; }
 
             /* 햄버거 메뉴 버튼 노출 */
             .mobile-menu-btn { display: inline-flex; align-items: center; justify-content: center; }
@@ -90,7 +110,7 @@
                 flex-direction: column;
                 background: #FDFBF7;
                 border-top: 1px solid #e2dad0;
-                padding: 12px 20px 20px 20px;
+                padding: 10px 16px 16px 16px;
                 box-shadow: 0 8px 16px rgba(0,0,0,0.06);
             }
             .mobile-nav-drawer.active {
@@ -100,18 +120,17 @@
                 text-decoration: none;
                 color: #334155;
                 font-weight: 700;
-                font-size: 15px;
-                padding: 12px 6px;
+                font-size: 14.5px;
+                padding: 12px 4px;
                 border-bottom: 1px solid #f1ece1;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                transition: color 0.2s;
             }
             .mobile-nav-drawer a:last-child {
                 border-bottom: none;
             }
-            .mobile-nav-drawer a:hover, .mobile-nav-drawer a:active {
+            .mobile-nav-drawer a:active {
                 color: #D97706;
             }
         }
@@ -263,7 +282,7 @@
         </div>
 
         <!-- 브랜드 스토리 웹툰 바로가기 배너 -->
-        <div style="margin-top: 32px; background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); border: 1.5px solid #FDE68A; border-radius: 16px; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; box-shadow: 0 4px 15px rgba(217, 119, 6, 0.07);">
+        <div class="webtoon-banner-box" style="margin-top: 32px; background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); border: 1.5px solid #FDE68A; border-radius: 16px; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; box-shadow: 0 4px 15px rgba(217, 119, 6, 0.07);">
             <div style="display: flex; align-items: center; gap: 16px;">
                 <span style="font-size: 36px; line-height: 1;">🎨</span>
                 <div>
