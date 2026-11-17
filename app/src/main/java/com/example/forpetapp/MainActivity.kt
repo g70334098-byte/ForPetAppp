@@ -8085,24 +8085,26 @@ fun IdentityVerificationDialog(
                             }
                             val code = (100000..999999).random().toString()
                             generatedOtp = code
+                            otpCode = code
                             isCodeSent = true
                             errorMessage = ""
-                            Toast.makeText(context, "📱 [발자국동행] 안심 인증번호 [$code]가 SMS로 발송되었습니다.", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, "📱 [발자국동행] 안심 인증번호 [$code]가 자동 발송 및 즉시 수신 채우기 되었습니다!", Toast.LENGTH_LONG).show()
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("📱 안심 인증번호 발송", fontWeight = FontWeight.Bold)
+                        Text("📱 안심 인증번호 발송 & 자동 입력", fontWeight = FontWeight.Bold)
                     }
                 } else {
                     OutlinedTextField(
                         value = otpCode,
                         onValueChange = { otpCode = it },
-                        label = { Text("SMS 6자리 인증번호 입력") },
+                        label = { Text("SMS 6자리 안심 인증번호 (자동 입력됨)") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
+                    Text("✨ 안심 인증번호 [$generatedOtp]가 자동 입력되었습니다. 아래 [인증 완료]를 눌러주세요.", fontSize = 11.sp, color = Color(0xFF166534), fontWeight = FontWeight.Bold)
                 }
 
                 if (errorMessage.isNotEmpty()) {
