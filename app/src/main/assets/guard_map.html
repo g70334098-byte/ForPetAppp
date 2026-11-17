@@ -120,6 +120,20 @@
             gap: 3px;
             white-space: nowrap;
         }
+        .custom-home-badge {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #ffffff;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-weight: 800;
+            font-size: 11px;
+            box-shadow: 0 3px 8px rgba(16,185,129,0.45);
+            border: 2px solid #ffffff;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
             font-size: 12px;
             box-shadow: 0 4px 12px rgba(124,58,237,0.45);
             border: 2px solid #ffffff;
@@ -470,11 +484,30 @@
 
         function hideHospitalMarkers() {
             for (var key in markers) {
-                if (key !== 'car' && markers[key]) {
+                if (key !== 'car' && key !== 'userHome' && markers[key]) {
                     try {
                         if (map) map.removeLayer(markers[key]);
                     } catch (_) {}
                 }
+            }
+        }
+
+        function setUserHomeLocation(lat, lng, addressName) {
+            if (!lat || !lng || lat < 1.0 || lng < 1.0) return;
+            if (markers.userHome) {
+                markers.userHome.setLatLng([lat, lng]);
+            } else if (map) {
+                var homeIcon = L.divIcon({
+                    className: '',
+                    html: '<div class="custom-home-badge">' +
+                          '<span>🏡</span>' +
+                          '<span>내 위치 (자택 픽업지)</span>' +
+                          '</div>',
+                    iconSize: [160, 30],
+                    iconAnchor: [80, 15]
+                });
+                markers.userHome = L.marker([lat, lng], { icon: homeIcon }).addTo(map);
+                markers.userHome.bindPopup('<b>🏡 내 위치 (보호자 자택 픽업지)</b><br>' + (addressName || '자택 픽업 요청 장소'));
             }
         }
 

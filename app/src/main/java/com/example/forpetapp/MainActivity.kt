@@ -3740,181 +3740,72 @@ fun LiveGpsMapDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("🏡 자택 ➔ 🏥 ${booking.hospitalName}", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
+                            Text("🏡 ${booking.pickupAddress.ifBlank { "자택 픽업지" }} ➔ 🏥 ${booking.hospitalName}", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
                             Text("발자국동행 레이 펫케어카 (부산 38가 5394)", fontSize = 11.sp, color = Color(0xFF38BDF8))
                         }
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("약 6분 후 도착", fontWeight = FontWeight.Bold, color = Color(0xFF4ADE80), fontSize = 13.sp)
-                            Text("잔여 2.1 km", fontSize = 10.sp, color = Color.Gray)
+                            Text("실시간 위치 동기화", fontWeight = FontWeight.Bold, color = Color(0xFF4ADE80), fontSize = 12.sp)
+                            Text("안심 이동 케어 중", fontSize = 10.sp, color = Color.Gray)
                         }
                     }
                 }
 
-                // 2. 뷰 모드 전환 탭: [🗺️ 실시간 HD 구글 관제 지도] vs [📊 동선 요약]
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // 실시간 관제 구글 지도 뷰어
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFCBD5E1))
                 ) {
-                    FilterChip(
-                        selected = showInteractiveMap,
-                        onClick = { showInteractiveMap = true },
-                        label = { Text("🗺️ 실시간 HD 지도", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChip(
-                        selected = !showInteractiveMap,
-                        onClick = { showInteractiveMap = false },
-                        label = { Text("📊 이동 동선 요약", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                if (showInteractiveMap) {
-                    // 고화질 실시간 관제 구글 지도 뷰어 (가드 화면 & 관리자 웹과 100% 동일)
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        border = BorderStroke(1.dp, Color(0xFFCBD5E1))
-                    ) {
-                        @android.annotation.SuppressLint("SetJavaScriptEnabled")
-                        AndroidView(
-                            factory = { ctx ->
-                                android.webkit.WebView(ctx).apply {
-                                    layoutParams = android.view.ViewGroup.LayoutParams(
-                                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                                        android.view.ViewGroup.LayoutParams.MATCH_PARENT
-                                    )
-                                    settings.javaScriptEnabled = true
-                                    settings.domStorageEnabled = true
-                                    settings.allowFileAccess = true
-                                    settings.allowContentAccess = true
-                                    @Suppress("DEPRECATION")
-                                    settings.allowFileAccessFromFileURLs = true
-                                    @Suppress("DEPRECATION")
-                                    settings.allowUniversalAccessFromFileURLs = true
-                                    settings.setSupportZoom(true)
-                                    settings.builtInZoomControls = true
-                                    settings.displayZoomControls = false
-                                    settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
-                                    webViewClient = object : android.webkit.WebViewClient() {
-                                        override fun onRenderProcessGone(view: android.webkit.WebView?, detail: android.webkit.RenderProcessGoneDetail?): Boolean {
-                                            try {
-                                                view?.let {
-                                                    (it.parent as? android.view.ViewGroup)?.removeView(it)
-                                                    it.destroy()
-                                                }
-                                            } catch (_: Exception) {}
-                                            return true
-                                        }
-
-                                        override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
-                                            super.onPageFinished(view, url)
-                                            try {
-                                                val startLat = if (userLat > 1.0) userLat else 35.0830
-                                                val startLng = if (userLng > 1.0) userLng else 128.8950
-                                                view?.evaluateJavascript("if (typeof initMapEngine === 'function') { initMapEngine(); } if (typeof hideHospitalMarkers === 'function') { hideHospitalMarkers(); } if (typeof setMapCenter === 'function') { setMapCenter($startLat, $startLng, 14); } if ($guardLat > 1.0) { updateCarGps($guardLat, $guardLng); }", null)
-                                            } catch (_: Exception) {}
-                                        }
-                                    }
-                                    loadUrl("file:///android_asset/guard_map.html")
-                                    mapWebViewRef = this
-                                }
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                } else {
-                    // 네이티브 이동 경로 진행 그래픽
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFF1E293B),
-                        border = BorderStroke(1.dp, Color(0xFF334155))
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(14.dp),
-                            verticalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFF0F172A),
-                                border = BorderStroke(1.dp, Color(0xFF0284C7))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text("🏡", fontSize = 14.sp)
-                                    Text("출발: 명지동 자택", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF38BDF8))
-                                }
-                            }
-
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text("명지국제8로", fontSize = 11.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = Color(0xFF0284C7)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                        ) {
-                                            Text("🚙", fontSize = 12.sp)
-                                            Text("레이 케어카 (42 km/h)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                        }
-                                    }
-                                    Text("명지오션시티", fontSize = 11.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
-                                }
-
-                                LinearProgressIndicator(
-                                    progress = { progress },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(10.dp)
-                                        .clip(RoundedCornerShape(5.dp)),
-                                    color = Color(0xFF38BDF8),
-                                    trackColor = Color(0xFF475569),
+                    @android.annotation.SuppressLint("SetJavaScriptEnabled")
+                    AndroidView(
+                        factory = { ctx ->
+                            android.webkit.WebView(ctx).apply {
+                                layoutParams = android.view.ViewGroup.LayoutParams(
+                                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                                    android.view.ViewGroup.LayoutParams.MATCH_PARENT
                                 )
-                            }
+                                settings.javaScriptEnabled = true
+                                settings.domStorageEnabled = true
+                                settings.allowFileAccess = true
+                                settings.allowContentAccess = true
+                                @Suppress("DEPRECATION")
+                                settings.allowFileAccessFromFileURLs = true
+                                @Suppress("DEPRECATION")
+                                settings.allowUniversalAccessFromFileURLs = true
+                                settings.setSupportZoom(true)
+                                settings.builtInZoomControls = true
+                                settings.displayZoomControls = false
+                                settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+                                webViewClient = object : android.webkit.WebViewClient() {
+                                    override fun onRenderProcessGone(view: android.webkit.WebView?, detail: android.webkit.RenderProcessGoneDetail?): Boolean {
+                                        try {
+                                            view?.let {
+                                                (it.parent as? android.view.ViewGroup)?.removeView(it)
+                                                it.destroy()
+                                            }
+                                        } catch (_: Exception) {}
+                                        return true
+                                    }
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = Color(0xFF881337),
-                                    border = BorderStroke(1.dp, Color(0xFFF43F5E))
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Text("🏥", fontSize = 14.sp)
-                                        Text("목적지: ${booking.hospitalName}", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                                    override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
+                                        super.onPageFinished(view, url)
+                                        try {
+                                            val startLat = if (userLat > 1.0) userLat else 35.0830
+                                            val startLng = if (userLng > 1.0) userLng else 128.8950
+                                            val addrSafe = booking.pickupAddress.replace("'", "\\'").replace("\n", " ")
+                                            view?.evaluateJavascript("if (typeof initMapEngine === 'function') { initMapEngine(); } if (typeof hideHospitalMarkers === 'function') { hideHospitalMarkers(); } if (typeof setUserHomeLocation === 'function') { setUserHomeLocation($startLat, $startLng, '$addrSafe'); } if (typeof setMapCenter === 'function') { setMapCenter($startLat, $startLng, 14); } if ($guardLat > 1.0) { updateCarGps($guardLat, $guardLng); }", null)
+                                        } catch (_: Exception) {}
                                     }
                                 }
+                                loadUrl("file:///android_asset/guard_map.html")
+                                mapWebViewRef = this
                             }
-                        }
-                    }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
 
                 // 3. 실시간 위치 & 담당 기사 정보 카드
