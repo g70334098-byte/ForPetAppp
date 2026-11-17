@@ -60,6 +60,7 @@ data class BookingItem(
     val clinicalNoteImageUri: String? = null,
     val prescriptionImageUri: String? = null,
     val bodycamPhotoUri: String? = null,
+    val bodycamLiveUrl: String? = null,
     val returnPhotoUri: String? = null,
     val guardRating: Int = 0,
     val guardReview: String = "",

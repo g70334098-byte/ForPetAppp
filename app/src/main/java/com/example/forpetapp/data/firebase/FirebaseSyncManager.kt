@@ -121,6 +121,7 @@ object FirebaseSyncManager {
                 put("clinicalNoteImageUri", booking.clinicalNoteImageUri ?: "")
                 put("prescriptionImageUri", booking.prescriptionImageUri ?: "")
                 put("bodycamPhotoUri", booking.bodycamPhotoUri ?: "")
+                put("bodycamLiveUrl", booking.bodycamLiveUrl ?: "")
                 put("returnPhotoUri", booking.returnPhotoUri ?: "")
                 put("guardRating", booking.guardRating)
                 put("guardReview", booking.guardReview)
@@ -187,6 +188,7 @@ object FirebaseSyncManager {
                         clinicalNoteImageUri = obj.optString("clinicalNoteImageUri").ifEmpty { null },
                         prescriptionImageUri = obj.optString("prescriptionImageUri").ifEmpty { null },
                         bodycamPhotoUri = obj.optString("bodycamPhotoUri").ifEmpty { null },
+                        bodycamLiveUrl = obj.optString("bodycamLiveUrl").ifEmpty { null },
                         returnPhotoUri = obj.optString("returnPhotoUri").ifEmpty { null },
                         guardRating = obj.optInt("guardRating", 0),
                         guardReview = obj.optString("guardReview", ""),
@@ -258,6 +260,7 @@ object FirebaseSyncManager {
                 "clinicalNoteImageUri" to (encodedClinicalNote ?: ""),
                 "prescriptionImageUri" to (encodedPrescription ?: ""),
                 "bodycamPhotoUri" to (encodedBodycam ?: ""),
+                "bodycamLiveUrl" to (booking.bodycamLiveUrl ?: ""),
                 "returnPhotoUri" to (encodedReturnPhoto ?: ""),
                 "guardRating" to booking.guardRating,
                 "guardReview" to booking.guardReview,
@@ -438,6 +441,7 @@ object FirebaseSyncManager {
                                     clinicalNoteImageUri = doc.getString("clinicalNoteImageUri"),
                                     prescriptionImageUri = doc.getString("prescriptionImageUri"),
                                     bodycamPhotoUri = doc.getString("bodycamPhotoUri"),
+                                    bodycamLiveUrl = doc.getString("bodycamLiveUrl"),
                                     returnPhotoUri = doc.getString("returnPhotoUri"),
                                     guardRating = (doc.get("guardRating") as? Number)?.toInt() ?: doc.getString("guardRating")?.toIntOrNull() ?: 0,
                                     guardReview = doc.getString("guardReview") ?: "",

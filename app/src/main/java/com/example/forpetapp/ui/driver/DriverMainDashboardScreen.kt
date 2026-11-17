@@ -53,6 +53,7 @@ fun DriverMainDashboardScreen(
     var selectedOrderForHandOff by remember { mutableStateOf<BookingItem?>(null) }
     var selectedOrderForQuickNotify by remember { mutableStateOf<BookingItem?>(null) }
     var selectedOrderForBodycamUpload by remember { mutableStateOf<BookingItem?>(null) }
+    var selectedOrderForYouTubeUrl by remember { mutableStateOf<BookingItem?>(null) }
     var unlockedDoorlockId by remember { mutableStateOf<String?>(null) }
 
     val driverOrders = remember {
@@ -332,17 +333,34 @@ fun DriverMainDashboardScreen(
                             HorizontalDivider()
 
                             // 📹 실시간 바디캠 캡처 전송 버튼 (가드 전용)
-                            Button(
-                                onClick = {
-                                    selectedOrderForBodycamUpload = order
-                                    bodycamLauncher.launch("image/*")
-                                },
+                            Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
-                                contentPadding = PaddingValues(vertical = 6.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Text("📹 실시간 바디캠(현장 캡처) 전송", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
+                                Button(
+                                    onClick = {
+                                        selectedOrderForBodycamUpload = order
+                                        bodycamLauncher.launch("image/*")
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                                    contentPadding = PaddingValues(vertical = 6.dp)
+                                ) {
+                                    Text("📹 캡처 전송", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                                }
+
+                                Button(
+                                    onClick = {
+                                        selectedOrderForYouTubeUrl = order
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                                    contentPadding = PaddingValues(vertical = 6.dp)
+                                ) {
+                                    Text("📺 유튜브 라이브 등록", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                                }
                             }
 
                             if (order.status.contains("승낙 대기") || order.status.contains("접수 대기") || order.status.contains("대기")) {
@@ -929,6 +947,52 @@ fun DriverMainDashboardScreen(
         GuardQuickNotificationDialog(
             order = order,
             onDismiss = { selectedOrderForQuickNotify = null }
+        )
+    }
+
+    selectedOrderForYouTubeUrl?.let { order ->
+        var liveUrlInput by remember { mutableStateOf(order.bodycamLiveUrl ?: "") }
+        AlertDialog(
+            onDismissRequest = { selectedOrderForYouTubeUrl = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("📺", fontSize = 20.sp)
+                    Text("카메라파이 유튜브 라이브 등록", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("카메라파이 라이브 앱에서 생성된 [유튜브 라이브 일부 공개 링크]를 아래에 붙여넣어 주세요.", fontSize = 11.5.sp, color = Color.Gray)
+                    OutlinedTextField(
+                        value = liveUrlInput,
+                        onValueChange = { liveUrlInput = it },
+                        label = { Text("유튜브 라이브 URL (예: https://youtu.be/...)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val updated = order.copy(bodycamLiveUrl = liveUrlInput.trim())
+                        val idx = driverOrders.indexOfFirst { it.id == order.id }
+                        if (idx != -1) driverOrders[idx] = updated
+                        PersistentStorageManager.saveBookingList(context, driverOrders, "DRIVER_ALL")
+                        FirebaseSyncManager.syncOrderToCloud(updated, context)
+                        Toast.makeText(context, "📺 유튜브 라이브 스트리밍 주소가 보호자 및 관제 센터로 동기화되었습니다!", Toast.LENGTH_SHORT).show()
+                        selectedOrderForYouTubeUrl = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                ) {
+                    Text("등록 및 실시간 송출", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { selectedOrderForYouTubeUrl = null }) {
+                    Text("취소")
+                }
+            }
         )
     }
 }

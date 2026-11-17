@@ -2317,6 +2317,7 @@ object PersistentStorageManager {
                 put("receiptImageUri", item.receiptImageUri ?: "")
                 put("prescriptionImageUri", item.prescriptionImageUri ?: "")
                 put("bodycamPhotoUri", item.bodycamPhotoUri ?: "")
+                put("bodycamLiveUrl", item.bodycamLiveUrl ?: "")
                 put("doorlockPhotoUri", item.doorlockPhotoUri ?: "")
                 put("encryptedDoorlock", item.encryptedDoorlock ?: "")
                 put("doorlockPurged", item.doorlockPurged)
@@ -2361,6 +2362,7 @@ object PersistentStorageManager {
                         receiptImageUri = obj.optString("receiptImageUri").ifEmpty { null },
                         prescriptionImageUri = obj.optString("prescriptionImageUri").ifEmpty { null },
                         bodycamPhotoUri = obj.optString("bodycamPhotoUri").ifEmpty { null },
+                        bodycamLiveUrl = obj.optString("bodycamLiveUrl").ifEmpty { null },
                         doorlockPhotoUri = obj.optString("doorlockPhotoUri").ifEmpty { null },
                         encryptedDoorlock = obj.optString("encryptedDoorlock").ifEmpty { null },
                         doorlockPurged = obj.optBoolean("doorlockPurged", false),
@@ -4009,13 +4011,34 @@ fun BodycamStreamDialog(
                     border = BorderStroke(1.dp, Color(0xFF0284C7))
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
+                        val youtubeLiveUrl = booking.bodycamLiveUrl?.takeIf { it.contains("youtu", ignoreCase = true) }
                         val bodycamBmp = remember(booking.bodycamPhotoUri) {
                             booking.bodycamPhotoUri?.takeIf { it.isNotBlank() }?.let { uriStr ->
                                 FirebaseSyncManager.decodeImageFromUriOrDataUrl(context, uriStr)
                             }
                         }
 
-                        if (bodycamBmp != null) {
+                        if (!youtubeLiveUrl.isNullOrBlank()) {
+                            val videoId = remember(youtubeLiveUrl) {
+                                val pattern = "(?<=watch\\?v=|/videos/|embed/|youtu.be/|/v/|/e/|watch\\?v%3D|watch\\?feature=player_embedded&v=)[^#&?\\s]*"
+                                val matcher = java.util.regex.Pattern.compile(pattern).matcher(youtubeLiveUrl)
+                                if (matcher.find()) matcher.group() else null
+                            }
+                            val embedUrl = if (videoId != null) "https://www.youtube.com/embed/$videoId?autoplay=1&mute=0&controls=1" else youtubeLiveUrl
+
+                            AndroidView(
+                                factory = { ctx ->
+                                    android.webkit.WebView(ctx).apply {
+                                        settings.javaScriptEnabled = true
+                                        settings.domStorageEnabled = true
+                                        settings.mediaPlaybackRequiresUserGesture = false
+                                        webViewClient = android.webkit.WebViewClient()
+                                        loadUrl(embedUrl)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else if (bodycamBmp != null) {
                             androidx.compose.foundation.Image(
                                 bitmap = bodycamBmp.asImageBitmap(),
                                 contentDescription = "실시간 바디캠 캡처",
