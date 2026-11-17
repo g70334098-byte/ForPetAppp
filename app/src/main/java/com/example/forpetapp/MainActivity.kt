@@ -8175,6 +8175,8 @@ fun EventAndPointRewardsDialog(
     }
 
     AlertDialog(
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier.fillMaxWidth(0.95f),
         onDismissRequest = onDismiss,
         title = {
             Row(
@@ -8192,7 +8194,7 @@ fun EventAndPointRewardsDialog(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(500.dp),
+                    .height(580.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // 상단: 내 계정 보유 포인트 & 1년 소멸 안내 요약
