@@ -3662,7 +3662,7 @@ fun LiveGpsMapDialog(
             guardLng = lng
             gpsLiveStatus = "실시간 위도 ${String.format(java.util.Locale.US, "%.4f", lat)}, 경도 ${String.format(java.util.Locale.US, "%.4f", lng)}"
             try {
-                mapWebViewRef?.evaluateJavascript("if (typeof updateCarGps === 'function') { updateCarGps($lat, $lng); }", null)
+                mapWebViewRef?.evaluateJavascript("if (typeof setMapCenter === 'function') { setMapCenter($lat, $lng, 14); } if (typeof updateCarGps === 'function') { updateCarGps($lat, $lng); }", null)
             } catch (_: Exception) {}
         }
         onDispose {
@@ -3794,7 +3794,7 @@ fun LiveGpsMapDialog(
                                         override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
                                             super.onPageFinished(view, url)
                                             try {
-                                                view?.evaluateJavascript("if (typeof initMapEngine === 'function') { initMapEngine(); } updateCarGps($guardLat, $guardLng);", null)
+                                                view?.evaluateJavascript("if (typeof initMapEngine === 'function') { initMapEngine(); } if (typeof hideHospitalMarkers === 'function') { hideHospitalMarkers(); } if (typeof setMapCenter === 'function') { setMapCenter($guardLat, $guardLng, 14); } updateCarGps($guardLat, $guardLng);", null)
                                             } catch (_: Exception) {}
                                         }
                                     }

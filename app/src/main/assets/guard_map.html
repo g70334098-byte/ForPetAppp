@@ -468,6 +468,22 @@
             }
         }
 
+        function hideHospitalMarkers() {
+            for (var key in markers) {
+                if (key !== 'car' && markers[key]) {
+                    try {
+                        if (map) map.removeLayer(markers[key]);
+                    } catch (_) {}
+                }
+            }
+        }
+
+        function setMapCenter(lat, lng, zoomLevel) {
+            if (map) {
+                map.setView([lat, lng], zoomLevel || 14);
+            }
+        }
+
         function focusLocation(key) {
             if (!map) return;
             if (key === 'car' && markers.car) {
