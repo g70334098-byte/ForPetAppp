@@ -142,15 +142,15 @@ class GuardGpsForegroundService : Service() {
                 if (locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true) {
                     locationManager?.requestLocationUpdates(
                         LocationManager.GPS_PROVIDER,
-                        3000L, // 3초 초고속 동기화 주기
-                        0f,    // 0m (실내/이동 시 초고속 갱신)
+                        2000L, // 2초 초고속 동기화 주기 (갤럭시 A34 전용 배민/타다 스타일 실시간 이송 연동)
+                        0f,    // 0m (이동 시 즉시 반영)
                         listener,
                     )
                 }
                 if (locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true) {
                     locationManager?.requestLocationUpdates(
                         LocationManager.NETWORK_PROVIDER,
-                        3000L,
+                        2000L,
                         0f,
                         listener,
                     )
