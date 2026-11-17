@@ -9779,6 +9779,8 @@ fun HomeScreenContent(
         }
 
         AlertDialog(
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+            modifier = Modifier.fillMaxWidth(0.95f),
             onDismissRequest = { showHospitalListDialog = false },
             title = {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -9790,7 +9792,7 @@ fun HomeScreenContent(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(440.dp),
+                        .height(560.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     // 1. 구 단위 필터 (Region Filter)
@@ -10618,6 +10620,8 @@ fun HomeScreenContent(
         var multiPetCount by remember { mutableIntStateOf(2) }
 
         AlertDialog(
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+            modifier = Modifier.fillMaxWidth(0.95f),
             onDismissRequest = {
                 showBookingDialog = false
                 bookingStep = 1
@@ -10662,7 +10666,7 @@ fun HomeScreenContent(
                     LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(460.dp),
+                        .height(580.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     // 1-0. 🐾 등록된 우리 아이 원터치 선택
