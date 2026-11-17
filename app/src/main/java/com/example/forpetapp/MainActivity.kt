@@ -3655,15 +3655,34 @@ fun LiveGpsMapDialog(
     var showInteractiveMap by remember { mutableStateOf(true) }
     var mapWebViewRef by remember { mutableStateOf<android.webkit.WebView?>(null) }
 
+    var userLat by remember { mutableDoubleStateOf(35.0830) }
+    var userLng by remember { mutableDoubleStateOf(128.8950) }
+
+    LaunchedEffect(Unit) {
+        try {
+            val locationManager = context.getSystemService(android.content.Context.LOCATION_SERVICE) as? android.location.LocationManager
+            val lastLoc = try {
+                locationManager?.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER)
+                    ?: locationManager?.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER)
+            } catch (_: SecurityException) { null }
+            if (lastLoc != null && lastLoc.latitude > 1.0 && lastLoc.longitude > 1.0) {
+                userLat = lastLoc.latitude
+                userLng = lastLoc.longitude
+            }
+        } catch (_: Exception) {}
+    }
+
     // ☁️ Cloud Firestore 실시간 가드 GPS 스트림 수신
     DisposableEffect(Unit) {
         val listener = com.example.forpetapp.data.firebase.FirebaseSyncManager.listenToGuardGps { lat, lng ->
-            guardLat = lat
-            guardLng = lng
-            gpsLiveStatus = "실시간 위도 ${String.format(java.util.Locale.US, "%.4f", lat)}, 경도 ${String.format(java.util.Locale.US, "%.4f", lng)}"
-            try {
-                mapWebViewRef?.evaluateJavascript("if (typeof setMapCenter === 'function') { setMapCenter($lat, $lng, 14); } if (typeof updateCarGps === 'function') { updateCarGps($lat, $lng); }", null)
-            } catch (_: Exception) {}
+            if (lat > 1.0 && lng > 1.0) {
+                guardLat = lat
+                guardLng = lng
+                gpsLiveStatus = "실시간 위도 ${String.format(java.util.Locale.US, "%.4f", lat)}, 경도 ${String.format(java.util.Locale.US, "%.4f", lng)}"
+                try {
+                    mapWebViewRef?.evaluateJavascript("if (typeof updateCarGps === 'function') { updateCarGps($lat, $lng); }", null)
+                } catch (_: Exception) {}
+            }
         }
         onDispose {
             listener?.remove()
@@ -3794,7 +3813,9 @@ fun LiveGpsMapDialog(
                                         override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
                                             super.onPageFinished(view, url)
                                             try {
-                                                view?.evaluateJavascript("if (typeof initMapEngine === 'function') { initMapEngine(); } if (typeof hideHospitalMarkers === 'function') { hideHospitalMarkers(); } if (typeof setMapCenter === 'function') { setMapCenter($guardLat, $guardLng, 14); } updateCarGps($guardLat, $guardLng);", null)
+                                                val startLat = if (userLat > 1.0) userLat else 35.0830
+                                                val startLng = if (userLng > 1.0) userLng else 128.8950
+                                                view?.evaluateJavascript("if (typeof initMapEngine === 'function') { initMapEngine(); } if (typeof hideHospitalMarkers === 'function') { hideHospitalMarkers(); } if (typeof setMapCenter === 'function') { setMapCenter($startLat, $startLng, 14); } if ($guardLat > 1.0) { updateCarGps($guardLat, $guardLng); }", null)
                                             } catch (_: Exception) {}
                                         }
                                     }
@@ -5074,42 +5095,33 @@ fun BookingHistoryScreen(
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     OutlinedButton(
                                         onClick = { showGpsMapForBooking = booking },
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
                                     ) {
-                                        Text("🗺️ GPS지도", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                        Text("🗺️ GPS지도", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                                     }
 
                                     OutlinedButton(
                                         onClick = { showBodycamForBooking = booking },
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
                                     ) {
-                                        Text("📹 바디캠", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
-                                    }
-
-                                    OutlinedButton(
-                                        onClick = { showTimelineForBooking = booking },
-                                        modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
-                                    ) {
-                                        Text("📍 타임라인", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                        Text("📹 바디캠", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                                     }
 
                                     OutlinedButton(
                                         onClick = { showChatForBooking = booking },
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
                                     ) {
-                                        Text("💬 안심 톡", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                        Text("💬 안심 톡", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                                     }
                                 }
 

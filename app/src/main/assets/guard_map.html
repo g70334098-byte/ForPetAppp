@@ -479,7 +479,7 @@
         }
 
         function setMapCenter(lat, lng, zoomLevel) {
-            if (map) {
+            if (map && lat && lng && lat > 1.0 && lng > 1.0) {
                 map.setView([lat, lng], zoomLevel || 14);
             }
         }
