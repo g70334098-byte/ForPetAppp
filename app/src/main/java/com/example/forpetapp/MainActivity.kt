@@ -5562,6 +5562,8 @@ fun BookingHistoryScreen(
     // 2. 수의사 진료 리포트 팝업 다이얼로그
     selectedReportBooking?.let { report ->
         AlertDialog(
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+            modifier = Modifier.fillMaxWidth(0.95f),
             onDismissRequest = { selectedReportBooking = null },
             title = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -5579,7 +5581,7 @@ fun BookingHistoryScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(400.dp),
+                        .height(580.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     item {
@@ -9291,12 +9293,7 @@ fun HomeScreenContent(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    selectedTrimType = "📅 예약 진료 (예약 O)"
-                                    showBookingDialog = true
-                                },
+                            modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
                             color = Color(0xFFF8FAFC),
                             border = BorderStroke(1.dp, Color(0xFFE2E8F0))
@@ -9324,12 +9321,7 @@ fun HomeScreenContent(
                         }
 
                         Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    selectedTrimType = "🚗 당일 이동 (미예약)"
-                                    showBookingDialog = true
-                                },
+                            modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
                             color = Color(0xFFFFFBEB),
                             border = BorderStroke(1.dp, Color(0xFFFDE68A))
@@ -9357,12 +9349,7 @@ fun HomeScreenContent(
                         }
 
                         Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    selectedTrimType = "🚨 긴급 출동 (응급)"
-                                    showEmergencyDialog = true
-                                },
+                            modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
                             color = Color(0xFFFEF2F2),
                             border = BorderStroke(1.dp, Color(0xFFFECDD3))
@@ -10307,6 +10294,8 @@ fun HomeScreenContent(
     // 🏷️ 투명 정찰제 상세 요금 & 대기시간 요금 안내 팝업 (예약창 이동 대신 상세 규정 안내)
     if (showPricingDetailDialog) {
         AlertDialog(
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+            modifier = Modifier.fillMaxWidth(0.95f),
             onDismissRequest = { showPricingDetailDialog = false },
             title = {
                 Row(
@@ -13137,6 +13126,8 @@ fun MedicationVaccineCalendarDialog(
     val totalMedCount = medications.size
 
     AlertDialog(
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier.fillMaxWidth(0.95f),
         onDismissRequest = onDismiss,
         title = {
             Row(
@@ -13162,7 +13153,7 @@ fun MedicationVaccineCalendarDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(480.dp),
+                    .height(580.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Row(
@@ -14039,6 +14030,8 @@ fun PetMedicalExpenseDialog(
     val decFormat = java.text.DecimalFormat("#,###")
 
     AlertDialog(
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier.fillMaxWidth(0.95f),
         onDismissRequest = onDismiss,
         title = {
             Row(
