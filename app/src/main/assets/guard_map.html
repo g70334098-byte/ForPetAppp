@@ -62,22 +62,18 @@
             line-height: 1.5;
             font-size: 13px;
         }
-        /* 배달의민족/타다 스타일 부드러운 차량 이동 애니메이션 */
-        .leaflet-marker-icon {
-            transition: all 1.2s ease-out !important;
-        }
         .custom-car-badge {
             background: linear-gradient(135deg, #0284c7, #0369a1);
             color: #ffffff;
-            padding: 5px 10px;
-            border-radius: 16px;
-            font-weight: 800;
-            font-size: 11.5px;
-            box-shadow: 0 4px 10px rgba(2,132,199,0.45);
-            border: 2px solid #ffffff;
-            display: flex;
+            padding: 2px 7px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+            border: 1.5px solid #ffffff;
+            display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 3px;
             white-space: nowrap;
         }
         .custom-hosp-badge {
@@ -262,8 +258,8 @@
                           '<span>레이 케어카 (38가 5394)</span>' +
                           '<span class="badge-live">GPS LIVE</span>' +
                           '</div>',
-                    iconSize: [190, 36],
-                    iconAnchor: [95, 18]
+                    iconSize: [130, 24],
+                    iconAnchor: [65, 12]
                 });
                 markers.car = L.marker([carLat, carLng], { icon: carIcon }).addTo(map);
                 markers.car.bindPopup(
