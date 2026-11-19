@@ -4063,7 +4063,8 @@ fun BodycamStreamDialog(
                     ) {
                         Text("• 이송 차량: 발자국동행 레이 펫케어카 (부산 38가 5394)", fontSize = 11.sp, color = Color.Gray)
                         Text("• 담당 가드: 박찬헌 가드 (바디캠 착용 & 1:1 집중 케어 중)", fontSize = 11.sp, color = Color.Gray)
-                        Text("• 보안 안내: 바디캠 스트리밍 영상은 30일간 안전 암호화 보관됩니다.", fontSize = 10.sp, color = Color(0xFF0284C7))
+                        Text("• 보안 안내: 바디캠 관제 영상은 30일간 안전 암호화 보관됩니다.", fontSize = 10.sp, color = Color(0xFF0284C7))
+                        Text("• 실내 안내: 병원 실내 진료실 촬영은 병원 방침 및 수의사 동의에 따라 제한될 수 있으며 이송 과정 중심으로 진행됩니다.", fontSize = 9.5.sp, color = Color(0xFFD97706), fontWeight = FontWeight.Bold)
                     }
                 }
             }
