@@ -136,6 +136,29 @@
             gap: 4px;
             white-space: nowrap;
         }
+
+        /* 줌 레벨 가변 반응형 핀 디자인 (축소 시 시야 가림 방지 미니 핀 모드) */
+        .map-zoomed-out .custom-car-badge,
+        .map-zoomed-out .custom-hosp-badge,
+        .map-zoomed-out .custom-hosp-badge-regular,
+        .map-zoomed-out .custom-hosp-badge-special,
+        .map-zoomed-out .custom-home-badge {
+            padding: 3px 6px !important;
+            font-size: 11px !important;
+            border-radius: 14px !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important;
+        }
+        .map-zoomed-out .custom-car-badge span:nth-child(2),
+        .map-zoomed-out .custom-car-badge span:nth-child(3),
+        .map-zoomed-out .custom-hosp-badge span:nth-child(2),
+        .map-zoomed-out .custom-hosp-badge span:nth-child(3),
+        .map-zoomed-out .custom-hosp-badge-regular span:nth-child(2),
+        .map-zoomed-out .custom-hosp-badge-regular span:nth-child(3),
+        .map-zoomed-out .custom-hosp-badge-special span:nth-child(2),
+        .map-zoomed-out .custom-hosp-badge-special span:nth-child(3),
+        .map-zoomed-out .custom-home-badge span:nth-child(2) {
+            display: none !important;
+        }
             font-size: 12px;
             box-shadow: 0 4px 12px rgba(124,58,237,0.45);
             border: 2px solid #ffffff;
@@ -210,6 +233,21 @@
                 }).setView([35.150, 128.980], 11);
 
                 L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+                map.on('zoomend', function() {
+                    var container = document.getElementById('map');
+                    if (container) {
+                        if (map.getZoom() < 13) {
+                            container.classList.add('map-zoomed-out');
+                        } else {
+                            container.classList.remove('map-zoomed-out');
+                        }
+                    }
+                });
+                if (map.getZoom() < 13) {
+                    var container = document.getElementById('map');
+                    if (container) container.classList.add('map-zoomed-out');
+                }
 
                 // 🗺️ 한국어 정밀 지적도 타일 레이어 (회색 화면 방지 & 100% 선명도 보장)
                 L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=ko', {

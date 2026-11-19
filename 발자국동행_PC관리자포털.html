@@ -394,6 +394,29 @@
             transition: all 1.2s ease-out !important;
         }
 
+        /* 줌 레벨 가변 반응형 핀 디자인 (축소 시 시야 가림 방지 미니 핀 모드) */
+        .map-zoomed-out .custom-car-badge,
+        .map-zoomed-out .custom-hosp-badge,
+        .map-zoomed-out .custom-hosp-badge-regular,
+        .map-zoomed-out .custom-hosp-badge-special,
+        .map-zoomed-out .custom-home-badge {
+            padding: 3px 6px !important;
+            font-size: 11px !important;
+            border-radius: 14px !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important;
+        }
+        .map-zoomed-out .custom-car-badge span:nth-child(2),
+        .map-zoomed-out .custom-car-badge span:nth-child(3),
+        .map-zoomed-out .custom-hosp-badge span:nth-child(2),
+        .map-zoomed-out .custom-hosp-badge span:nth-child(3),
+        .map-zoomed-out .custom-hosp-badge-regular span:nth-child(2),
+        .map-zoomed-out .custom-hosp-badge-regular span:nth-child(3),
+        .map-zoomed-out .custom-hosp-badge-special span:nth-child(2),
+        .map-zoomed-out .custom-hosp-badge-special span:nth-child(3),
+        .map-zoomed-out .custom-home-badge span:nth-child(2) {
+            display: none !important;
+        }
+
         .btn-group { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
     </style>
 </head>
@@ -1544,6 +1567,21 @@
                     attribution: '&copy; 지도 데이터',
                     maxZoom: 20
                 }).addTo(googleMap);
+
+                googleMap.on('zoomend', function() {
+                    var container = document.getElementById('google-map');
+                    if (container) {
+                        if (googleMap.getZoom() < 13) {
+                            container.classList.add('map-zoomed-out');
+                        } else {
+                            container.classList.remove('map-zoomed-out');
+                        }
+                    }
+                });
+                if (googleMap.getZoom() < 13) {
+                    var container = document.getElementById('google-map');
+                    if (container) container.classList.add('map-zoomed-out');
+                }
 
                 // 복수 가드 마커 핀 일괄 생성 및 등록
                 renderGuardMarkersOnMap();
