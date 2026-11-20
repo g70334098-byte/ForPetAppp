@@ -5492,6 +5492,13 @@ fun BookingHistoryScreen(
 
     // 2. 수의사 진료 리포트 팝업 다이얼로그
     selectedReportBooking?.let { report ->
+        val petNames = remember(report.petName) {
+            val raw = report.petName.replace("(동반)", "").replace("(2마리 동시 케어)", "").trim()
+            val list = raw.split("+", "&", ",").map { it.trim() }.filter { it.isNotBlank() }
+            if (list.size >= 2) list else listOf(report.petName)
+        }
+        var selectedReportPetName by remember(report.petName) { mutableStateOf(petNames.first()) }
+
         AlertDialog(
             properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
             modifier = Modifier.fillMaxWidth(0.95f),
@@ -5542,6 +5549,38 @@ fun BookingHistoryScreen(
                         }
                     }
 
+                    if (petNames.size >= 2) {
+                        item {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                color = Color(0xFFEFF6FF),
+                                border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("🐾 다견·다묘 개별 아이 리포트 선택", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1E40AF))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        petNames.forEach { pName ->
+                                            val isSel = selectedReportPetName == pName
+                                            FilterChip(
+                                                selected = isSel,
+                                                onClick = { selectedReportPetName = pName },
+                                                label = { Text("🐾 $pName 리포트", fontSize = 11.5.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium) },
+                                                colors = FilterChipDefaults.filterChipColors(
+                                                    selectedContainerColor = Color(0xFF0284C7),
+                                                    selectedLabelColor = Color.White
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -5552,7 +5591,7 @@ fun BookingHistoryScreen(
                                 modifier = Modifier.padding(14.dp),
                                 verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Text("👨‍⚕️ 담당 수의사 종합 소견", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0369A1))
+                                Text("👨‍⚕️ [$selectedReportPetName] 담당 수의사 종합 소견", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0369A1))
                                 HorizontalDivider(color = Color(0xFFBAE6FD))
                                 Text(
                                     report.doctorNote.ifEmpty { "진료 결과 이상 소견 없이 건강한 상태입니다." },
