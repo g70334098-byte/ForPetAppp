@@ -1779,13 +1779,6 @@
                     savePinCoord('hosp10', pos.lat, pos.lng);
                     alert('💾 [신호동물병원] 마커 핀 위치가 이동하여 영구 저장되었습니다!');
                 });
-                });
-                var hospMarker10 = L.marker(savedPinCoords.hosp10 || defaultPinCoords.hosp10, { icon: hospIcon10, draggable: true }).addTo(googleMap);
-                hospMarker10.on('dragend', function(e) {
-                    var pos = e.target.getLatLng();
-                    savePinCoord('hosp10', pos.lat, pos.lng);
-                    alert('💾 [신호동물병원] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
-                });
             }
         }
 
