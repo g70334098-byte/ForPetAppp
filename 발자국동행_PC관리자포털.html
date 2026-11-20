@@ -390,16 +390,19 @@
         }
 
         /* 줌 레벨 가변 반응형 핀 디자인 (축소 시 시야 가림 방지 미니 핀 모드) */
+        .map-zoomed-out .admin-car-badge,
         .map-zoomed-out .custom-car-badge,
         .map-zoomed-out .custom-hosp-badge,
         .map-zoomed-out .custom-hosp-badge-regular,
         .map-zoomed-out .custom-hosp-badge-special,
         .map-zoomed-out .custom-home-badge {
             padding: 3px 6px !important;
-            font-size: 11px !important;
-            border-radius: 14px !important;
+            font-size: 10px !important;
+            border-radius: 12px !important;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important;
         }
+        .map-zoomed-out .admin-car-text,
+        .map-zoomed-out .admin-car-badge-live,
         .map-zoomed-out .custom-car-badge span:nth-child(2),
         .map-zoomed-out .custom-car-badge span:nth-child(3),
         .map-zoomed-out .custom-hosp-badge span:nth-child(2),
@@ -1287,16 +1290,16 @@
         }
 
         function createGuardCarIcon(guard, isSelected) {
-            const glow = isSelected ? 'box-shadow: 0 0 0 4px #38bdf8, 0 8px 24px rgba(0,0,0,0.5); transform: scale(1.08);' : 'box-shadow: 0 6px 16px rgba(0,0,0,0.35);';
+            const glow = isSelected ? 'box-shadow: 0 0 0 3px #38bdf8, 0 6px 16px rgba(0,0,0,0.4);' : 'box-shadow: 0 4px 10px rgba(0,0,0,0.25);';
             return L.divIcon({
                 className: 'custom-car-marker-' + guard.id,
-                html: `<div style="background: linear-gradient(135deg, ${guard.color || '#0284c7'}, #0f172a); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; border: 2.5px solid #ffffff; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; ${glow}" onclick="selectGuard('${guard.id}')">
-                           <span style="font-size: 18px;">🚙</span>
-                           <span>${guard.name} (${guard.plate || '케어카'})</span>
-                           <span style="background: #10b981; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">LIVE</span>
+                html: `<div class="admin-car-badge" style="background: linear-gradient(135deg, ${guard.color || '#0284c7'}, #0f172a); color: white; padding: 4px 10px; border-radius: 14px; font-weight: bold; font-size: 11px; border: 1.5px solid #ffffff; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; ${glow}" onclick="selectGuard('${guard.id}')">
+                           <span>🚙</span>
+                           <span class="admin-car-text">${guard.name} (${guard.plate || '케어카'})</span>
+                           <span class="admin-car-badge-live" style="background: #10b981; font-size: 9px; padding: 1px 4px; border-radius: 6px; font-weight: bold;">LIVE</span>
                        </div>`,
-                iconSize: [210, 40],
-                iconAnchor: [105, 20]
+                iconSize: [140, 26],
+                iconAnchor: [70, 13]
             });
         }
 
