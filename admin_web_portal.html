@@ -1921,12 +1921,12 @@
                 }
                 const db = firebase.firestore();
 
-                // 🚗 0. 가드 차량 실시간 GPS 수신
+                // 🚗 0. 가드 차량 실시간 GPS 수신 (유효 좌표 lat > 1.0 검증으로 미국/바다 튀기 원천 차단)
                 db.collection("guard_live").doc("ray_care_car")
                     .onSnapshot(function(doc) {
                         if (doc && doc.exists) {
                             var data = doc.data();
-                            if (data.lat && data.lng) {
+                            if (data.lat && data.lng && data.lat > 1.0 && data.lng > 1.0) {
                                 if (typeof carMarker !== 'undefined' && carMarker) {
                                     carMarker.setLatLng([data.lat, data.lng]);
                                 }
