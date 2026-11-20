@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>발자국동행 - 브랜드 웹툰 스토리</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 0; line-height: 1.6; }
+        header { background: #EFE5D5; border-bottom: 1px solid #e2dad0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .nav-container { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; position: relative; }
+        .brand-box { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .brand-logo-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #D97706; }
+        .brand-text-title { font-weight: bold; font-size: 18px; color: #78350F; }
+        .nav-links { display: flex; gap: 24px; list-style: none; align-items: center; margin: 0; padding: 0; }
+        .nav-links a { text-decoration: none; color: #475569; font-weight: 600; font-size: 14px; transition: color 0.2s; }
+        .nav-links a:hover { color: #D97706; }
+        .mobile-menu-btn { display: none; background: transparent; border: none; font-size: 24px; color: #78350F; cursor: pointer; padding: 6px; }
+        .mobile-nav-drawer { display: none; flex-direction: column; background: #FDFBF7; border-top: 1px solid #e2dad0; padding: 12px 20px; box-shadow: 0 8px 16px rgba(0,0,0,0.06); }
+        .mobile-nav-drawer.active { display: flex; }
+        .mobile-nav-drawer a { text-decoration: none; color: #334155; font-weight: 700; font-size: 15px; padding: 12px 6px; border-bottom: 1px solid #f1ece1; display: flex; justify-content: space-between; }
+        .mobile-nav-drawer a:last-child { border-bottom: none; }
+
+        .container { max-width: 850px; margin: 40px auto; background: #ffffff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .page-header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #e2e8f0; padding-bottom: 24px; }
+        h1 { font-size: 24px; font-weight: bold; color: #0f172a; margin-bottom: 8px; }
+        .subtitle { font-size: 14px; color: #D97706; font-weight: bold; }
+
+        .webtoon-section {
+            background: #fffdfa;
+            border-radius: 16px;
+            padding: 24px;
+            margin: 20px 0;
+            border: 1.5px solid #f3e8dc;
+            box-shadow: 0 6px 20px rgba(217, 119, 6, 0.06);
+        }
+        .webtoon-card {
+            background: #ffffff;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid #eee1d0;
+            text-align: center;
+        }
+        .webtoon-img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            cursor: zoom-in;
+            transition: transform 0.2s ease;
+        }
+        .webtoon-img:hover {
+            transform: scale(1.005);
+        }
+
+        .care-steps-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 24px;
+        }
+        .care-step-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px;
+        }
+        .care-step-num {
+            color: #D97706;
+            font-weight: 800;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+        .care-step-title {
+            font-weight: bold;
+            font-size: 13.5px;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+        .care-step-desc {
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        .back-btn { display: inline-block; margin-top: 30px; background: #D97706; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; }
+        footer { background: #0f172a; color: #94a3b8; padding: 40px 24px; font-size: 12px; margin-top: 60px; }
+        .footer-container { max-width: 1000px; margin: 0 auto; line-height: 1.7; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            max-width: 850px;
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
+        .modal-close {
+            position: fixed;
+            top: 18px;
+            right: 24px;
+            color: #ffffff;
+            font-size: 36px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 2001;
+            background: rgba(0,0,0,0.4);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        @media (max-width: 768px) {
+            .nav-container { padding: 12px 16px; }
+            .nav-links { display: none; }
+            .mobile-menu-btn { display: block; }
+            .container { margin: 20px 16px; padding: 24px 20px; }
+            .care-steps-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="nav-container">
+            <a href="index.html" class="brand-box">
+                <img src="official_logo.png" class="brand-logo-img" alt="로고">
+                <div class="brand-text-title">발자국동행</div>
+            </a>
+            <ul class="nav-links">
+                <li><a href="company.html">회사소개</a></li>
+                <li><a href="webtoon.html" style="color: #D97706;">웹툰스토리</a></li>
+                <li><a href="index.html#services">이용방법</a></li>
+                <li><a href="index.html#pricing">요금안내</a></li>
+                <li><a href="index.html#reviews">이용후기</a></li>
+                <li><a href="careers.html">채용</a></li>
+                <li><a href="index.html" style="color:#78350F; font-weight:bold;">홈으로 ➔</a></li>
+            </ul>
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="메뉴 열기" onclick="toggleMobileMenu()">
+                ☰
+            </button>
+        </div>
+        <nav class="mobile-nav-drawer" id="mobileNavDrawer">
+            <a href="company.html">
+                <span>🏢 회사소개</span>
+                <span style="color:#D97706; font-size:13px;">➔</span>
+            </a>
+            <a href="webtoon.html" style="color: #D97706;">
+                <span>🎨 브랜드 웹툰 스토리 (현재 페이지)</span>
+                <span>✓</span>
+            </a>
+            <a href="index.html#services">
+                <span>📋 이용방법</span>
+                <span style="color:#D97706; font-size:13px;">➔</span>
+            </a>
+            <a href="index.html#pricing">
+                <span>💰 요금안내</span>
+                <span style="color:#D97706; font-size:13px;">➔</span>
+            </a>
+            <a href="index.html#reviews">
+                <span>⭐ 이용후기</span>
+                <span style="color:#D97706; font-size:13px;">➔</span>
+            </a>
+            <a href="careers.html">
+                <span>🔥 가드 채용</span>
+                <span style="color:#D97706; font-size:13px;">➔</span>
+            </a>
+            <a href="index.html">
+                <span>🏠 메인 홈으로 이동</span>
+                <span style="color:#D97706; font-size:13px;">➔</span>
+            </a>
+        </nav>
+    </header>
+
+    <script>
+        function toggleMobileMenu() {
+            var drawer = document.getElementById('mobileNavDrawer');
+            var btn = document.getElementById('mobileMenuBtn');
+            if (drawer.classList.contains('active')) {
+                drawer.classList.remove('active');
+                btn.innerHTML = '☰';
+            } else {
+                drawer.classList.add('active');
+                btn.innerHTML = '✕';
+            }
+        }
+    </script>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>🎨 발자국동행 브랜드 웹툰 스토리</h1>
+            <div class="subtitle">한눈에 보는 안심 병원 동행 하루 일과 (8단계 케어 프로세스)</div>
+        </div>
+
+        <p style="color: #475569; font-size: 15px; text-align: center; margin-bottom: 24px;">
+            "오늘 낮 정기 건강검진인데 도저히 연차나 시간을 낼 수가 없네..."<br>
+            바쁜 직장인 보호자의 고민부터 모바일 간편 예약, 바디캠 생중계, 펫 전용차 이송, 병원 진료 동행, 수의사 소견 리포트 전송, 그리고 <b>안전 귀가 후 도어락 비밀번호 100% 영구 삭제</b>까지의 든든한 여정을 웹툰으로 감상하세요!
+        </p>
+
+        <div class="webtoon-section">
+            <div class="webtoon-card">
+                <img src="story_webtoon.png" alt="발자국동행 브랜드 웹툰 - 병원 동행 하루 일과" class="webtoon-img" onclick="openWebtoonModal(this.src)" title="클릭하시면 큰 화면으로 보실 수 있습니다.">
+            </div>
+            <div style="text-align: center; margin-top: 14px; font-size: 13.5px; color: #888;">
+                🔍 <b>이미지를 클릭(터치)</b>하시면 고화질 원본으로 크게 감상하실 수 있습니다.
+            </div>
+        </div>
+
+        <h3 style="font-size: 18px; color: #92400E; margin-top: 36px; border-left: 4px solid #D97706; padding-left: 12px;">🐾 웹툰으로 보는 8단계 안심 케어 프로세스</h3>
+        <div class="care-steps-grid">
+            <div class="care-step-item">
+                <div class="care-step-num">STEP 01</div>
+                <div class="care-step-title">📱 모바일 간편 예약</div>
+                <div class="care-step-desc">어플에서 진료 희망 일시, 동물병원, 자택 픽업 주소를 1초 원터치로 간편하게 예약 신청합니다.</div>
+            </div>
+            <div class="care-step-item">
+                <div class="care-step-num">STEP 02</div>
+                <div class="care-step-title">👨‍✈️ 1:1 전담 가드 배차</div>
+                <div class="care-step-desc">전문 펫 케어 교육을 이수한 전담 가드가 레이 전용차를 운행하여 약속된 시각에 자택으로 출동합니다.</div>
+            </div>
+            <div class="care-step-item">
+                <div class="care-step-num">STEP 03</div>
+                <div class="care-step-title">🔑 자택 안심 인계 픽업</div>
+                <div class="care-step-desc">보호자가 상주하지 않는 무인 픽업 시 보안 도어락을 이용하여 아이를 다정하고 안전하게 안심 인계합니다.</div>
+            </div>
+            <div class="care-step-item">
+                <div class="care-step-num">STEP 04</div>
+                <div class="care-step-title">🚙 전용 케어카 안전 이송</div>
+                <div class="care-step-desc">슬라이딩 도어와 안심 카시트가 완비된 기아 레이 펫전용차로 아이가 스트레스 받지 않도록 정속 운행합니다.</div>
+            </div>
+            <div class="care-step-item">
+                <div class="care-step-num">STEP 05</div>
+                <div class="care-step-title">📹 실시간 바디캠 생중계</div>
+                <div class="care-step-desc">보호자는 근무 중에도 어플에서 카메라파이/유튜브 일부 공개 바디캠 라이브와 GPS 위치를 실시간 시청합니다.</div>
+            </div>
+            <div class="care-step-item">
+                <div class="care-step-num">STEP 06</div>
+                <div class="care-step-title">🩺 수의사 진료 밀착 동행</div>
+                <div class="care-step-desc">가드가 병원 접수, 진료 대기, 수의사 소견 청취, 처방약 수령, 수납까지 보호자님을 대신해 세심하게 임합니다.</div>
+            </div>
+            <div class="care-step-item">
+                <div class="care-step-num">STEP 07</div>
+                <div class="care-step-title">📄 수의사 모바일 리포트 전송</div>
+                <div class="care-step-desc">진료가 끝나면 수의사 소견, 영수증, 처방전 실물 사진이 수록된 정밀 리포트가 보호자 모바일로 즉시 발송됩니다.</div>
+            </div>
+            <div class="care-step-item">
+                <div class="care-step-num">STEP 08</div>
+                <div class="care-step-title">🔒 안전 귀가 & 비밀번호 삭제</div>
+                <div class="care-step-desc">아이를 무사히 집 안까지 케어한 후, 픽업 시 수집된 도어락 비밀번호는 시스템에서 100% 영구 삭제 파기됩니다.</div>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="index.html" class="back-btn">메인으로 돌아가기 ➔</a>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-container">
+            <b>(주)위드파우</b> | 대표자: 최지훈, 이선하 | 고객센터: 010-3786-5394<br>
+            부산광역시 | 이메일: k7turbo@naver.com<br>
+            Copyright © 2026 WithPaw Inc. All rights reserved.
+        </div>
+    </footer>
+
+    <!-- 웹툰 전체화면 모달 (라이트박스) -->
+    <div id="webtoonModal" class="modal" onclick="closeWebtoonModal()">
+        <span class="modal-close" onclick="closeWebtoonModal()">&times;</span>
+        <img class="modal-content" id="modalImg" alt="웹툰 확대보기" onclick="event.stopPropagation()">
+    </div>
+
+    <script>
+        function openWebtoonModal(src) {
+            var modal = document.getElementById('webtoonModal');
+            var img = document.getElementById('modalImg');
+            img.src = src;
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeWebtoonModal() {
+            var modal = document.getElementById('webtoonModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeWebtoonModal();
+        });
+    </script>
+</body>
+</html>

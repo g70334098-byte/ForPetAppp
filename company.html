@@ -120,7 +120,7 @@
             </a>
             <ul class="nav-links">
                 <li><a href="company.html" style="color: #D97706;">회사소개</a></li>
-                <li><a href="#webtoon">웹툰스토리</a></li>
+                <li><a href="webtoon.html">웹툰스토리</a></li>
                 <li><a href="index.html#services">이용방법</a></li>
                 <li><a href="index.html#pricing">요금안내</a></li>
                 <li><a href="index.html#reviews">이용후기</a></li>
@@ -136,8 +136,8 @@
                 <span>🏢 회사소개 (현재 페이지)</span>
                 <span>✓</span>
             </a>
-            <a href="#webtoon" onclick="toggleMobileMenu()">
-                <span>🎨 브랜드 웹툰 (하루 일과)</span>
+            <a href="webtoon.html">
+                <span>🎨 브랜드 웹툰 스토리</span>
                 <span style="color:#D97706; font-size:13px;">➔</span>
             </a>
             <a href="index.html#services">
@@ -194,24 +194,6 @@
             반려동물 인구 1,500만 시대, 반려동물은 단순한 동물이 아닌 우리 삶의 가장 소중한 가족입니다. 평일 연차 사용이 어려운 직장인, 1인·맞벌이 가구, 이동 수단이 마땅치 않은 보호자님들을 위해 <b>'발자국동행'</b>이 함께합니다. 정기적인 통원 케어가 필요한 환견·환묘는 물론, 보호자님의 세심한 손길이 닿기 어려운 순간에 아이에게는 가장 안전하고 편안한 병원 동행 파트너가 되어드리는 것을 사명으로 삼고 있습니다.
         </p>
 
-        <!-- 브랜드 스토리 웹툰 섹션 -->
-        <div id="webtoon" class="webtoon-section">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
-                <h3 style="margin-top: 0; border-left: 4px solid #D97706; padding-left: 12px; font-size: 19px; color: #92400E;">🎨 한눈에 보는 발자국동행 하루 일과 (브랜드 웹툰)</h3>
-                <span style="font-size: 12px; background: #FEF3C7; color: #B45309; padding: 4px 10px; border-radius: 20px; font-weight: 700;">8단계 완벽 안심 케어</span>
-            </div>
-            <p style="color: #64748b; font-size: 14px; margin-top: 0; margin-bottom: 16px;">
-                "오늘 낮 정기 건강검진인데 도저히 시간을 낼 수가 없네..."<br>
-                바쁜 직장인 보호자의 고민부터 모바일 간편 예약, 바디캠 촬영, 펫 전용차 이동, 병원 진료 동행, 실시간 리포트, 그리고 <b>안전 귀가 후 도어락 비밀번호 100% 영구 파기</b>까지의 여정을 웹툰으로 만나보세요.
-            </p>
-            <div class="webtoon-card">
-                <img src="story_webtoon.png" alt="발자국동행 브랜드 웹툰 - 병원 동행 하루 일과" class="webtoon-img" onclick="openWebtoonModal(this.src)" title="클릭하시면 큰 화면으로 보실 수 있습니다.">
-            </div>
-            <div style="text-align: center; margin-top: 12px; font-size: 13px; color: #888;">
-                🔍 <b>이미지를 클릭(터치)</b>하시면 큰 화면으로 선명하게 감상하실 수 있습니다.
-            </div>
-        </div>
-
         <h3>🚗 주요 제공 서비스</h3>
         <ul>
             <li><b>1:1 펫 전용 케어카 이송:</b> 일반 택시나 대중교통 이용 시 겪는 스트레스를 줄이고, 쾌적하고 안전한 펫 전용 차량으로 자택 픽업 및 귀가(Door-to-Door)를 안전하게 지원합니다.</li>
@@ -229,15 +211,8 @@
             Copyright © 2026 WithPaw Inc. All rights reserved.
         </div>
     </footer>
-    <!-- 웹툰 전체화면 모달 (라이트박스) -->
-    <div id="webtoonModal" class="modal" onclick="closeWebtoonModal()">
-        <span class="modal-close" onclick="closeWebtoonModal()">&times;</span>
-        <img class="modal-content" id="modalImg" alt="웹툰 확대보기" onclick="event.stopPropagation()">
-    </div>
-
-    <script>
-        function openWebtoonModal(src) {
-            var modal = document.getElementById('webtoonModal');
+</body>
+</html>
             var img = document.getElementById('modalImg');
             img.src = src;
             modal.classList.add('active');
