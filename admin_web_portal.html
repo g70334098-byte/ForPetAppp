@@ -1789,22 +1789,38 @@
             }
         }
 
-        window.onload = function() {
+        function initializeAdminDashboard() {
             try {
-                initGoogleMapEngine();
+                // 1. 기본/캐시 데이터 즉시 테이블 & 대시보드 렌더링 (DB 연결 전에도 100% 즉시 표출 보장!)
+                renderOrdersTable();
+                renderUsersTable();
+                renderPointsDashboard();
+                renderSalesTable();
                 renderGuardFleetBar();
-                selectGuard(selectedGuardId);
+                if (typeof selectedGuardId !== 'undefined') selectGuard(selectedGuardId);
+            } catch (renderErr) {
+                console.warn("Initial render error:", renderErr);
+            }
+
+            try {
+                // 2. 관제 지도 엔진 로드
+                initGoogleMapEngine();
             } catch (mapErr) {
                 console.warn("initGoogleMapEngine error:", mapErr);
             }
+
             try {
+                // 3. Firestore 실시간 클라우드 DB 동기화 가동
                 if (typeof initFirebaseSync === 'function') {
                     initFirebaseSync();
                 }
             } catch (fbErr) {
                 console.warn("initFirebaseSync error:", fbErr);
             }
-        };
+        }
+
+        window.onload = initializeAdminDashboard;
+        window.addEventListener('DOMContentLoaded', initializeAdminDashboard);
 
         function changeGuardGpsLocation(locKey) {
             const guard = guardsData.find(g => g.id === selectedGuardId);

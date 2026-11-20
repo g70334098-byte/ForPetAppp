@@ -29,8 +29,8 @@ android {
         applicationId = "com.baldong.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 115
-        versionName = "1.0.115"
+        versionCode = 116
+        versionName = "1.0.116"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
