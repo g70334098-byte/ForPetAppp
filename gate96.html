@@ -2248,12 +2248,14 @@
 
                     const phoneDisplay = item.phone || "010-3786-5394";
                     const pickupDisplay = item.pickup || "보호자 자택";
+                    const cleanOwner = item.owner.replace(" 대표님", "").replace(" 보호자님", "").split(' ')[0];
+                    const ownerOrderCount = ordersData.filter(o => o.owner && o.owner.includes(cleanOwner)).length || 1;
 
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td style="white-space:nowrap;"><b style="font-family:monospace; font-size:12px;">${item.id}</b></td>
                         <td style="white-space:nowrap;"><span class="badge ${trimBadgeClass}">${trimText}</span><br><span style="font-size:11px;">${item.type}</span></td>
-                        <td style="white-space:nowrap;"><b style="font-size:13.5px; color:#0284c7; cursor:pointer;" onclick="openPetCareNoteModal('${item.id}')" title="클릭하여 아이 주의사항 보기">${item.pet} 🐾</b><br><span style="font-size:11px; color:#059669; font-weight:bold; cursor:pointer;" onclick="openProtectorMannerModal('${item.owner}')" title="클릭하여 보호자 이용 횟수 & 가드 평판 보기">${item.owner} 👤</span></td>
+                        <td style="white-space:nowrap;"><b style="font-size:13.5px; color:#0284c7; cursor:pointer;" onclick="openPetCareNoteModal('${item.id}')" title="클릭하여 아이 주의사항 보기">${item.pet} 🐾</b><br><span style="font-size:11px; color:#059669; font-weight:bold; cursor:pointer;" onclick="openProtectorMannerModal('${item.owner}')" title="클릭하여 보호자 이용 횟수 & 가드 평판 보기">${item.owner} 👤 <span style="background:#ecfdf5; color:#047857; font-size:10px; padding:1px 6px; border-radius:10px; border:1px solid #a7f3d0; margin-left:2px;">${ownerOrderCount}회 이용</span></span></td>
                         <td style="white-space:nowrap;"><b style="color:#0284c7; cursor:pointer;" onclick="alert('📞 보호자 직통 전화 걸기: ${phoneDisplay}')">${phoneDisplay} 📞</b></td>
                         <td style="font-size:12px; white-space:nowrap;"><span style="color:#0f172a; font-weight:600;">📍 ${pickupDisplay}</span></td>
                         <td style="white-space:nowrap;"><b>${item.hospital}</b></td>
@@ -2303,12 +2305,14 @@
                 const phoneDisplay = item.phone || "연락처 등록됨";
                 const pickupDisplay = item.pickup || "보호자 자택";
                 const doctorNoteSummary = item.doctorNote ? item.doctorNote.substring(0, 30) + "..." : "수의사 정밀 검진 및 안심 귀가 완료";
+                const cleanOwner = item.owner.replace(" 대표님", "").replace(" 보호자님", "").split(' ')[0];
+                const ownerOrderCount = ordersData.filter(o => o.owner && o.owner.includes(cleanOwner)).length || 1;
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td style="white-space:nowrap;"><b style="font-family:monospace; font-size:12px;">${item.id}</b></td>
                     <td style="white-space:nowrap;"><span class="badge badge-active">🎉 귀가 완료</span><br><span style="font-size:11px;">${item.type}</span></td>
-                    <td style="white-space:nowrap;"><b style="font-size:13.5px; color:#0284c7; cursor:pointer;" onclick="openPetCareNoteModal('${item.id}')" title="클릭하여 아이 주의사항 보기">${item.pet} 🐾</b><br><span style="font-size:11px; color:#059669; font-weight:bold; cursor:pointer;" onclick="openProtectorMannerModal('${item.owner}')" title="클릭하여 보호자 이용 횟수 & 가드 평판 보기">${item.owner} 👤</span></td>
+                    <td style="white-space:nowrap;"><b style="font-size:13.5px; color:#0284c7; cursor:pointer;" onclick="openPetCareNoteModal('${item.id}')" title="클릭하여 아이 주의사항 보기">${item.pet} 🐾</b><br><span style="font-size:11px; color:#059669; font-weight:bold; cursor:pointer;" onclick="openProtectorMannerModal('${item.owner}')" title="클릭하여 보호자 이용 횟수 & 가드 평판 보기">${item.owner} 👤 <span style="background:#ecfdf5; color:#047857; font-size:10px; padding:1px 6px; border-radius:10px; border:1px solid #a7f3d0; margin-left:2px;">${ownerOrderCount}회 이용</span></span></td>
                     <td style="font-size:12px;"><span style="color:#0284c7; font-weight:700;">🏡 ${pickupDisplay}</span><br>➔ <b style="color:#0f172a;">🏥 ${item.hospital}</b></td>
                     <td>${item.time}</td>
                     <td><span class="badge badge-blue">${item.guard}</span></td>
