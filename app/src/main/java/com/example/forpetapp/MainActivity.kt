@@ -10634,7 +10634,7 @@ fun HomeScreenContent(
                         .height(580.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    // 1-0. 🐾 등록된 우리 아이 원터치 선택
+                    // 1-0. 🐾 등록된 우리 아이 원터치 선택 및 2~3마리 다견·다묘 콤보 선택
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(
@@ -10644,7 +10644,7 @@ fun HomeScreenContent(
                             ) {
                                 Text("동행할 아이 선택 (다견·다묘)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
                                 Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFEFF6FF)) {
-                                    Text("원터치 배정", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                    Text(if (isMultiPetSelected) "🎉 콤보 할인 중" else "원터치 배정", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (isMultiPetSelected) Color(0xFFD97706) else Color(0xFF0284C7), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
                                 }
                             }
                             Row(
@@ -10654,10 +10654,12 @@ fun HomeScreenContent(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 petList.forEach { pet ->
-                                    val isPetSel = bookingPetName == pet.name
+                                    val isPetSel = (!isMultiPetSelected && bookingPetName == pet.name)
                                     FilterChip(
                                         selected = isPetSel,
                                         onClick = {
+                                            isMultiPetSelected = false
+                                            multiPetCount = 1
                                             bookingPetName = pet.name
                                             selectedSpecies = pet.species
                                         },
@@ -10668,109 +10670,93 @@ fun HomeScreenContent(
                                         )
                                     )
                                 }
-                                val isMulti = bookingPetName.contains("+")
+
+                                val is2Pet = (isMultiPetSelected && multiPetCount == 2)
                                 FilterChip(
-                                    selected = isMulti,
+                                    selected = is2Pet,
                                     onClick = {
-                                        if (petList.size >= 2) {
-                                            bookingPetName = "${petList[0].name} + ${petList[1].name} (동반)"
-                                        }
+                                        isMultiPetSelected = true
+                                        multiPetCount = 2
+                                        bookingPetName = if (petList.size >= 2) "${petList[0].name} + ${petList[1].name} (동반)" else "두부 + 초코 (2마리 동반)"
+                                        selectedSpecies = "🐶+🐱 강아지 + 고양이 (혼합 동반)"
                                     },
-                                    label = { Text("🐾 2마리 동반 케어", fontSize = 11.sp, fontWeight = if (isMulti) FontWeight.Bold else FontWeight.Medium) },
+                                    label = { Text("🐾 2마리 동반 (-15,000원)", fontSize = 11.sp, fontWeight = if (is2Pet) FontWeight.Bold else FontWeight.Medium) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = Color(0xFF0D9488),
                                         selectedLabelColor = Color.White
                                     )
                                 )
-                            }
-                        }
-                    }
 
-                    // 1-0-1. 🐾 다견·다묘 가구 콤보 케어 할인 선택 카드
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = if (isMultiPetSelected) Color(0xFFFFFBEB) else Color(0xFFF8FAFC)),
-                            border = BorderStroke(1.dp, if (isMultiPetSelected) Color(0xFFF59E0B) else Color(0xFFE2E8F0))
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text("🐾", fontSize = 16.sp)
-                                        Text("다견·다묘 콤보 동행 케어 (2마리 이상)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                                    }
-                                    Switch(
-                                        checked = isMultiPetSelected,
-                                        onCheckedChange = { isMultiPetSelected = it }
+                                val is3Pet = (isMultiPetSelected && multiPetCount == 3)
+                                FilterChip(
+                                    selected = is3Pet,
+                                    onClick = {
+                                        isMultiPetSelected = true
+                                        multiPetCount = 3
+                                        bookingPetName = if (petList.size >= 3) "${petList[0].name} + ${petList[1].name} + ${petList[2].name} (동반)" else "두부 + 초코 + 몽이 (3마리 동반)"
+                                        selectedSpecies = "🐶+🐱 강아지 + 고양이 (혼합 동반)"
+                                    },
+                                    label = { Text("🐾 3마리 동반 (-25,000원)", fontSize = 11.sp, fontWeight = if (is3Pet) FontWeight.Bold else FontWeight.Medium) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFFD97706),
+                                        selectedLabelColor = Color.White
                                     )
-                                }
-                                if (isMultiPetSelected) {
-                                    Text("🎉 둘째 아이 50% 콤보 할인 적용 중! (-15,000원 자동 절약)", fontSize = 11.sp, color = Color(0xFFD97706), fontWeight = FontWeight.Bold)
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        FilterChip(
-                                            selected = (multiPetCount == 2),
-                                            onClick = { multiPetCount = 2 },
-                                            label = { Text("2마리 동시 케어 (-15,000원)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
-                                        )
-                                        FilterChip(
-                                            selected = (multiPetCount == 3),
-                                            onClick = { multiPetCount = 3 },
-                                            label = { Text("3마리 동시 케어 (-25,000원)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
-                                        )
-                                    }
-                                }
+                                )
                             }
                         }
                     }
 
-                    // 1. 반려동물 구분 선택 (강아지 / 고양이)
+                    // 1. 반려동물 구분 선택 (강아지 / 고양이 / 강아지+고양이 혼합)
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("1. 반려동물 구분 선택 🐾", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text(
+                                if (isMultiPetSelected) "1. 반려동물 구분 선택 🐾 (${multiPetCount}마리 콤보 할인 중)"
+                                else "1. 반려동물 구분 선택 🐾",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = Color(0xFF0F172A)
+                            )
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
+                                val option1Text = if (isMultiPetSelected) "🐶 강아지만" else "🐶 강아지"
                                 FilterChip(
-                                    selected = (selectedSpecies == "강아지"),
-                                    onClick = { selectedSpecies = "강아지" },
-                                    label = { Text("🐶 강아지" + if (selectedSpecies == "강아지") " ✓" else "", fontWeight = FontWeight.Bold, fontSize = 13.sp) },
+                                    selected = (selectedSpecies.contains("강아지") && !selectedSpecies.contains("고양이")),
+                                    onClick = { selectedSpecies = if (isMultiPetSelected) "강아지 ${multiPetCount}마리" else "강아지" },
+                                    label = { Text(option1Text, fontWeight = FontWeight.Bold, fontSize = 11.5.sp) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = Color(0xFF0284C7),
                                         selectedLabelColor = Color.White
                                     ),
-                                    border = FilterChipDefaults.filterChipBorder(
-                                        enabled = true,
-                                        selected = (selectedSpecies == "강아지"),
-                                        borderColor = Color(0xFFCBD5E1),
-                                        selectedBorderColor = Color(0xFF0369A1),
-                                        borderWidth = 1.dp,
-                                        selectedBorderWidth = 2.dp
-                                    ),
                                     modifier = Modifier.weight(1f)
                                 )
+
+                                val option2Text = if (isMultiPetSelected) "🐱 고양이만" else "🐱 고양이"
                                 FilterChip(
-                                    selected = (selectedSpecies == "고양이"),
-                                    onClick = { selectedSpecies = "고양이" },
-                                    label = { Text("🐱 고양이" + if (selectedSpecies == "고양이") " ✓" else "", fontWeight = FontWeight.Bold, fontSize = 13.sp) },
+                                    selected = (selectedSpecies.contains("고양이") && !selectedSpecies.contains("강아지")),
+                                    onClick = { selectedSpecies = if (isMultiPetSelected) "고양이 ${multiPetCount}마리" else "고양이" },
+                                    label = { Text(option2Text, fontWeight = FontWeight.Bold, fontSize = 11.5.sp) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = Color(0xFF0284C7),
                                         selectedLabelColor = Color.White
                                     ),
-                                    border = FilterChipDefaults.filterChipBorder(
-                                        enabled = true,
-                                        selected = (selectedSpecies == "고양이"),
-                                        borderColor = Color(0xFFCBD5E1),
-                                        selectedBorderColor = Color(0xFF0369A1),
-                                        borderWidth = 1.dp,
-                                        selectedBorderWidth = 2.dp
-                                    ),
                                     modifier = Modifier.weight(1f)
                                 )
+
+                                if (isMultiPetSelected) {
+                                    val isMixed = selectedSpecies.contains("혼합") || (selectedSpecies.contains("강아지") && selectedSpecies.contains("고양이"))
+                                    FilterChip(
+                                        selected = isMixed,
+                                        onClick = { selectedSpecies = "🐶+🐱 강아지 + 고양이 (혼합 동반)" },
+                                        label = { Text("🐶+🐱 혼합 동반", fontWeight = FontWeight.Bold, fontSize = 11.5.sp) },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = Color(0xFF0D9488),
+                                            selectedLabelColor = Color.White
+                                        ),
+                                        modifier = Modifier.weight(1.1f)
+                                    )
+                                }
                             }
                         }
                     }
