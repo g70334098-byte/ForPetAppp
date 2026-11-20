@@ -1554,7 +1554,9 @@
         function initGoogleMapEngine() {
             if (typeof L !== 'undefined') {
                 googleMap = L.map('google-map', {
-                    scrollWheelZoom: true // ⚡ 마우스 휠 스크롤 줌 100% 활성화!
+                    minZoom: 10, // ⚡ 최소 줌 레벨 10 제한 (부산/경남 권역 이하로 과도한 축소 차단 -> 핀 위치 오차 0%)
+                    maxZoom: 19,
+                    scrollWheelZoom: true
                 }).setView([35.150, 128.980], 12); // 부산 시내 중심
 
                 // 🗺️ 한국어 정밀 지적도 타일 레이어 (회색 화면 방지 & 100% 선명도 보장)

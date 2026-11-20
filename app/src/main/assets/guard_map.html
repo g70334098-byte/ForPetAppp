@@ -224,9 +224,11 @@
 
             try {
                 map = L.map('map', {
+                    minZoom: 10, // ⚡ 최소 줌 레벨 10 제한 (부산/경남 권역 이하로 과도한 축소 차단 -> 핀 위치 오차 0%)
+                    maxZoom: 19,
                     zoomControl: false,
                     attributionControl: false
-                }).setView([35.150, 128.980], 11);
+                }).setView([35.150, 128.980], 12);
 
                 L.control.zoom({ position: 'bottomright' }).addTo(map);
 
