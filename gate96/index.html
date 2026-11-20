@@ -1586,178 +1586,185 @@
                 // 복수 가드 마커 핀 일괄 생성 및 등록
                 renderGuardMarkersOnMap();
 
-                // 2. 부산 24시 동행동물의료센터 커스텀 마커 핀 (부산 북구 덕천동 561-2)
+                // 2. 부산 24시 동행동물의료센터 커스텀 마커 핀
                 var hospIcon1 = L.divIcon({
                     className: 'custom-hospital-marker',
-                    html: `<div style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(220,38,38,0.4); border: 2.5px solid #ffffff; cursor: move; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 부산 24시 동행동물의료센터 (24시 응급)\\n📍 지번 주소: 부산 북구 덕천동 561-2\\n📞 직통: 0507-1481-7599\\n🩺 진료 과목: 피부과, 내과, 외과, 정형외과, 안과 등 12개 전문 과목\\n✨ 부가 서비스: 입원, 미용')">
-                               <span style="font-size: 18px;">🏥</span>
-                               <span>부산 24시 동행동물의료센터</span>
-                               <span style="background: #ffffff; color: #dc2626; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">24시 응급</span>
+                    html: `<div class="custom-hosp-badge" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 3px 8px; border-radius: 12px; font-weight: bold; font-size: 10.5px; border: 1.5px solid #ffffff; cursor: move; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;" onclick="alert('🏥 부산 24시 동행동물의료센터 (24시 응급)\\n📍 지번 주소: 부산 북구 덕천동 561-2\\n📞 직통: 0507-1481-7599\\n🩺 진료 과목: 피부과, 내과, 외과, 정형외과, 안과 등 12개 전문 과목\\n✨ 부가 서비스: 입원, 미용')">
+                               <span>🏥</span>
+                               <span>부산 24시 동행</span>
+                               <span style="background: #ffffff; color: #dc2626; font-size: 9px; padding: 1px 4px; border-radius: 6px; font-weight: bold;">24시 응급</span>
                            </div>`,
-                    iconSize: [210, 40],
-                    iconAnchor: [105, 40]
+                    iconSize: [120, 24],
+                    iconAnchor: [60, 12]
                 });
                 hospitalMarker = L.marker(savedPinCoords.hosp1 || defaultPinCoords.hosp1, { icon: hospIcon1, draggable: true }).addTo(googleMap);
                 hospitalMarker.on('dragend', function(e) {
                     var pos = e.target.getLatLng();
                     savePinCoord('hosp1', pos.lat, pos.lng);
-                    alert('💾 [부산 24시 동행동물의료센터] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
+                    alert('💾 [부산 24시 동행동물의료센터] 마커 핀 위치가 이동하여 영구 저장되었습니다!');
                 });
 
-                // 3. 부산 24시 연산동물의료센터 커스텀 마커 핀 (부산 연제구 연산동 1953-1)
+                // 3. 부산 24시 연산동물의료센터 커스텀 마커 핀
                 var hospIcon2 = L.divIcon({
                     className: 'custom-hospital-marker-2',
-                    html: `<div style="background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(220,38,38,0.4); border: 2.5px solid #ffffff; cursor: move; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 부산 24시 연산동물의료센터 (24시 응급)\\n📍 지번 주소: 부산 연제구 연산동 1953-1\\n📞 직통: 051-791-0175\\n🩺 진료 과목: 피부과, 내과, 안과, 치과, 예방의학과, 이비인후과, 비뇨기과, 외과, 정형외과, 산과\\n🚗 특이사항: 입원, 주차 건물 내 가능, 금요일 14시30분까지(접수마감 12시30분)')">
-                               <span style="font-size: 18px;">🏥</span>
-                               <span>부산 24시 연산동물의료센터</span>
-                               <span style="background: #ffffff; color: #dc2626; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">24시 응급</span>
+                    html: `<div class="custom-hosp-badge" style="background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; padding: 3px 8px; border-radius: 12px; font-weight: bold; font-size: 10.5px; border: 1.5px solid #ffffff; cursor: move; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;" onclick="alert('🏥 부산 24시 연산동물의료센터 (24시 응급)\\n📍 지번 주소: 부산 연제구 연산동 1953-1\\n📞 직통: 051-791-0175')">
+                               <span>🏥</span>
+                               <span>부산 24시 연산</span>
+                               <span style="background: #ffffff; color: #dc2626; font-size: 9px; padding: 1px 4px; border-radius: 6px; font-weight: bold;">24시 응급</span>
                            </div>`,
-                    iconSize: [210, 40],
-                    iconAnchor: [105, 40]
+                    iconSize: [120, 24],
+                    iconAnchor: [60, 12]
                 });
                 var hospMarker2 = L.marker(savedPinCoords.hosp2 || defaultPinCoords.hosp2, { icon: hospIcon2, draggable: true }).addTo(googleMap);
                 hospMarker2.on('dragend', function(e) {
                     var pos = e.target.getLatLng();
                     savePinCoord('hosp2', pos.lat, pos.lng);
-                    alert('💾 [부산 24시 연산동물의료센터] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
+                    alert('💾 [부산 24시 연산동물의료센터] 마커 핀 위치가 이동하여 영구 저장되었습니다!');
                 });
 
-                // 4. 24시 이솔동물의료센터 커스텀 마커 핀 (부산 사하구 하단동 534-7)
+                // 4. 24시 이솔동물의료센터 커스텀 마커 핀
                 var hospIcon3 = L.divIcon({
                     className: 'custom-hospital-marker-3',
-                    html: `<div style="background: linear-gradient(135deg, #ef4444, #991b1b); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(220,38,38,0.4); border: 2.5px solid #ffffff; cursor: move; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 24시 이솔동물의료센터 (24시 응급)\\n📍 지번 주소: 부산 사하구 하단동 534-7\\n📞 직통: 051-711-7566\\n🩺 주요 진료: 내과(만성/호르몬/종양/항암), 외과(슬개골/십자인대/정형외과), 24시간 수의사 상주 응급진료\\n🚗 특이사항: 입원, 건물 뒤편 총 11면 주차 공간')">
-                               <span style="font-size: 18px;">🏥</span>
-                               <span>24시 이솔동물의료센터</span>
-                               <span style="background: #ffffff; color: #dc2626; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">24시 응급</span>
+                    html: `<div class="custom-hosp-badge" style="background: linear-gradient(135deg, #ef4444, #991b1b); color: white; padding: 3px 8px; border-radius: 12px; font-weight: bold; font-size: 10.5px; border: 1.5px solid #ffffff; cursor: move; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;" onclick="alert('🏥 24시 이솔동물의료센터 (24시 응급)\\n📍 지번 주소: 부산 사하구 하단동 534-7\\n📞 직통: 051-711-7566')">
+                               <span>🏥</span>
+                               <span>24시 이솔동물</span>
+                               <span style="background: #ffffff; color: #dc2626; font-size: 9px; padding: 1px 4px; border-radius: 6px; font-weight: bold;">24시 응급</span>
                            </div>`,
-                    iconSize: [210, 40],
-                    iconAnchor: [105, 40]
+                    iconSize: [120, 24],
+                    iconAnchor: [60, 12]
                 });
                 var hospMarker3 = L.marker(savedPinCoords.hosp3 || defaultPinCoords.hosp3, { icon: hospIcon3, draggable: true }).addTo(googleMap);
                 hospMarker3.on('dragend', function(e) {
                     var pos = e.target.getLatLng();
                     savePinCoord('hosp3', pos.lat, pos.lng);
-                    alert('💾 [24시 이솔동물의료센터] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
+                    alert('💾 [24시 이솔동물의료센터] 마커 핀 위치가 이동하여 영구 저장되었습니다!');
                 });
 
-                // 5. 23시 하단오거리동물병원 커스텀 마커 핀 (부산 사하구 하단동 617-10)
+                // 5. 23시 하단오거리동물병원 커스텀 마커 핀
                 var hospIcon4 = L.divIcon({
                     className: 'custom-hospital-marker-4',
-                    html: `<div style="background: linear-gradient(135deg, #ef4444, #7f1d1d); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(220,38,38,0.4); border: 2.5px solid #ffffff; cursor: move; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 23시 하단오거리동물병원 (24시간 진료)\\n📍 지번 주소: 부산 사하구 하단동 617-10\\n📞 직통: 051-291-7582\\n🐾 주요 진료 대상: 개, 고양이, 토끼, 고슴도치, 페릿, 기니피그, 햄스터, 조류, 파충류, 어류, 야생동물\\n🚗 특이사항: 입원, 건물 뒷편과 벽측 약 10대 주차 공간 완비')">
-                               <span style="font-size: 18px;">🏥</span>
-                               <span>23시 하단오거리동물병원</span>
-                               <span style="background: #ffffff; color: #dc2626; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">24시 응급</span>
+                    html: `<div class="custom-hosp-badge" style="background: linear-gradient(135deg, #ef4444, #7f1d1d); color: white; padding: 3px 8px; border-radius: 12px; font-weight: bold; font-size: 10.5px; border: 1.5px solid #ffffff; cursor: move; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;" onclick="alert('🏥 23시 하단오거리동물병원\\n📍 지번 주소: 부산 사하구 하단동 617-10\\n📞 직통: 051-291-7582')">
+                               <span>🏥</span>
+                               <span>23시 하단오거리</span>
+                               <span style="background: #ffffff; color: #dc2626; font-size: 9px; padding: 1px 4px; border-radius: 6px; font-weight: bold;">24시 응급</span>
                            </div>`,
-                    iconSize: [210, 40],
-                    iconAnchor: [105, 40]
+                    iconSize: [125, 24],
+                    iconAnchor: [62, 12]
                 });
                 var hospMarker4 = L.marker(savedPinCoords.hosp4 || defaultPinCoords.hosp4, { icon: hospIcon4, draggable: true }).addTo(googleMap);
                 hospMarker4.on('dragend', function(e) {
                     var pos = e.target.getLatLng();
                     savePinCoord('hosp4', pos.lat, pos.lng);
-                    alert('💾 [23시 하단오거리동물병원] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
+                    alert('💾 [23시 하단오거리동물병원] 마커 핀 위치가 이동하여 영구 저장되었습니다!');
                 });
 
-                // 6. 이로운동물병원 커스텀 마커 핀 (부산 강서구 명지동 3331-7) - 일반 주간 진료
+                // 6. 이로운동물병원 커스텀 마커 핀
                 var hospIcon5 = L.divIcon({
                     className: 'custom-hospital-marker-5',
-                    html: `<div style="background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(16,185,129,0.4); border: 2.5px solid #ffffff; cursor: move; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 이로운동물병원 (일반 주간 진료)\\n📍 지번 주소: 부산 강서구 명지동 3331-7 (명지국제11로 35)\\n📞 직통: 0507-1419-7578\\n⏰ 영업시간:\\n• 월~금: 09:00 - 19:00 (휴게 13~14시 / 접수마감 18:00)\\n• 토: 09:00 - 14:00 (접수마감 13:00)\\n• 일: 정기휴무 (매주 일요일)\\n🚗 특이사항: 뒷쪽 골목길 주차')">
-                               <span style="font-size: 18px;">🏥</span>
+                    html: `<div class="custom-hosp-badge-regular" style="background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 3px 8px; border-radius: 12px; font-weight: bold; font-size: 10.5px; border: 1.5px solid #ffffff; cursor: move; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;" onclick="alert('🏥 이로운동물병원\\n📍 지번 주소: 부산 강서구 명지동 3331-7\\n📞 직통: 0507-1419-7578')">
+                               <span>🏥</span>
                                <span>이로운동물병원</span>
-                               <span style="background: #ffffff; color: #059669; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">주간 진료</span>
+                               <span style="background: #ffffff; color: #059669; font-size: 9px; padding: 1px 4px; border-radius: 6px; font-weight: bold;">주간 진료</span>
                            </div>`,
-                    iconSize: [205, 40],
-                    iconAnchor: [102, 40]
+                    iconSize: [120, 24],
+                    iconAnchor: [60, 12]
                 });
                 var hospMarker5 = L.marker(savedPinCoords.hosp5 || defaultPinCoords.hosp5, { icon: hospIcon5, draggable: true }).addTo(googleMap);
                 hospMarker5.on('dragend', function(e) {
                     var pos = e.target.getLatLng();
                     savePinCoord('hosp5', pos.lat, pos.lng);
-                    alert('💾 [이로운동물병원] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
+                    alert('💾 [이로운동물병원] 마커 핀 위치가 이동하여 영구 저장되었습니다!');
                 });
 
-                // 7. 양산에스동물메디컬센터 커스텀 마커 핀 (경남 양산시 물금읍 증산리 1776-2) - 주간·연중무휴 전문 메디컬센터
+                // 7. 양산에스동물메디컬센터 커스텀 마커 핀
                 var hospIcon6 = L.divIcon({
                     className: 'custom-hospital-marker-6',
-                    html: `<div style="background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(124,58,237,0.4); border: 2.5px solid #ffffff; cursor: move; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 양산에스동물메디컬센터 (주간·연중무휴 전문 메디컬)\\n📍 지번 주소: 경남 양산시 물금읍 증산리 1776-2 (증산역로 174)\\n📞 직통: 055-382-2475\\n⏰ 진료시간: 매일 10:00 - 19:30 (휴게 13:30~14:30 / 마감 13:00, 19:00)\\n⚠️ 18시 이후 내원 시 사전 유선 문의 필수\\n🩺 특화: 노령동물 통합(심장/신장/종양), 최소침습수술(내시경/복강경), 고양이친화, 암센터협진 CT/줄기세포, 보이는 수술실(CCTV)\\n🐾 진료 대상: 개, 고양이 (입원실 운영)\\n🚗 특이사항: 건물 뒷편 주차 가능')">
-                               <span style="font-size: 18px;">🏥</span>
+                    html: `<div class="custom-hosp-badge-special" style="background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; padding: 3px 8px; border-radius: 12px; font-weight: bold; font-size: 10.5px; border: 1.5px solid #ffffff; cursor: move; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;" onclick="alert('🏥 양산에스동물메디컬센터\\n📍 지번 주소: 경남 양산시 물금읍 증산리 1776-2\\n📞 직통: 055-382-2475')">
+                               <span>🏥</span>
                                <span>양산에스메디컬</span>
-                               <span style="background: #ffffff; color: #7c3aed; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">주간·연중무휴</span>
+                               <span style="background: #ffffff; color: #7c3aed; font-size: 9px; padding: 1px 4px; border-radius: 6px; font-weight: bold;">연중무휴</span>
                            </div>`,
-                    iconSize: [215, 40],
-                    iconAnchor: [107, 40]
+                    iconSize: [120, 24],
+                    iconAnchor: [60, 12]
                 });
                 var hospMarker6 = L.marker(savedPinCoords.hosp6 || defaultPinCoords.hosp6, { icon: hospIcon6, draggable: true }).addTo(googleMap);
                 hospMarker6.on('dragend', function(e) {
                     var pos = e.target.getLatLng();
                     savePinCoord('hosp6', pos.lat, pos.lng);
-                    alert('💾 [양산에스동물메디컬센터] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
+                    alert('💾 [양산에스동물메디컬센터] 마커 핀 위치가 이동하여 영구 저장되었습니다!');
                 });
 
-                // 8. 힐스동물병원 커스텀 마커 핀 (경남 양산시 물금읍 범어리 2799-4) - 주간 일반 진료
+                // 8. 힐스동물병원 커스텀 마커 핀
                 var hospIcon7 = L.divIcon({
                     className: 'custom-hospital-marker-7',
-                    html: `<div style="background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(16,185,129,0.4); border: 2.5px solid #ffffff; cursor: move; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 힐스동물병원 (주간 일반 진료)\\n📍 지번 주소: 경남 양산시 물금읍 범어리 2799-4 1층 (신주3길 8)\\n📞 직통: 055-388-8275\\n⏰ 진료시간: 평일 09:00 - 18:30 (휴게 13~14시), 토요일 09:00 - 17:00, 일요일 휴무\\n⚠️ 특이사항: 수술 이외의 진료는 사전 예약 불가 (현장 접수 순 진료)\\n📋 부가서비스: 메리츠화재 펫보험 간편 청구 지원, 미용, 지역화폐/간편결제\\n🚗 주차: 옆 임시공영주차장 및 골목길 주차 매우 편리')">
-                               <span style="font-size: 18px;">🏥</span>
-                               <span>양산 힐스동물병원</span>
-                               <span style="background: #ffffff; color: #059669; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">주간 진료</span>
+                    html: `<div class="custom-hosp-badge-regular" style="background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 3px 8px; border-radius: 12px; font-weight: bold; font-size: 10.5px; border: 1.5px solid #ffffff; cursor: move; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;" onclick="alert('🏥 힐스동물병원\\n📍 지번 주소: 경남 양산시 물금읍 범어리 2799-4\\n📞 직통: 055-388-8275')">
+                               <span>🏥</span>
+                               <span>양산 힐스동물</span>
+                               <span style="background: #ffffff; color: #059669; font-size: 9px; padding: 1px 4px; border-radius: 6px; font-weight: bold;">주간 진료</span>
                            </div>`,
-                    iconSize: [215, 40],
-                    iconAnchor: [107, 40]
+                    iconSize: [120, 24],
+                    iconAnchor: [60, 12]
                 });
                 var hospMarker7 = L.marker(savedPinCoords.hosp7 || defaultPinCoords.hosp7, { icon: hospIcon7, draggable: true }).addTo(googleMap);
                 hospMarker7.on('dragend', function(e) {
                     var pos = e.target.getLatLng();
                     savePinCoord('hosp7', pos.lat, pos.lng);
-                    alert('💾 [힐스동물병원] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
+                    alert('💾 [힐스동물병원] 마커 핀 위치가 이동하여 영구 저장되었습니다!');
                 });
 
-                // 9. 24시 리본동물의료센터 커스텀 마커 핀 (부산 동래구 명륜동 506-13) - 24시간 응급 진료
+                // 9. 24시 리본동물의료센터 커스텀 마커 핀
                 var hospIcon8 = L.divIcon({
                     className: 'custom-hospital-marker-8',
-                    html: `<div style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(220,38,38,0.4); border: 2.5px solid #ffffff; cursor: move; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 24시 리본동물의료센터 (24시간 응급 진료)\\n📍 지번 주소: 부산 동래구 명륜동 506-13 동림빌딩 2층 (충렬대로 194)\\n📞 직통: 051-711-0006\\n⏰ 진료시간: 24시간 연중무휴 응급 진료 (정규 09:00~19:00 예약우선제)\\n🩺 특화: 3.0T MRI·64채널 CT, 무균양압수술실, 신장투석센터(CCRT), 종양·중증내과, ISFM GOLD 고양이전용진료동, 안과·치과 특화, 24시 ICU\\n🚗 주차: 건물 뒤 지상 무료 주차 / 메가마트 주차장 최대 3시간 무료 지원')">
-                               <span style="font-size: 18px;">🏥</span>
-                               <span>24시 리본동물의료센터</span>
-                               <span style="background: #ffffff; color: #dc2626; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">24시 응급</span>
+                    html: `<div class="custom-hosp-badge" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 3px 8px; border-radius: 12px; font-weight: bold; font-size: 10.5px; border: 1.5px solid #ffffff; cursor: move; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;" onclick="alert('🏥 24시 리본동물의료센터\\n📍 지번 주소: 부산 동래구 명륜동 506-13\\n📞 직통: 051-711-0006')">
+                               <span>🏥</span>
+                               <span>24시 리본동물</span>
+                               <span style="background: #ffffff; color: #dc2626; font-size: 9px; padding: 1px 4px; border-radius: 6px; font-weight: bold;">24시 응급</span>
                            </div>`,
-                    iconSize: [225, 40],
-                    iconAnchor: [112, 40]
+                    iconSize: [120, 24],
+                    iconAnchor: [60, 12]
                 });
                 var hospMarker8 = L.marker(savedPinCoords.hosp8 || defaultPinCoords.hosp8, { icon: hospIcon8, draggable: true }).addTo(googleMap);
                 hospMarker8.on('dragend', function(e) {
                     var pos = e.target.getLatLng();
                     savePinCoord('hosp8', pos.lat, pos.lng);
-                    alert('💾 [24시 리본동물의료센터] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
+                    alert('💾 [24시 리본동물의료센터] 마커 핀 위치가 이동하여 영구 저장되었습니다!');
                 });
 
-                // 10. 닥터펫동물의료센터 커스텀 마커 핀 (부산 부산진구 개금동 511-1) - 24시간 응급 진료
+                // 10. 닥터펫동물의료센터 커스텀 마커 핀
                 var hospIcon9 = L.divIcon({
                     className: 'custom-hospital-marker-9',
-                    html: `<div style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(220,38,38,0.4); border: 2.5px solid #ffffff; cursor: move; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 닥터펫동물의료센터 (24시간 응급 진료)\\n📍 주소: 부산 부산진구 개금동 511-1 (가야대로 451 개금메디칼빌딩)\\n📞 직통: 051-891-8575\\n⏰ 진료시간: 24시간 연중무휴 응급 진료\\n🩺 특화: 신경계 질환 내과 처방 전문, 근골격계 정형외과 수술 전문, 최소 절개 중성화 수술, 내/외과 분과 진료, 고양이 친화 동물병원, 보호자 대기실 실시간 모니터링, 입원실 완비, 반려동물 동반 가능\\n🚗 주차: 주차 시설 완비')">
-                               <span style="font-size: 18px;">🏥</span>
-                               <span>닥터펫동물의료센터</span>
-                               <span style="background: #ffffff; color: #dc2626; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">24시 응급</span>
+                    html: `<div class="custom-hosp-badge" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 3px 8px; border-radius: 12px; font-weight: bold; font-size: 10.5px; border: 1.5px solid #ffffff; cursor: move; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;" onclick="alert('🏥 닥터펫동물의료센터\\n📍 주소: 부산 부산진구 개금동 511-1\\n📞 직통: 051-891-8575')">
+                               <span>🏥</span>
+                               <span>닥터펫동물센터</span>
+                               <span style="background: #ffffff; color: #dc2626; font-size: 9px; padding: 1px 4px; border-radius: 6px; font-weight: bold;">24시 응급</span>
                            </div>`,
-                    iconSize: [225, 40],
-                    iconAnchor: [112, 40]
+                    iconSize: [125, 24],
+                    iconAnchor: [62, 12]
                 });
                 var hospMarker9 = L.marker(savedPinCoords.hosp9 || defaultPinCoords.hosp9, { icon: hospIcon9, draggable: true }).addTo(googleMap);
                 hospMarker9.on('dragend', function(e) {
                     var pos = e.target.getLatLng();
                     savePinCoord('hosp9', pos.lat, pos.lng);
-                    alert('💾 [닥터펫동물의료센터] 마커 핀 위치가 건물 위로 이동하여 영구 저장되었습니다!\n(위도: ' + pos.lat.toFixed(6) + ', 경도: ' + pos.lng.toFixed(6) + ')');
+                    alert('💾 [닥터펫동물의료센터] 마커 핀 위치가 이동하여 영구 저장되었습니다!');
                 });
 
-                // 11. 신호동물병원 커스텀 마커 핀 (부산 강서구 신호동 304-9) - 주간 진료
+                // 11. 신호동물병원 커스텀 마커 핀
                 var hospIcon10 = L.divIcon({
                     className: 'custom-hospital-marker-10',
-                    html: `<div style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(2,132,199,0.4); border: 2.5px solid #ffffff; cursor: move; display: flex; align-items: center; gap: 6px; white-space: nowrap;" onclick="alert('🏥 신호동물병원 (주간 진료)\\n📍 주소: 부산 강서구 신호동 304-9 (신호산단1로 124)\\n📞 직통: 051-972-0972\\n⏰ 진료시간: 월~토 10:00 - 19:00 / 일요일 10:00 - 14:00 (매달 2, 4번째 일요일 정기 휴무)\\n🚗 주차: 건물 뒷편 골목길 주차 가능')">
-                               <span style="font-size: 18px;">🏥</span>
+                    html: `<div class="custom-hosp-badge-regular" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 3px 8px; border-radius: 12px; font-weight: bold; font-size: 10.5px; border: 1.5px solid #ffffff; cursor: move; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;" onclick="alert('🏥 신호동물병원\\n📍 주소: 부산 강서구 신호동 304-9\\n📞 직통: 051-972-0972')">
+                               <span>🏥</span>
                                <span>신호동물병원</span>
-                               <span style="background: #ffffff; color: #0284c7; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold;">주간 진료</span>
+                               <span style="background: #ffffff; color: #0284c7; font-size: 9px; padding: 1px 4px; border-radius: 6px; font-weight: bold;">주간 진료</span>
                            </div>`,
-                    iconSize: [195, 40],
-                    iconAnchor: [97, 40]
+                    iconSize: [120, 24],
+                    iconAnchor: [60, 12]
+                });
+                var hospMarker10 = L.marker(savedPinCoords.hosp10 || defaultPinCoords.hosp10, { icon: hospIcon10, draggable: true }).addTo(googleMap);
+                hospMarker10.on('dragend', function(e) {
+                    var pos = e.target.getLatLng();
+                    savePinCoord('hosp10', pos.lat, pos.lng);
+                    alert('💾 [신호동물병원] 마커 핀 위치가 이동하여 영구 저장되었습니다!');
+                });
                 });
                 var hospMarker10 = L.marker(savedPinCoords.hosp10 || defaultPinCoords.hosp10, { icon: hospIcon10, draggable: true }).addTo(googleMap);
                 hospMarker10.on('dragend', function(e) {
