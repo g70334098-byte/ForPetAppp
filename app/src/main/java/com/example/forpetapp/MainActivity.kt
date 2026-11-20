@@ -2318,6 +2318,11 @@ object PersistentStorageManager {
                 put("prescriptionImageUri", item.prescriptionImageUri ?: "")
                 put("bodycamPhotoUri", item.bodycamPhotoUri ?: "")
                 put("bodycamLiveUrl", item.bodycamLiveUrl ?: "")
+                put("guardRating", item.guardRating)
+                put("guardReview", item.guardReview)
+                put("protectorGuardRating", item.protectorGuardRating)
+                put("protectorGuardReview", item.protectorGuardReview)
+                put("petCareNote", item.petCareNote)
                 put("doorlockPhotoUri", item.doorlockPhotoUri ?: "")
                 put("encryptedDoorlock", item.encryptedDoorlock ?: "")
                 put("doorlockPurged", item.doorlockPurged)
@@ -2363,6 +2368,11 @@ object PersistentStorageManager {
                         prescriptionImageUri = obj.optString("prescriptionImageUri").ifEmpty { null },
                         bodycamPhotoUri = obj.optString("bodycamPhotoUri").ifEmpty { null },
                         bodycamLiveUrl = obj.optString("bodycamLiveUrl").ifEmpty { null },
+                        guardRating = obj.optInt("guardRating", 0),
+                        guardReview = obj.optString("guardReview", ""),
+                        protectorGuardRating = obj.optInt("protectorGuardRating", 5),
+                        protectorGuardReview = obj.optString("protectorGuardReview", ""),
+                        petCareNote = obj.optString("petCareNote", ""),
                         doorlockPhotoUri = obj.optString("doorlockPhotoUri").ifEmpty { null },
                         encryptedDoorlock = obj.optString("encryptedDoorlock").ifEmpty { null },
                         doorlockPurged = obj.optBoolean("doorlockPurged", false),

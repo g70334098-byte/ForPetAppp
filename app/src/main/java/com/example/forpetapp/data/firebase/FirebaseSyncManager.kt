@@ -125,6 +125,9 @@ object FirebaseSyncManager {
                 put("returnPhotoUri", booking.returnPhotoUri ?: "")
                 put("guardRating", booking.guardRating)
                 put("guardReview", booking.guardReview)
+                put("protectorGuardRating", booking.protectorGuardRating)
+                put("protectorGuardReview", booking.protectorGuardReview ?: "")
+                put("petCareNote", booking.petCareNote ?: "")
                 put("doorlockPhotoUri", booking.doorlockPhotoUri ?: "")
                 put("encryptedDoorlock", booking.encryptedDoorlock ?: "")
                 put("doorlockPurged", booking.doorlockPurged)
@@ -192,6 +195,9 @@ object FirebaseSyncManager {
                         returnPhotoUri = obj.optString("returnPhotoUri").ifEmpty { null },
                         guardRating = obj.optInt("guardRating", 0),
                         guardReview = obj.optString("guardReview", ""),
+                        protectorGuardRating = obj.optInt("protectorGuardRating", 5),
+                        protectorGuardReview = obj.optString("protectorGuardReview", ""),
+                        petCareNote = obj.optString("petCareNote", ""),
                         doorlockPhotoUri = obj.optString("doorlockPhotoUri").ifEmpty { null },
                         encryptedDoorlock = obj.optString("encryptedDoorlock").ifEmpty { null },
                         doorlockPurged = obj.optBoolean("doorlockPurged", false),
@@ -264,6 +270,9 @@ object FirebaseSyncManager {
                 "returnPhotoUri" to (encodedReturnPhoto ?: ""),
                 "guardRating" to booking.guardRating,
                 "guardReview" to booking.guardReview,
+                "protectorGuardRating" to booking.protectorGuardRating,
+                "protectorGuardReview" to (booking.protectorGuardReview ?: ""),
+                "petCareNote" to (booking.petCareNote ?: ""),
                 "doorlockPhotoUri" to (encodedDoorlock ?: ""),
                 "encryptedDoorlock" to (booking.encryptedDoorlock ?: ""),
                 "doorlockPurged" to booking.doorlockPurged,
@@ -445,6 +454,9 @@ object FirebaseSyncManager {
                                     returnPhotoUri = doc.getString("returnPhotoUri"),
                                     guardRating = (doc.get("guardRating") as? Number)?.toInt() ?: doc.getString("guardRating")?.toIntOrNull() ?: 0,
                                     guardReview = doc.getString("guardReview") ?: "",
+                                    protectorGuardRating = (doc.get("protectorGuardRating") as? Number)?.toInt() ?: doc.getString("protectorGuardRating")?.toIntOrNull() ?: 5,
+                                    protectorGuardReview = doc.getString("protectorGuardReview") ?: "",
+                                    petCareNote = doc.getString("petCareNote") ?: "",
                                     doorlockPhotoUri = doc.getString("doorlockPhotoUri"),
                                     encryptedDoorlock = doc.getString("encryptedDoorlock"),
                                     doorlockPurged = doc.getBoolean("doorlockPurged") ?: false,

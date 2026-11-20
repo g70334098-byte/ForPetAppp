@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -54,6 +55,7 @@ fun DriverMainDashboardScreen(
     var selectedOrderForQuickNotify by remember { mutableStateOf<BookingItem?>(null) }
     var selectedOrderForBodycamUpload by remember { mutableStateOf<BookingItem?>(null) }
     var selectedOrderForYouTubeUrl by remember { mutableStateOf<BookingItem?>(null) }
+    var selectedOrderForProtectorRating by remember { mutableStateOf<BookingItem?>(null) }
     var unlockedDoorlockId by remember { mutableStateOf<String?>(null) }
 
     val driverOrders = remember {
@@ -580,6 +582,7 @@ fun DriverMainDashboardScreen(
                                                 FirebaseSyncManager.syncOrderToCloud(updatedOrder)
                                                 sendSystemPushNotification(context, "🎉 [발자국동행] 안전 귀가 완료 & 콜 마감", "[${order.petName}] 아이의 안심 이송이 완료되었습니다. 도어락 비번 등 개인정보가 100% 영구 파기되었으며 가드 바디캠이 종료되었습니다.")
                                                 Toast.makeText(context, "🔒 안심 귀가 완료: 도어락 비번이 영구 파기되었으며 가드 바디캠이 자동 OFF 종료되었습니다.", Toast.LENGTH_LONG).show()
+                                                selectedOrderForProtectorRating = updatedOrder
                                             } else {
                                                 val updatedOrder = order.copy(status = statusStep)
                                                 driverOrders[index] = updatedOrder
@@ -993,6 +996,99 @@ fun DriverMainDashboardScreen(
             dismissButton = {
                 TextButton(onClick = { selectedOrderForYouTubeUrl = null }) {
                     Text("취소")
+                }
+            }
+        )
+    }
+
+    selectedOrderForProtectorRating?.let { order ->
+        var ratingScore by remember { mutableIntStateOf(5) }
+        var reviewText by remember { mutableStateOf(order.protectorGuardReview) }
+        var petNoteText by remember { mutableStateOf(order.petCareNote) }
+
+        AlertDialog(
+            onDismissRequest = { selectedOrderForProtectorRating = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("👨‍✈️", fontSize = 20.sp)
+                    Text("가드 비공개 보호자 평판 & 아이 특성 등록", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFEFF6FF),
+                        border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("🔒 비공개 방어 시스템 (고객 100% 비공개)", fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = Color(0xFF1E40AF))
+                            Text("등록하신 보호자 매너 평점 및 아이 예민도 주의사항은 오직 가드들과 본사 관제센터만 공유하며 고객에게는 절대로 노출되지 않습니다.", fontSize = 10.5.sp, color = Color(0xFF1E3A8A))
+                        }
+                    }
+
+                    Text("1. 보호자 매너 평점 (⭐ 1~5점)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        (1..5).forEach { star ->
+                            Text(
+                                text = if (star <= ratingScore) "★" else "☆",
+                                fontSize = 28.sp,
+                                color = Color(0xFFF59E0B),
+                                modifier = Modifier
+                                    .padding(horizontal = 4.dp)
+                                    .clickable { ratingScore = star }
+                            )
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = reviewText,
+                        onValueChange = { reviewText = it },
+                        label = { Text("2. 보호자 매너 한줄 평가 (비공개)") },
+                        placeholder = { Text("예: 보호자님 매너 우수함, 픽업 준비 완벽함 등") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    OutlinedTextField(
+                        value = petNoteText,
+                        onValueChange = { petNoteText = it },
+                        label = { Text("3. '${order.petName}' 아이 성향 & 주의사항 한줄") },
+                        placeholder = { Text("예: 낯선 가드에게 10분간 경계 심함, 츄르 유도 필요") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val finalUpdated = order.copy(
+                            protectorGuardRating = ratingScore,
+                            protectorGuardReview = reviewText.trim(),
+                            petCareNote = petNoteText.trim()
+                        )
+                        val idx = driverOrders.indexOfFirst { it.id == order.id }
+                        if (idx != -1) driverOrders[idx] = finalUpdated
+                        PersistentStorageManager.saveBookingList(context, driverOrders, "DRIVER_ALL")
+                        FirebaseSyncManager.syncOrderToCloud(finalUpdated, context)
+                        Toast.makeText(context, "🔒 가드 전용 보호자 평판 및 아이 주의사항이 비공개 저장되었습니다!", Toast.LENGTH_SHORT).show()
+                        selectedOrderForProtectorRating = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                ) {
+                    Text("비공개 저장 및 마감 ➔", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { selectedOrderForProtectorRating = null }) {
+                    Text("건너뛰기")
                 }
             }
         )

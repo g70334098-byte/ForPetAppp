@@ -2253,7 +2253,7 @@
                     tr.innerHTML = `
                         <td style="white-space:nowrap;"><b style="font-family:monospace; font-size:12px;">${item.id}</b></td>
                         <td style="white-space:nowrap;"><span class="badge ${trimBadgeClass}">${trimText}</span><br><span style="font-size:11px;">${item.type}</span></td>
-                        <td style="white-space:nowrap;"><b style="font-size:13.5px;">${item.pet}</b><br><span style="font-size:11px; color:#64748b;">${item.owner}</span></td>
+                        <td style="white-space:nowrap;"><b style="font-size:13.5px; color:#0284c7; cursor:pointer;" onclick="openPetCareNoteModal('${item.id}')" title="클릭하여 아이 주의사항 보기">${item.pet} 🐾</b><br><span style="font-size:11px; color:#059669; font-weight:bold; cursor:pointer;" onclick="openProtectorMannerModal('${item.owner}')" title="클릭하여 보호자 이용 횟수 & 가드 평판 보기">${item.owner} 👤</span></td>
                         <td style="white-space:nowrap;"><b style="color:#0284c7; cursor:pointer;" onclick="alert('📞 보호자 직통 전화 걸기: ${phoneDisplay}')">${phoneDisplay} 📞</b></td>
                         <td style="font-size:12px; white-space:nowrap;"><span style="color:#0f172a; font-weight:600;">📍 ${pickupDisplay}</span></td>
                         <td style="white-space:nowrap;"><b>${item.hospital}</b></td>
@@ -2306,9 +2306,9 @@
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><b>${item.id}</b></td>
-                    <td><span class="badge badge-active">🎉 귀가 완료</span><br><span style="font-size:11px;">${item.type}</span></td>
-                    <td><b>${item.pet}</b><br><span style="font-size:11px; color:#64748b;">${item.owner}</span></td>
+                    <td style="white-space:nowrap;"><b style="font-family:monospace; font-size:12px;">${item.id}</b></td>
+                    <td style="white-space:nowrap;"><span class="badge badge-active">🎉 귀가 완료</span><br><span style="font-size:11px;">${item.type}</span></td>
+                    <td style="white-space:nowrap;"><b style="font-size:13.5px; color:#0284c7; cursor:pointer;" onclick="openPetCareNoteModal('${item.id}')" title="클릭하여 아이 주의사항 보기">${item.pet} 🐾</b><br><span style="font-size:11px; color:#059669; font-weight:bold; cursor:pointer;" onclick="openProtectorMannerModal('${item.owner}')" title="클릭하여 보호자 이용 횟수 & 가드 평판 보기">${item.owner} 👤</span></td>
                     <td style="font-size:12px;"><span style="color:#0284c7; font-weight:700;">🏡 ${pickupDisplay}</span><br>➔ <b style="color:#0f172a;">🏥 ${item.hospital}</b></td>
                     <td>${item.time}</td>
                     <td><span class="badge badge-blue">${item.guard}</span></td>
@@ -2702,6 +2702,25 @@
             }
             closeModal('point-adjust-modal');
             adjustUserDbPoints(idx, delta, reason || (delta > 0 ? "🎁 관리자 포인트 지급" : "💳 관리자 포인트 차감"), false);
+        }
+
+        function openPetCareNoteModal(orderId) {
+            const order = ordersData.find(o => o.id === orderId);
+            if (!order) return;
+            const note = order.petCareNote || "특이 주의사항 없음 (가드가 기록한 특이 예민 반응 없이 안전 케어 완료)";
+            alert(`🐾 [${order.pet}] 아이 가드 전용 안심 케어 프로필\n\n• 반려동물 이름: ${order.pet} (${order.type})\n• 보호자: ${order.owner}\n• 진료 동물병원: ${order.hospital}\n\n⚠️ 가드 기록 아이 성향 & 주의사항 메모:\n"${note}"`);
+        }
+
+        function openProtectorMannerModal(ownerName) {
+            const cleanName = ownerName.replace(" 대표님", "").replace(" 보호자님", "").split(' ')[0];
+            const ownerOrders = ordersData.filter(o => o.owner && o.owner.includes(cleanName));
+            const count = ownerOrders.length > 0 ? ownerOrders.length : 1;
+            let ratings = ownerOrders.map(o => o.protectorGuardRating || 5);
+            let avgRating = (ratings.reduce((a,b)=>a+b, 0) / ratings.length).toFixed(1);
+
+            let reviewList = ownerOrders.map(o => `• [${o.time || '이용'}] ⭐${o.protectorGuardRating || 5}점 - "${o.protectorGuardReview || '보호자님 매너 우수함, 안심 인계 완벽'}"`).join('\n');
+
+            alert(`👤 [${ownerName}] 보호자님 가드 전용 비공개 평판 프로필\n(※ 고객 100% 비공개 - 오직 가드 & 관리자 전용 공유)\n\n• 총 누적 이용 횟수: ${count}회 이용\n• 가드 전담 매너 평점 평균: ⭐ ${avgRating} / 5.0\n\n🔒 가드 기록 비공개 매너 평가 리스트:\n${reviewList || '• 가드 기록 평판이 양호합니다.'}`);
         }
 
         // 회원 정밀 프로필 및 전체 이용 오더 + 포인트 적립/차감 내역 모달
