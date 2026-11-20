@@ -1882,11 +1882,18 @@
             }
         ];
 
-        // LocalStorage 영구 로드 및 저장
-        let ordersData = JSON.parse(localStorage.getItem('baljaguk_orders')) || defaultOrders;
-        let usersData = JSON.parse(localStorage.getItem('baljaguk_users')) || defaultUsers;
-        let salesData = JSON.parse(localStorage.getItem('baljaguk_sales')) || defaultSales;
-        let eventSubmissionsData = JSON.parse(localStorage.getItem('baljaguk_event_submissions')) || defaultEventSubmissions;
+        // LocalStorage 영구 로드 및 저장 (기본 데이터 보장)
+        let rawOrders = JSON.parse(localStorage.getItem('baljaguk_orders'));
+        let ordersData = (Array.isArray(rawOrders) && rawOrders.length > 0) ? rawOrders : defaultOrders;
+
+        let rawUsers = JSON.parse(localStorage.getItem('baljaguk_users'));
+        let usersData = (Array.isArray(rawUsers) && rawUsers.length > 0) ? rawUsers : defaultUsers;
+
+        let rawSales = JSON.parse(localStorage.getItem('baljaguk_sales'));
+        let salesData = (Array.isArray(rawSales) && rawSales.length > 0) ? rawSales : defaultSales;
+
+        let rawEvents = JSON.parse(localStorage.getItem('baljaguk_event_submissions'));
+        let eventSubmissionsData = (Array.isArray(rawEvents) && rawEvents.length > 0) ? rawEvents : defaultEventSubmissions;
 
         function persistData() {
             try {
