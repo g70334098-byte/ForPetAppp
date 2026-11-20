@@ -1908,8 +1908,7 @@
             const now = new Date();
             const pad = (n) => String(n).padStart(2, '0');
             const dateStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
-            const seq = Math.floor(Math.random() * 9) + 1;
-            return `${dateStr}-${seq}`;
+            return `${dateStr}-1`;
         }
 
         // 초기 기본 샘플 데이터 (년월일시분-순번 형식 오더ID: 예 202611201030-1)

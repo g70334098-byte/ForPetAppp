@@ -11476,11 +11476,16 @@ fun HomeScreenContent(
 
                     // 9. 예상 금액 미리보기 카드
                     item {
-                        val basePrice = when {
+                        val singleBasePrice = when {
                             selectedServiceTrim.contains("긴급") -> 50000
                             selectedServiceTrim.contains("미예약") -> 35000
                             else -> 30000
                         }
+                        val multiPetAddOn = if (isMultiPetSelected && multiPetCount >= 2) {
+                            val perPetAddOn = if (selectedServiceTrim.contains("긴급")) 25000 else 15000
+                            perPetAddOn * (multiPetCount - 1)
+                        } else 0
+                        val basePrice = singleBasePrice + multiPetAddOn
                         val calculatedPriceValue = basePrice + (if (isMedicineSelected) 5000 else 0) + (if (isSurgerySelected) 10000 else 0)
                         val couponDiscount = selectedCoupon?.discountAmount ?: 0
                         val finalPrice = (calculatedPriceValue - couponDiscount - usePointsAmount).coerceAtLeast(0)
@@ -11839,11 +11844,16 @@ fun HomeScreenContent(
                         Text("다음: 주문 확인 및 가결제 ➔", fontWeight = FontWeight.Bold)
                     }
                 } else {
-                    val basePrice = when {
+                    val singleBasePrice = when {
                         selectedServiceTrim.contains("긴급") -> 50000
                         selectedServiceTrim.contains("미예약") -> 35000
                         else -> 30000
                     }
+                    val multiPetAddOn = if (isMultiPetSelected && multiPetCount >= 2) {
+                        val perPetAddOn = if (selectedServiceTrim.contains("긴급")) 25000 else 15000
+                        perPetAddOn * (multiPetCount - 1)
+                    } else 0
+                    val basePrice = singleBasePrice + multiPetAddOn
                     val calculatedPriceValue = basePrice + (if (isMedicineSelected) 5000 else 0) + (if (isSurgerySelected) 10000 else 0)
                     val couponDiscount = selectedCoupon?.discountAmount ?: 0
                     val finalPrice = (calculatedPriceValue - couponDiscount - usePointsAmount).coerceAtLeast(0)

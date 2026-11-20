@@ -38,8 +38,7 @@ data class PetProfile(
 fun generateFormattedOrderId(): String {
     val now = java.util.Date()
     val dateStr = java.text.SimpleDateFormat("yyyyMMddHHmm", java.util.Locale.KOREAN).format(now)
-    val seq = (1..9).random()
-    return "$dateStr-$seq"
+    return "$dateStr-1"
 }
 
 // 📅 예약 정보 데이터 클래스 (3가지 트림: 긴급 50,000원 / 당일미예약 35,000원 / 예약진료 30,000원)
