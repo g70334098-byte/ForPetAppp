@@ -845,8 +845,9 @@
         <div id="panel-sales" class="content-panel" style="display:none;">
             <div class="panel-header">
                 <div class="panel-title">📊 매출 관리 & 결제 정산 내역</div>
-                <div class="search-box">
-                    <button class="btn-action btn-green" onclick="alert('매출 엑셀 보고서(CSV)가 정상 다운로드되었습니다.')">📥 매출 엑셀 보고서 다운로드</button>
+                <div class="search-box" style="display:flex; gap:8px;">
+                    <button class="btn-action btn-green" onclick="exportSalesToExcelCsv()">📊 이번 달 엑셀(CSV) 다운로드</button>
+                    <button class="btn-action" style="background:#0284c7;" onclick="window.print()">🖨️ 정산 보고서 인쇄</button>
                 </div>
             </div>
 
@@ -2180,6 +2181,41 @@
                 console.warn("Firebase Init Error:", fbErr);
             }
         }
+        // 📊 이번 달 매출/오더 정산 내역 엑셀(CSV) 다운로드 기능
+        function exportSalesToExcelCsv() {
+            if (!salesData || salesData.length === 0) {
+                alert("📊 다운로드할 매출 정산 내역이 없습니다.");
+                return;
+            }
+            let csvContent = "\uFEFF"; // UTF-8 BOM (엑셀 한글 깨짐 방지)
+            csvContent += "결제일시,오더ID,서비스종류,고객명 및 아이이름,결제금액,할인액,최종정산액,결제수단,정산상태\n";
+
+            salesData.forEach(item => {
+                const cleanDate = (item.date || "").replace(/,/g, ' ');
+                const cleanId = (item.id || "").replace(/,/g, '');
+                const cleanType = (item.type || "").replace(/,/g, '');
+                const cleanOwner = (item.owner || "").replace(/,/g, '');
+                const cleanPrice = (item.price || "0").replace(/,/g, '');
+                const cleanDiscount = (item.discount || "0").replace(/,/g, '');
+                const cleanFinal = item.final || 0;
+                const cleanMethod = (item.method || "").replace(/,/g, '');
+                const cleanStatus = (item.status || "").replace(/,/g, '');
+
+                csvContent += `"${cleanDate}","${cleanId}","${cleanType}","${cleanOwner}","${cleanPrice}","${cleanDiscount}","${cleanFinal}원","${cleanMethod}","${cleanStatus}"\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            const nowStr = new Date().toISOString().slice(0, 10);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `발자국동행_매출정산내역_${nowStr}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            alert("📊 이번 달 매출/오더 정산 내역이 엑셀(CSV) 파일로 성공적으로 다운로드되었습니다!");
+        }
+
         initFirebaseSync();
 
         // 🚀 관리자 버전 제어 모달 기능
