@@ -1359,6 +1359,20 @@ fun GuardMapScreen() {
                                         Toast.makeText(ctx, "전화 앱을 열 수 없습니다.", Toast.LENGTH_SHORT).show()
                                     }
                                     return true
+                                } else if (url.startsWith("tmap:") || url.startsWith("kakaomap:") || url.contains("tmap") || url.contains("kakaomap")) {
+                                    try {
+                                        val naviIntent = Intent(Intent.ACTION_VIEW, url.toUri())
+                                        ctx.startActivity(naviIntent)
+                                    } catch (_: Exception) {
+                                        try {
+                                            val queryStr = url.substringAfter("name=").substringAfter("q=").substringBefore("&")
+                                            val fallbackIntent = Intent(Intent.ACTION_VIEW, Uri.parse("kakaomap://search?q=$queryStr"))
+                                            ctx.startActivity(fallbackIntent)
+                                        } catch (e: Exception) {
+                                            Toast.makeText(ctx, "티맵 / 카카오맵 앱을 열 수 없습니다.", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                    return true
                                 }
                                 return false
                             }
