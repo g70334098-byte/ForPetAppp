@@ -509,6 +509,7 @@
                     '</div>'
                 );
 
+                updateNearbyHospitalsForGuard(carLat, carLng);
                 var loader = document.getElementById('loading-indicator');
                 if (loader) loader.style.display = 'none';
 
@@ -596,12 +597,35 @@
             }
         }
 
+        function updateNearbyHospitalsForGuard(lat, lng) {
+            if (!lat || !lng || lat < 1.0 || lng < 1.0 || !map) return;
+            var guardLoc = L.latLng(lat, lng);
+            for (var key in markers) {
+                if (key !== 'car' && key !== 'userHome' && markers[key]) {
+                    try {
+                        var distKm = guardLoc.distanceTo(markers[key].getLatLng()) / 1000.0;
+                        if (distKm <= 8.0) { // 가드 현재 GPS 위치 기준 반경 8km 이내 근처 병원만 스마트 노출!
+                            if (!map.hasLayer(markers[key])) {
+                                markers[key].addTo(map);
+                            }
+                        } else {
+                            if (map.hasLayer(markers[key])) {
+                                map.removeLayer(markers[key]);
+                            }
+                        }
+                    } catch (_) {}
+                }
+            }
+        }
+
         function updateCarGps(lat, lng) {
+            if (!lat || !lng || lat < 1.0 || lng < 1.0) return;
             carLat = lat;
             carLng = lng;
             if (markers.car) {
                 markers.car.setLatLng([lat, lng]);
             }
+            updateNearbyHospitalsForGuard(lat, lng);
         }
 
         window.addEventListener('DOMContentLoaded', initMapEngine);
