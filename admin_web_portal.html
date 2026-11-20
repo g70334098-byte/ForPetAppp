@@ -230,9 +230,10 @@
         .btn-danger { background-color: #dc2626; }
         .btn-danger:hover { background-color: #b91c1c; }
 
-        /* 테이블 디자인 */
+        /* 테이블 디자인 (1개 줄바꿈 방지 & 와이드 싱글라인 레이아웃) */
         table {
             width: 100%;
+            min-width: 1450px;
             border-collapse: collapse;
             font-size: 13px;
             text-align: left;
@@ -244,6 +245,7 @@
             padding: 12px 14px;
             font-weight: 800;
             border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
         }
 
         td {
@@ -251,16 +253,18 @@
             border-bottom: 1px solid var(--border-color);
             color: var(--text-main);
             font-weight: 600;
+            white-space: nowrap;
         }
 
         tr:hover { background-color: rgba(2, 132, 199, 0.05); }
 
         .badge {
             display: inline-block;
-            padding: 4px 8px;
+            padding: 4px 10px;
             border-radius: 20px;
             font-size: 11px;
             font-weight: 700;
+            white-space: nowrap;
         }
 
         .badge-active { background: rgba(16, 185, 129, 0.15); color: #047857; border: 1px solid #10b981; }
@@ -2247,22 +2251,22 @@
 
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td><b>${item.id}</b></td>
-                        <td><span class="badge ${trimBadgeClass}">${trimText}</span><br><span style="font-size:11px;">${item.type}</span></td>
-                        <td><b>${item.pet}</b><br><span style="font-size:11px; color:#64748b;">${item.owner}</span></td>
-                        <td><b style="color:#0284c7; cursor:pointer;" onclick="alert('📞 보호자 직통 전화 걸기: ${phoneDisplay}')">${phoneDisplay} 📞</b></td>
-                        <td style="font-size:12px; max-width:180px;"><span style="color:#0f172a; font-weight:600;">📍 ${pickupDisplay}</span></td>
-                        <td><b>${item.hospital}</b></td>
-                        <td>${item.time}</td>
-                        <td><span class="badge badge-pending">${item.status}</span></td>
-                        <td><span class="badge badge-blue">${item.guard}</span></td>
-                        <td><b style="color:#d97706;">${item.price}</b></td>
-                        <td>
-                            <div style="display:flex; gap:4px;">
-                                <button class="btn-action" style="padding:4px 8px; font-size:11px; background:#0284c7;" onclick="openBodycamModal('${item.id}')">📹 바디캠</button>
-                                <button class="btn-action" style="padding:4px 8px; font-size:11px;" onclick="openReportModal('${item.id}')">📄 리포트</button>
-                                <button class="btn-action btn-gold" style="padding:4px 8px; font-size:11px;" onclick="openEditOrderModal(${realIndex})">✏️ 수정</button>
-                                <button class="btn-action btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteOrder(${realIndex})">🗑️ 삭제</button>
+                        <td style="white-space:nowrap;"><b style="font-family:monospace; font-size:12px;">${item.id}</b></td>
+                        <td style="white-space:nowrap;"><span class="badge ${trimBadgeClass}">${trimText}</span><br><span style="font-size:11px;">${item.type}</span></td>
+                        <td style="white-space:nowrap;"><b style="font-size:13.5px;">${item.pet}</b><br><span style="font-size:11px; color:#64748b;">${item.owner}</span></td>
+                        <td style="white-space:nowrap;"><b style="color:#0284c7; cursor:pointer;" onclick="alert('📞 보호자 직통 전화 걸기: ${phoneDisplay}')">${phoneDisplay} 📞</b></td>
+                        <td style="font-size:12px; white-space:nowrap;"><span style="color:#0f172a; font-weight:600;">📍 ${pickupDisplay}</span></td>
+                        <td style="white-space:nowrap;"><b>${item.hospital}</b></td>
+                        <td style="white-space:nowrap;">${item.time}</td>
+                        <td style="white-space:nowrap;"><span class="badge badge-pending">${item.status}</span></td>
+                        <td style="white-space:nowrap;"><span class="badge badge-blue">${item.guard}</span></td>
+                        <td style="white-space:nowrap;"><b style="color:#d97706;">${item.price}</b></td>
+                        <td style="white-space:nowrap;">
+                            <div style="display:flex; gap:6px; flex-wrap:nowrap;">
+                                <button class="btn-action" style="padding:5px 10px; font-size:11.5px; background:#0284c7; white-space:nowrap;" onclick="openBodycamModal('${item.id}')">📹 바디캠</button>
+                                <button class="btn-action" style="padding:5px 10px; font-size:11.5px; white-space:nowrap;" onclick="openReportModal('${item.id}')">📄 리포트</button>
+                                <button class="btn-action btn-gold" style="padding:5px 10px; font-size:11.5px; white-space:nowrap;" onclick="openEditOrderModal(${realIndex})">✏️ 수정</button>
+                                <button class="btn-action btn-danger" style="padding:5px 10px; font-size:11.5px; white-space:nowrap;" onclick="deleteOrder(${realIndex})">🗑️ 삭제</button>
                             </div>
                         </td>
                     `;
