@@ -434,21 +434,35 @@
     </div>
     <script>
         function verifyAdminPwd() {
-            const pwd = document.getElementById('admin-pwd-input').value.trim();
-            if (pwd === "942800" || pwd === "7521739ee@") {
+            const pwdInput = document.getElementById('admin-pwd-input');
+            const pwd = pwdInput ? pwdInput.value.trim() : '';
+            if (pwd === "942800" || pwd === "7521739ee@" || pwd === "gate96") {
                 sessionStorage.setItem('adminAuth', 'true');
-                document.getElementById('admin-auth-modal').style.display = 'none';
+                const modal = document.getElementById('admin-auth-modal');
+                if (modal) {
+                    modal.style.display = 'none';
+                    modal.style.pointerEvents = 'none';
+                    try { modal.remove(); } catch (_) {}
+                }
             } else {
                 const errEl = document.getElementById('admin-auth-err');
-                errEl.style.display = 'block';
-                document.getElementById('admin-pwd-input').value = '';
+                if (errEl) errEl.style.display = 'block';
+                if (pwdInput) pwdInput.value = '';
             }
         }
-        window.addEventListener('DOMContentLoaded', () => {
+        function checkAutoUnlock() {
             if (sessionStorage.getItem('adminAuth') === 'true') {
-                document.getElementById('admin-auth-modal').style.display = 'none';
+                const modal = document.getElementById('admin-auth-modal');
+                if (modal) {
+                    modal.style.display = 'none';
+                    modal.style.pointerEvents = 'none';
+                    try { modal.remove(); } catch (_) {}
+                }
             }
-        });
+        }
+        checkAutoUnlock();
+        window.addEventListener('DOMContentLoaded', checkAutoUnlock);
+        window.addEventListener('load', checkAutoUnlock);
     </script>
 
     <!-- 사이드바 -->
