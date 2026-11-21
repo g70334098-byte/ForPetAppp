@@ -29,13 +29,13 @@ android {
         applicationId = "com.baldong.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 128
-        versionName = "1.0.128"
+        versionCode = 129
+        versionName = "1.0.129"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            debugSymbolLevel = "SYMBOL_TABLE"
+            debugSymbolLevel = "FULL"
         }
     }
 
@@ -66,7 +66,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             ndk {
-                debugSymbolLevel = "SYMBOL_TABLE"
+                debugSymbolLevel = "FULL"
             }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
