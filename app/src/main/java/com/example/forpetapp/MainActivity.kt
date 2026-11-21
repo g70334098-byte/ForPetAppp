@@ -10695,22 +10695,6 @@ fun HomeScreenContent(
                                         selectedLabelColor = Color.White
                                     )
                                 )
-
-                                val is3Pet = (isMultiPetSelected && multiPetCount == 3)
-                                FilterChip(
-                                    selected = is3Pet,
-                                    onClick = {
-                                        isMultiPetSelected = true
-                                        multiPetCount = 3
-                                        bookingPetName = if (petList.size >= 3) "${petList[0].name} + ${petList[1].name} + ${petList[2].name} (동반)" else "두부 + 초코 + 몽이 (3마리 동반)"
-                                        selectedSpecies = "🐶+🐱 강아지 + 고양이 (혼합 동반)"
-                                    },
-                                    label = { Text("🐾 3마리 동반 (-25,000원)", fontSize = 11.sp, fontWeight = if (is3Pet) FontWeight.Bold else FontWeight.Medium) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = Color(0xFFD97706),
-                                        selectedLabelColor = Color.White
-                                    )
-                                )
                             }
                         }
                     }
