@@ -138,7 +138,7 @@ fun ForPetApp() {
     var isOnboarded by remember { mutableStateOf(prefs.getBoolean("is_onboarded", false)) }
     var isTermsAgreed by remember { mutableStateOf(prefs.getBoolean("is_terms_agreed", false)) }
 
-    var currentScreen by remember { 
+    var currentScreen by androidx.compose.runtime.saveable.rememberSaveable { 
         mutableStateOf(
             when {
                 !isOnboarded -> ScreenState.ONBOARDING
