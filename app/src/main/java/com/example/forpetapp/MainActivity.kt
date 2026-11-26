@@ -40,7 +40,6 @@ import com.example.forpetapp.service.ForPetFirebaseMessagingService
 import kotlinx.coroutines.launch
 import com.example.forpetapp.security.AppSecurityManager
 import com.example.forpetapp.security.SecurityScanResult
-import android.content.ClipboardManager
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
