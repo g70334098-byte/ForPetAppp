@@ -62,12 +62,18 @@ object FirebaseSyncManager {
                 val base64Part = uriOrData.substringAfter("base64,", "")
                 if (base64Part.isNotEmpty()) {
                     val bytes = android.util.Base64.decode(base64Part, android.util.Base64.DEFAULT)
-                    android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    val options = android.graphics.BitmapFactory.Options().apply {
+                        inSampleSize = 1
+                    }
+                    android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
                 } else null
             } else {
                 val uri = android.net.Uri.parse(uriOrData)
                 context.contentResolver.openInputStream(uri)?.use { input ->
-                    android.graphics.BitmapFactory.decodeStream(input)
+                    val options = android.graphics.BitmapFactory.Options().apply {
+                        inSampleSize = 2 // 메모리 다운샘플링으로 OOM 튕김 원천 방지
+                    }
+                    android.graphics.BitmapFactory.decodeStream(input, null, options)
                 }
             }
         } catch (_: Exception) {
