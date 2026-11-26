@@ -6729,87 +6729,40 @@ fun MyPageScreen(
             }
         }
 
-        // 2. 결제 카드 등록란
+        // 2. 안심 결제 수단 세팅 안내 카드 (전자금융거래법 준수: 카드번호 직접 수집 및 저장 100% 금지)
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, Color(0xFFB08968))
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("💳 결제 카드 등록 및 관리", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
-                        TextButton(onClick = { showAddCardDialog = true }) {
-                            Text(if (registeredCard == null) "+ 카드 등록" else "+ 카드 변경", color = Color(0xFF0284C7), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("💳", fontSize = 18.sp)
+                            Text("안심 결제 수단 안내", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                        }
+                        Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFDCFCE7)) {
+                            Text("🔒 보안 준수", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                         }
                     }
-
-                    Text("진료 대행 및 야간 응급 출동 서비스 이용 시 사용되는 카드입니다.", fontSize = 12.sp, color = Color.Gray)
-
-                    if (registeredCard == null) {
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { showAddCardDialog = true },
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFFF8FAFC),
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Text("💳", fontSize = 22.sp)
-                                    Column {
-                                        Text("등록된 결제 카드가 없습니다", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF475569))
-                                        Text("터치하여 결제 카드를 등록해 주세요", fontSize = 11.sp, color = Color.Gray)
-                                    }
-                                }
-                                Text("+ 등록", fontSize = 12.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    } else {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFFF1F5F9)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(14.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text("💳", fontSize = 20.sp)
-                                    Column {
-                                        Text("대표 결제 카드", fontSize = 11.sp, color = Color.Gray)
-                                        Text(registeredCard ?: "", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF1E293B))
-                                    }
-                                }
-                                TextButton(onClick = { 
-                                    registeredCard = null 
-                                    onUpdateCard(null)
-                                }) {
-                                    Text("삭제", fontSize = 12.sp, color = Color.Red, fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        }
-                    }
+                    Text(
+                        "• 전자금융거래법 준수: 카드번호 및 금융 정보는 어플에 일체 직접 수집/저장되지 않으며, 예약 시 정식 PG사를 통해 사전 가결제 승인이 진행됩니다.\n" +
+                        "• 지원 결제 수단: 네이버페이, 카카오페이, 토스페이, 신용/체크카드 사전 가승인.",
+                        fontSize = 11.sp,
+                        color = Color(0xFF475569),
+                        lineHeight = 15.sp
+                    )
                 }
             }
         }
@@ -7434,64 +7387,6 @@ fun MyPageScreen(
             },
             dismissButton = {
                 OutlinedButton(onClick = { showDeleteAccountDialog = false }) {
-                    Text("취소")
-                }
-            }
-        )
-    }
-
-    // 카드 등록 다이얼로그
-    if (showAddCardDialog) {
-        AlertDialog(
-            onDismissRequest = { showAddCardDialog = false },
-            title = { Text("💳 신규 카드 등록", fontWeight = FontWeight.Bold, fontSize = 18.sp) },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedTextField(
-                        value = newCardNumber,
-                        onValueChange = { newCardNumber = it },
-                        label = { Text("카드 번호 (16자리)") },
-                        placeholder = { Text("0000-0000-0000-0000") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = newCardExpiry,
-                        onValueChange = { newCardExpiry = it },
-                        label = { Text("유효기간 (MM/YY)") },
-                        placeholder = { Text("12/28") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (newCardNumber.isNotEmpty()) {
-                            val lastFour = if (newCardNumber.length >= 4) newCardNumber.takeLast(4) else "0000"
-                            registeredCard = "등록된 카드 (****-****-****-$lastFour)"
-                            Toast.makeText(context, "새로운 카드가 등록되었습니다.", Toast.LENGTH_SHORT).show()
-                            showAddCardDialog = false
-                            newCardNumber = ""
-                            newCardExpiry = ""
-                        } else {
-                            Toast.makeText(context, "카드 번호를 입력해 주세요.", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
-                ) {
-                    Text("등록하기", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAddCardDialog = false }) {
                     Text("취소")
                 }
             }
