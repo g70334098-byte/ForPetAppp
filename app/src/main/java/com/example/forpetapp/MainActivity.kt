@@ -11593,6 +11593,28 @@ fun HomeScreenContent(
                         }
                     }
 
+                    // 💡 병원 진료비 수납 원칙 안내 카드 (가드 사비 & 회사 대납 절대 금지 원칙)
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFEFF6FF),
+                            border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text("💡", fontSize = 18.sp)
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text("동물병원 진료비 수납 원칙 안내", fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = Color(0xFF1E40AF))
+                                    Text("가드 개인 사비 지불 및 회사 대납 결제는 일체 불가합니다. 진료 후 동물병원 데스크에서 보호자님께 직접 전화/문자 결제를 진행하며, 결제 수납 확인 즉시 안전 귀가가 진행됩니다. (무인 픽업 시 자택 실물 카드 배치 가능)", fontSize = 10.5.sp, color = Color(0xFF1E3A8A), lineHeight = 14.sp)
+                                }
+                            }
+                        }
+                    }
+
                     // 3. ⚡ 간편결제 수단 선택 카드
                     item {
                         Card(
